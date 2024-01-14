@@ -17,10 +17,6 @@
 			"TargetAllowList": [
 				"Editor"
 			]
-		},
-		{
-			"Name": "MixamoAnimToUE5",
-			"Enabled": true
 		}
 	]
 }
