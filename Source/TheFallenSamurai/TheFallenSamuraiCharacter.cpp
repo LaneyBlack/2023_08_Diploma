@@ -50,6 +50,9 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	ThirdPersonCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	ThirdPersonCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	bFirstJump = true;
+	bDoubleJumping = false;
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -69,6 +72,38 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	}
 }
 
+void ATheFallenSamuraiCharacter::DoubleJump()
+{
+	if (bFirstJump)
+	{
+		bFirstJump = false;
+		bDoubleJumping = false;
+		ACharacter::Jump();
+	}
+	else if (GetCharacterMovement()->IsFalling() && !bDoubleJumping)
+	{
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+		if (PlayerController)
+		{
+			bDoubleJumping = true;
+
+			FVector LaunchDirection = GetActorForwardVector();
+
+			if (LaunchDirection.IsNearlyZero())
+			{
+				LaunchDirection = FVector(1.0f, 0.0f, 0.0f);
+			}
+
+			LaunchDirection.Normalize();
+			FVector LaunchVelocity = LaunchDirection * 750.0f;
+			LaunchVelocity.Z = 750.0f;
+
+			LaunchCharacter(LaunchVelocity, false, true);
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -78,7 +113,7 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::DoubleJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
