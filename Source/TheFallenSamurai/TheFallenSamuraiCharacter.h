@@ -16,6 +16,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
+
 class ATheFallenSamuraiCharacter : public ACharacter
 {
 	GENERATED_BODY()
@@ -46,7 +47,8 @@ class ATheFallenSamuraiCharacter : public ACharacter
 
 public:
 	ATheFallenSamuraiCharacter();
-	
+
+	bool bIsWallrunning;
 
 protected:
 
@@ -61,6 +63,9 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
+
+	// Every tick
+	void Tick(float DeltaTime);
 
 	// Reset Double Jump
 	virtual void Landed(const FHitResult& Hit) override;
