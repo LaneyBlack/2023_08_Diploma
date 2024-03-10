@@ -72,29 +72,6 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	}
 }
 
-void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	ATheFallenSamuraiCharacter* Character = Cast<ATheFallenSamuraiCharacter>(GetOwner());
-
-	if(Character)
-	{
-		UActorComponent* ParkourMovementComponent = Character->GetComponentByClass<UActorComponent>();
-
-		if(ParkourMovementComponent)
-		{
-			UFunction* GetWallrunningFunc = ParkourMovementComponent->FindFunction(TEXT("GetWallrunning"));
-
-			if(GetWallrunningFunc)
-			{
-				ParkourMovementComponent->ProcessEvent(GetWallrunningFunc, &bIsWallrunning);
-			}
-		}
-	}
-}
-
-
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
@@ -109,7 +86,7 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 		bDoubleJumping = false;
 		ACharacter::Jump();
 	}
-	else if ((GetCharacterMovement()->IsFalling() || bIsWallrunning) && !bDoubleJumping)
+	else if ((GetCharacterMovement()->IsFalling() || bIsWallrunJumping) && !bDoubleJumping)
 	{
 		APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
@@ -129,6 +106,9 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 			LaunchVelocity.Z = 750.0f;
 
 			LaunchCharacter(LaunchVelocity, false, true);
+
+			UE_LOG(LogTemp, Warning, TEXT("bIsWallrunJumping: %s"), bIsWallrunJumping ? TEXT("True") : TEXT("False"));
+			bIsWallrunJumping = false;
 		}
 	}
 }

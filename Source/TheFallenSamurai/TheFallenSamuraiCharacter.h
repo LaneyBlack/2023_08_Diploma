@@ -48,7 +48,8 @@ class ATheFallenSamuraiCharacter : public ACharacter
 public:
 	ATheFallenSamuraiCharacter();
 
-	bool bIsWallrunning;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
+	bool bIsWallrunJumping;
 
 protected:
 
@@ -63,9 +64,6 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
-
-	// Every tick
-	void Tick(float DeltaTime);
 
 	// Reset Double Jump
 	virtual void Landed(const FHitResult& Hit) override;
