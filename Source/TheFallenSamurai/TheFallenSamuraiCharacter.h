@@ -49,7 +49,7 @@ public:
 	ATheFallenSamuraiCharacter();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
-	bool bIsWallrunJumping;
+	bool bIsWallrunJumping = false;
 
 protected:
 
@@ -69,7 +69,7 @@ protected:
 	virtual void Landed(const FHitResult& Hit) override;
 
 	bool bFirstJump = true;
-	bool bDoubleJumping;
+	bool bDoubleJumpingFromGround = false;
 
 public:
 	/** Returns CameraBoom subobject **/
@@ -78,5 +78,8 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return ThirdPersonCamera; }
 
 	void DoubleJump();
+
+private:
+	void DoubleJumpLogic();
 };
 

@@ -51,7 +51,7 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	ThirdPersonCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	bFirstJump = true;
-	bDoubleJumping = false;
+	bDoubleJumpingFromGround = false;
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -76,42 +76,52 @@ void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 	bFirstJump = true;
+	bDoubleJumpingFromGround = false;
+	bIsWallrunJumping = false;
 }
 
 void ATheFallenSamuraiCharacter::DoubleJump()
 {
-	if (bFirstJump)
+	if (bFirstJump && !bDoubleJumpingFromGround)
 	{
 		bFirstJump = false;
-		bDoubleJumping = false;
+		bDoubleJumpingFromGround = true;
 		ACharacter::Jump();
 	}
-	else if ((GetCharacterMovement()->IsFalling() || bIsWallrunJumping) && !bDoubleJumping)
+	else if (bIsWallrunJumping && !bDoubleJumpingFromGround && !bFirstJump)
 	{
-		APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
-		if (PlayerController)
-		{
-			bDoubleJumping = true;
-
-			FVector LaunchDirection = GetActorForwardVector();
-
-			if (LaunchDirection.IsNearlyZero())
-			{
-				LaunchDirection = FVector(1.0f, 0.0f, 0.0f);
-			}
-
-			LaunchDirection.Normalize();
-			FVector LaunchVelocity = LaunchDirection * 750.0f;
-			LaunchVelocity.Z = 750.0f;
-
-			LaunchCharacter(LaunchVelocity, false, true);
-
-			UE_LOG(LogTemp, Warning, TEXT("bIsWallrunJumping: %s"), bIsWallrunJumping ? TEXT("True") : TEXT("False"));
-			bIsWallrunJumping = false;
-		}
+		DoubleJumpLogic();
+	}
+	else if (!bFirstJump && bDoubleJumpingFromGround)
+	{
+		DoubleJumpLogic();
 	}
 }
+
+void ATheFallenSamuraiCharacter::DoubleJumpLogic()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	if (PlayerController)
+	{
+		FVector LaunchDirection = GetActorForwardVector();
+
+		if (LaunchDirection.IsNearlyZero())
+		{
+			LaunchDirection = FVector(1.0f, 0.0f, 0.0f);
+		}
+
+		LaunchDirection.Normalize();
+		FVector LaunchVelocity = LaunchDirection * 750.0f;
+		LaunchVelocity.Z = 750.0f;
+
+		LaunchCharacter(LaunchVelocity, false, true);
+			
+		bIsWallrunJumping = false;
+		bDoubleJumpingFromGround = false;
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
