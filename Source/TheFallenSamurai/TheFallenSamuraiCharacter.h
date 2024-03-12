@@ -16,6 +16,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
+
 class ATheFallenSamuraiCharacter : public ACharacter
 {
 	GENERATED_BODY()
@@ -46,7 +47,9 @@ class ATheFallenSamuraiCharacter : public ACharacter
 
 public:
 	ATheFallenSamuraiCharacter();
-	
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
+	bool bIsWallrunJumping = false;
 
 protected:
 
@@ -55,19 +58,28 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-			
-
-protected:
+	
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	// To add mapping context
 	virtual void BeginPlay();
 
+	// Reset Double Jump
+	virtual void Landed(const FHitResult& Hit) override;
+
+	bool bFirstJump = true;
+	bool bDoubleJumpingFromGround = false;
+
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return ThirdPersonCamera; }
+
+	void DoubleJump();
+
+private:
+	void DoubleJumpLogic();
 };
 
