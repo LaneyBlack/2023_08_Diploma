@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "AComboSystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -119,6 +120,14 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 			
 		bIsWallrunJumping = false;
 		bDoubleJumpingFromGround = false;
+	}
+}
+
+void ATheFallenSamuraiCharacter::StartCombo() const
+{
+	if(ComboSystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Ref do Combo w Player działa"));
 	}
 }
 

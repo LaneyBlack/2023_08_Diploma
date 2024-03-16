@@ -12,6 +12,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class AAComboSystem;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -72,6 +73,9 @@ protected:
 	bool bDoubleJumpingFromGround = false;
 
 public:
+	/** Combo System **/
+	UPROPERTY()
+	AAComboSystem* ComboSystem;
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
@@ -81,5 +85,7 @@ public:
 
 private:
 	void DoubleJumpLogic();
+
+	void StartCombo() const;
 };
 
