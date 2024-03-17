@@ -14,12 +14,12 @@ UComboSystem* UComboSystem::GetInstance()
 
 UComboSystem::UComboSystem()
 {
-	// Inicjalizacja ComboSystemu
+	// initiate
 }
 
 UComboSystem::~UComboSystem()
 {
-	// Czyszczenie ComboSystemu
+	// clear
 }
 
 UComboSystem* UComboSystem::GetComboSystemInstance_Implementation()
@@ -40,12 +40,11 @@ void UComboSystem::EnemyKilled()
 	UE_LOG(LogTemp, Warning, TEXT("KILL!"));
 	if (ComboData.CurrentComboLevel > ComboData.MaxComboLevel)
 	{
-		// Osiągnięto maksymalny poziom comba, wykonaj odpowiednie działania
-		// Tutaj możesz wywołać efekty dźwiękowe, wizualne itp.
+		
 	}
 	else
 	{
-		// Combo nie osiągnął jeszcze maksymalnego poziomu
+		
 	}
 }
 
