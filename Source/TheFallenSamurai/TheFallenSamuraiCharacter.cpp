@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "ComboSystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -70,9 +71,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-
 	
-	ComboSystemInstance = UComboSystem::GetInstance();
+	ComboSystem = UComboSystem::GetInstance();
+	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)

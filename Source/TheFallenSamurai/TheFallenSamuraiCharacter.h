@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
-#include "ComboSystem.h"
 #include "TheFallenSamuraiCharacter.generated.h"
 
 class USpringArmComponent;
@@ -15,6 +14,8 @@ class UInputAction;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+
+class UComboSystem;
 
 UCLASS(config=Game)
 
@@ -53,7 +54,7 @@ public:
 	bool bIsWallrunJumping = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combo", meta = (AllowPrivateAccess = "true"))
-	UComboSystem* ComboSystemInstance;
+	UComboSystem* ComboSystem;
 
 protected:
 

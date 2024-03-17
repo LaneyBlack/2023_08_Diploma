@@ -1,54 +1,40 @@
+// ComboSystem.cpp
+
 #include "ComboSystem.h"
 
 UComboSystem* UComboSystem::Instance = nullptr;
 
+UComboSystem::UComboSystem()
+{
+	KillCount = 0;
+	ComboLevel = 0;
+}
+
+void UComboSystem::IncreaseKillCount()
+{
+	KillCount++;
+	// Adjust Combo Level based on KillCount, for example:
+	// ComboLevel = KillCount / 5;
+}
+
+void UComboSystem::ResetCombo()
+{
+	KillCount = 0;
+	ComboLevel = 0;
+}
+
 UComboSystem* UComboSystem::GetInstance()
 {
-	if (!Instance)
+	if (Instance == nullptr)
 	{
-		Instance = NewObject<UComboSystem>(GetTransientPackage());
+		Instance = NewObject<UComboSystem>();
+		Instance->AddToRoot(); // Dodano dodanie obiektu do drzewa referencji
 	}
 	return Instance;
 }
 
-
-UComboSystem::UComboSystem()
+void UComboSystem::BeginDestroy()
 {
-	// initiate
-}
-
-UComboSystem::~UComboSystem()
-{
-	// clear
-}
-
-UComboSystem* UComboSystem::GetComboSystemInstance_Implementation()
-{
-	return GetInstance();
-}
-
-void UComboSystem::EnemyKilled()
-{
-	if (!Instance)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ComboSystem instance not found"));
-		return;
-	}
-
-	currentComboKills++;
-	ComboData.CurrentComboLevel++;
-	UE_LOG(LogTemp, Warning, TEXT("KILL!"));
-	if (ComboData.CurrentComboLevel > ComboData.MaxComboLevel)
-	{
-		
-	}
-	else
-	{
-		
-	}
-}
-
-int32 UComboSystem::GetCurrentComboLevel() const
-{
-	return ComboData.CurrentComboLevel;
+	Super::BeginDestroy();
+	Instance = nullptr; // Dodano zwolnienie obiektu podczas zamykania gry
 }

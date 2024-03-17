@@ -15,7 +15,4 @@ class THEFALLENSAMURAI_API IComboSystemInterface
 	GENERATED_BODY()
 
 public:
-	// Deklaracja funkcji, nie ma implementacji tutaj
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "ComboSystem")
-	class UComboSystem* GetComboSystemInstance();
 };
