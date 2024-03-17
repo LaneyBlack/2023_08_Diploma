@@ -10,7 +10,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "AComboSystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -71,6 +70,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+
+	
+	ComboSystemInstance = UComboSystem::GetInstance();
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -122,15 +124,6 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 		bDoubleJumpingFromGround = false;
 	}
 }
-
-void ATheFallenSamuraiCharacter::StartCombo() const
-{
-	if(ComboSystem)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Ref do Combo w Player działa"));
-	}
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 // Input

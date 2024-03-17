@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "ComboSystem.h"
 #include "TheFallenSamuraiCharacter.generated.h"
 
 class USpringArmComponent;
@@ -12,7 +13,6 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
-class AAComboSystem;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -52,6 +52,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
 	bool bIsWallrunJumping = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combo", meta = (AllowPrivateAccess = "true"))
+	UComboSystem* ComboSystemInstance;
+
 protected:
 
 	/** Called for movement input */
@@ -73,9 +76,6 @@ protected:
 	bool bDoubleJumpingFromGround = false;
 
 public:
-	/** Combo System **/
-	UPROPERTY()
-	AAComboSystem* ComboSystem;
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
@@ -85,7 +85,5 @@ public:
 
 private:
 	void DoubleJumpLogic();
-
-	void StartCombo() const;
 };
 
