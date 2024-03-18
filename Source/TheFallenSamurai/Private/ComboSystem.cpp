@@ -1,5 +1,3 @@
-// ComboSystem.cpp
-
 #include "ComboSystem.h"
 
 UComboSystem* UComboSystem::Instance = nullptr;
@@ -12,15 +10,40 @@ UComboSystem::UComboSystem()
 
 void UComboSystem::IncreaseKillCount()
 {
+	if (!this)
+	{
+		return;
+	}
+
 	KillCount++;
-	// Adjust Combo Level based on KillCount, for example:
-	// ComboLevel = KillCount / 5;
+	UpdateComboLevel();
+	
 }
+
+void UComboSystem::UpdateComboLevel()
+{
+	if (KillCount != PreviousKillCount)
+	{
+		ComboLevel++;
+		PreviousKillCount = KillCount;
+		FString ComboLevelString = FString::Printf(TEXT("Combo Level: %d"), ComboLevel);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, ComboLevelString);
+		
+		if (ComboLevel > 1)
+		{
+			FString KillStreakString = FString::Printf(TEXT("%d kills!"), ComboLevel);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, KillStreakString);
+		}
+	}
+}
+
 
 void UComboSystem::ResetCombo()
 {
-	KillCount = 0;
 	ComboLevel = 0;
+
+	FString ResetString = FString::Printf(TEXT("Combo reset!"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, ResetString);
 }
 
 UComboSystem* UComboSystem::GetInstance()
@@ -28,7 +51,7 @@ UComboSystem* UComboSystem::GetInstance()
 	if (Instance == nullptr)
 	{
 		Instance = NewObject<UComboSystem>();
-		Instance->AddToRoot(); // Dodano dodanie obiektu do drzewa referencji
+		Instance->AddToRoot();
 	}
 	return Instance;
 }
@@ -36,5 +59,5 @@ UComboSystem* UComboSystem::GetInstance()
 void UComboSystem::BeginDestroy()
 {
 	Super::BeginDestroy();
-	Instance = nullptr; // Dodano zwolnienie obiektu podczas zamykania gry
+	Instance = nullptr;
 }

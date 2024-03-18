@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TheFallenSamuraiCharacter.h"
+
+#include "ComboSystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,7 +12,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "ComboSystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -71,8 +72,8 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-	
-	ComboSystem = UComboSystem::GetInstance();
+
+	ResetCombo();
 	
 }
 
@@ -123,6 +124,14 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 			
 		bIsWallrunJumping = false;
 		bDoubleJumpingFromGround = false;
+	}
+}
+
+void ATheFallenSamuraiCharacter::ResetCombo()
+{
+	if (UComboSystem* ComboSystem = UComboSystem::GetInstance())
+	{
+		ComboSystem->ResetCombo();
 	}
 }
 

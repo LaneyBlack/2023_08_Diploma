@@ -1,9 +1,8 @@
-// ComboSystem.h
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "TimerManager.h"
 #include "ComboSystem.generated.h"
 
 UCLASS()
@@ -20,6 +19,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	int32 ComboLevel;
 
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
 	void IncreaseKillCount();
 
 	void ResetCombo();
@@ -28,8 +28,12 @@ public:
 	static UComboSystem* GetInstance();
 
 protected:
-	virtual void BeginDestroy() override; // Dodano funkcję BeginDestroy()
+	virtual void BeginDestroy() override;
 
-	private:
+	int32 PreviousKillCount = 0;
+
+private:
 	static UComboSystem* Instance;
+
+	void UpdateComboLevel();
 };

@@ -1,5 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "ComboSystemInstance.h"
 
+void UComboSystemInstance::Init()
+{
+	Super::Init();
+	
+	ComboSystemInstance = UComboSystem::GetInstance();
+}

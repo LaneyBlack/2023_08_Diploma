@@ -53,9 +53,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
 	bool bIsWallrunJumping = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combo", meta = (AllowPrivateAccess = "true"))
-	UComboSystem* ComboSystem;
-
 protected:
 
 	/** Called for movement input */
@@ -74,6 +71,7 @@ protected:
 	virtual void Landed(const FHitResult& Hit) override;
 
 	bool bFirstJump = true;
+	
 	bool bDoubleJumpingFromGround = false;
 
 public:
@@ -86,5 +84,7 @@ public:
 
 private:
 	void DoubleJumpLogic();
+	
+	void ResetCombo();
 };
 
