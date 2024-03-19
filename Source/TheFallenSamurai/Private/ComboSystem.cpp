@@ -16,6 +16,8 @@ void UComboSystem::IncreaseKillCount()
 	}
 
 	KillCount++;
+	FString KillCountlString = FString::Printf(TEXT("Kill Count: %d"), KillCount);
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, KillCountlString);
 	UpdateComboLevel();
 	
 }
