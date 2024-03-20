@@ -19,6 +19,8 @@ void UComboSystem::IncreaseKillCount()
 	FString KillCountlString = FString::Printf(TEXT("Kill Count: %d"), KillCount);
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, KillCountlString);
 	UpdateComboLevel();
+
+	KillIncreasedEvent.Broadcast();
 	
 }
 
@@ -30,12 +32,14 @@ void UComboSystem::UpdateComboLevel()
 		PreviousKillCount = KillCount;
 		FString ComboLevelString = FString::Printf(TEXT("Combo Level: %d"), ComboLevel);
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, ComboLevelString);
-		
+
+		/**
 		if (ComboLevel > 1)
 		{
 			FString KillStreakString = FString::Printf(TEXT("%d kills!"), ComboLevel);
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, KillStreakString);
 		}
+		**/
 	}
 }
 

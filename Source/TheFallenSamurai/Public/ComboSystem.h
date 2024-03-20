@@ -27,6 +27,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "ComboSystem")
 	static UComboSystem* GetInstance();
 
+	DECLARE_EVENT(UComboSystem, FOnKillIncreased)
+	FOnKillIncreased& OnKillIncreased() { return KillIncreasedEvent; }
+
 protected:
 	virtual void BeginDestroy() override;
 
@@ -36,4 +39,6 @@ private:
 	static UComboSystem* Instance;
 
 	void UpdateComboLevel();
+
+	FOnKillIncreased KillIncreasedEvent;
 };
