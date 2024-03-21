@@ -14,7 +14,7 @@ public:
 	UComboSystem();
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 KillCount;
+	int32 killCount;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 ComboLevel;
@@ -36,7 +36,7 @@ protected:
 	int32 PreviousKillCount = 0;
 
 private:
-	static UComboSystem* Instance;
+	static UComboSystem* instance;
 
 	void UpdateComboLevel();
 

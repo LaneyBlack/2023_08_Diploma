@@ -1,10 +1,10 @@
 #include "ComboSystem.h"
 
-UComboSystem* UComboSystem::Instance = nullptr;
+UComboSystem* UComboSystem::instance = nullptr;
 
 UComboSystem::UComboSystem()
 {
-	KillCount = 0;
+	killCount = 0;
 	ComboLevel = 0;
 }
 
@@ -15,9 +15,11 @@ void UComboSystem::IncreaseKillCount()
 		return;
 	}
 
-	KillCount++;
-	FString KillCountlString = FString::Printf(TEXT("Kill Count: %d"), KillCount);
+	killCount++;
+	
+	FString KillCountlString = FString::Printf(TEXT("Kill Count: %d"), killCount);
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, KillCountlString);
+	
 	UpdateComboLevel();
 
 	KillIncreasedEvent.Broadcast();
@@ -26,10 +28,10 @@ void UComboSystem::IncreaseKillCount()
 
 void UComboSystem::UpdateComboLevel()
 {
-	if (KillCount != PreviousKillCount)
+	if (killCount != PreviousKillCount)
 	{
 		ComboLevel++;
-		PreviousKillCount = KillCount;
+		PreviousKillCount = killCount;
 		FString ComboLevelString = FString::Printf(TEXT("Combo Level: %d"), ComboLevel);
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, ComboLevelString);
 
@@ -54,16 +56,16 @@ void UComboSystem::ResetCombo()
 
 UComboSystem* UComboSystem::GetInstance()
 {
-	if (Instance == nullptr)
+	if (instance == nullptr)
 	{
-		Instance = NewObject<UComboSystem>();
-		Instance->AddToRoot();
+		instance = NewObject<UComboSystem>();
+		instance->AddToRoot();
 	}
-	return Instance;
+	return instance;
 }
 
 void UComboSystem::BeginDestroy()
 {
 	Super::BeginDestroy();
-	Instance = nullptr;
+	instance = nullptr;
 }
