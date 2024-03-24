@@ -74,7 +74,6 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	}
 
 	ResetCombo();
-	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)

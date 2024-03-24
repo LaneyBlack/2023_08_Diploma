@@ -15,13 +15,22 @@ class THEFALLENSAMURAI_API UComboTimerComponent : public UActorComponent
 public:	
 	UComboTimerComponent();
 
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
+	float GetRemainingComboTime() const;
+
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
+	float GetTotalComboTime() const;
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	FTimerHandle ComboTimerHandle;
+	FTimerHandle KillStreakTimerHandle;
 	void StartComboTimer();
+	void StartKillStreakTimer();
 	void OnComboTimerEnd();
+	void OnKillStreakTimerEnd();
 	void OnKillIncreased();
 };
 
