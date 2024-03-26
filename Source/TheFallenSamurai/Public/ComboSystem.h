@@ -2,7 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "TimerManager.h"
+#include "ComboTimerComponent.h"
 #include "ComboSystem.generated.h"
+
+UENUM(BlueprintType)
+enum class EComboState : uint8
+{
+	None UMETA(DisplayName = "None"),
+	WalljumpKill UMETA(DisplayName = "WalljumpKill")
+};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewKillStreakMessage, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetCombo);
@@ -17,32 +25,34 @@ public:
 	UComboSystem();
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 killCount;
+	int32 KillCount;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 killStreakCount;
+	int32 KillStreakCount;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 ComboLevel;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 totalComboPoints;
+	int32 TotalComboPoints;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 currentComboPoints;
+	int32 CurrentComboPoints;
 
 	UPROPERTY(BlueprintReadOnly)
-	FString killStreakName;
+	FString KillStreakName;
 
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FString> killStreakMessages;
+	TArray<FString> KillStreakMessages;
 
 	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
 	void IncreaseKillCount();
 
+	void StartKillStreak();
+
 	void ResetCombo();
 
-	void StartKillStreak();
+	void ResetComboState();
 
 	void EndKillStreak();
 
@@ -61,15 +71,41 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnComboStart OnComboStart;
 
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
+	void SetOwnerCharacter(ATheFallenSamuraiCharacter* NewOwner)
+	{
+		OwnerCharacter = NewOwner;
+	}
+
+	EComboState GetComboState() const
+	{
+		return ComboState;
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
+	void SetComboState(EComboState NewComboState)
+	{
+		ComboState = NewComboState;
+		InitializeComboStateTimer();
+	}
+
 protected:
 	virtual void BeginDestroy() override;
 
-	int32 PreviousKillCount = 0;
-
 private:
-	static UComboSystem* instance;
+	static UComboSystem* Instance;
+
+	ATheFallenSamuraiCharacter* OwnerCharacter = nullptr;
+	
+	EComboState ComboState;
 
 	void UpdateComboLevel();
 
+	void HandleComboState();
+
+	void InitializeComboStateTimer();
+
 	FOnKillIncreased KillIncreasedEvent;
+
+	int32 PreviousKillCount = 0;
 };

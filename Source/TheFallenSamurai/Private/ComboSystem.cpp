@@ -1,14 +1,19 @@
 #include "ComboSystem.h"
 
-UComboSystem* UComboSystem::instance = nullptr;
+#include "TheFallenSamurai/TheFallenSamuraiCharacter.h"
+
+
+UComboSystem* UComboSystem::Instance = nullptr;
 
 UComboSystem::UComboSystem()
 {
-	killCount = 0;
+	KillCount = 0;
+	KillStreakCount = 0;
 	ComboLevel = 0;
-	totalComboPoints = 0;
-	currentComboPoints = 0;
-	killStreakMessages.Empty();
+	TotalComboPoints = 0;
+	CurrentComboPoints = 0;
+	ComboState = EComboState::None;
+	KillStreakMessages.Empty();
 }
 
 void UComboSystem::IncreaseKillCount()
@@ -18,10 +23,7 @@ void UComboSystem::IncreaseKillCount()
 		return;
 	}
 
-	killCount++;
-	
-	FString KillCountlString = FString::Printf(TEXT("Kill Count: %d"), killCount);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, KillCountlString);
+	KillCount++;
 	
 	StartKillStreak();
 	
@@ -33,100 +35,128 @@ void UComboSystem::IncreaseKillCount()
 
 void UComboSystem::UpdateComboLevel()
 {
-	if (killCount != PreviousKillCount)
+	if (KillCount != PreviousKillCount)
 	{
 		ComboLevel++;
+		
+		float Multiplier = FMath::Pow(2.0f, static_cast<float>(ComboLevel));
+		
+		CurrentComboPoints += Multiplier * 100;
 
-		currentComboPoints += FMath::Pow(10.0f, static_cast<float>(ComboLevel));
-
-		PreviousKillCount = killCount;
-
-		FString ComboLevelString = FString::Printf(TEXT("Combo Level: %d"), ComboLevel);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, ComboLevelString);
+		PreviousKillCount = KillCount;
 
 		OnComboStart.Broadcast();
 	}
 }
 
-void UComboSystem::StartKillStreak()
+void UComboSystem::HandleComboState()
 {
-	if (killStreakCount > 0)
+	if (this->ComboState == EComboState::WalljumpKill)
 	{
-		killStreakCount++;
-	}
-	else
-	{
-		killStreakCount = 1;
-	}
-	
-	switch (killStreakCount)
-	{
-	case 2:
-		currentComboPoints += 10;
-		killStreakName = "Double Kill!";
-		killStreakMessages.Add(killStreakName);
-		OnNewKillStreakMessage.Broadcast(killStreakName);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, killStreakName);
-		break;
-	case 3:
-		currentComboPoints += 20;
-		killStreakName = "Triple Kill!";
-		killStreakMessages.Add(killStreakName);
-		OnNewKillStreakMessage.Broadcast(killStreakName);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, killStreakName);
-		break;
-	case 4:
-		currentComboPoints += 30;
-		killStreakName = "Quadra Kill!";
-		killStreakMessages.Add(killStreakName);
-		OnNewKillStreakMessage.Broadcast(killStreakName);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, killStreakName);
-		break;
-	default:
-		if (killStreakCount >= 5)
-		{
-			currentComboPoints += 50;
-			killStreakName = "Killing Machine!";
-			killStreakMessages.Add(killStreakName);
-			OnNewKillStreakMessage.Broadcast(killStreakName);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, killStreakName);
-		}
-		break;
+		KillStreakCount = (KillStreakCount > 0) ? KillStreakCount + 1 : 1;
+		int32 Points = 1000;
+		FString StreakName = "Walljump Kill!";
+		CurrentComboPoints += Points;
+		KillStreakName = StreakName + FString::Printf(TEXT(" +%d"), Points);
+		KillStreakMessages.Add(KillStreakName);
+		OnNewKillStreakMessage.Broadcast(KillStreakName);
 	}
 }
 
+void UComboSystem::StartKillStreak()
+{
+	HandleComboState();
+
+	if (this->ComboState == EComboState::None)
+	{
+		KillStreakCount = (KillStreakCount > 0) ? KillStreakCount + 1 : 1;
+	}
+	else
+	{
+		ResetComboState();
+	}
+	
+	int32 Points = 0;
+	FString StreakName;
+
+	switch (KillStreakCount)
+	{
+	case 2:
+		Points = 1000;
+		StreakName = "Double Kill!";
+		break;
+	case 3:
+		Points = 2000;
+		StreakName = "Triple Kill!";
+		break;
+	case 4:
+		Points = 3000;
+		StreakName = "Quadra Kill!";
+		break;
+	default:
+		if (KillStreakCount >= 5)
+		{
+			Points = 5000;
+			StreakName = "Killing Machine!";
+		}
+		break;
+	}
+
+	if (!StreakName.IsEmpty())
+	{
+		CurrentComboPoints += Points;
+		KillStreakName = StreakName + FString::Printf(TEXT(" +%d"), Points);
+		KillStreakMessages.Add(KillStreakName);
+		OnNewKillStreakMessage.Broadcast(KillStreakName);
+	}
+}
+
+
 void UComboSystem::EndKillStreak()
 {
-	killStreakCount = 0;
-	killStreakMessages.Empty();
+	KillStreakCount = 0;
+	KillStreakMessages.Empty();
 }
 
 
 void UComboSystem::ResetCombo()
 {
-	totalComboPoints += currentComboPoints;
-	currentComboPoints = 0;
+	TotalComboPoints += CurrentComboPoints;
+	CurrentComboPoints = 0;
 	ComboLevel = 0;
 	OnResetCombo.Broadcast();
+	ResetComboState();
+}
 
-	FString ResetString = FString::Printf(TEXT("Combo reset!"));
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, ResetString);
-	FString ComboPoints = FString::Printf(TEXT("Combo points: %d"), totalComboPoints);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, ComboPoints);
+void UComboSystem::ResetComboState()
+{
+	this->ComboState = EComboState::None;
+}
+
+void UComboSystem::InitializeComboStateTimer()
+{
+	if (OwnerCharacter != nullptr)
+	{
+		UComboTimerComponent* ComboTimerComponent = OwnerCharacter->FindComponentByClass<UComboTimerComponent>();
+		if (ComboTimerComponent != nullptr)
+		{
+			ComboTimerComponent->StartComboStateTimer();
+		}
+	}
 }
 
 UComboSystem* UComboSystem::GetInstance()
 {
-	if (instance == nullptr)
+	if (Instance == nullptr)
 	{
-		instance = NewObject<UComboSystem>();
-		instance->AddToRoot();
+		Instance = NewObject<UComboSystem>();
+		Instance->AddToRoot();
 	}
-	return instance;
+	return Instance;
 }
 
 void UComboSystem::BeginDestroy()
 {
 	Super::BeginDestroy();
-	instance = nullptr;
+	Instance = nullptr;
 }

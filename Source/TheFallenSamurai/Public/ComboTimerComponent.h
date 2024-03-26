@@ -6,7 +6,6 @@
 #include "Components/ActorComponent.h"
 #include "ComboTimerComponent.generated.h"
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UComboTimerComponent : public UActorComponent
 {
@@ -20,6 +19,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
 	float GetTotalComboTime() const;
+	
+	void StartComboStateTimer();
 
 protected:
 	virtual void BeginPlay() override;
@@ -27,10 +28,11 @@ protected:
 private:
 	FTimerHandle ComboTimerHandle;
 	FTimerHandle KillStreakTimerHandle;
+	FTimerHandle ComboStateTimerHandle;
 	void StartComboTimer();
 	void StartKillStreakTimer();
 	void OnComboTimerEnd();
 	void OnKillStreakTimerEnd();
 	void OnKillIncreased();
+	void OnComboStateTimerEnd();
 };
-
