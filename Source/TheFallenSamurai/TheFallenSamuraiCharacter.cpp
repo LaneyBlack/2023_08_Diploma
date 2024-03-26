@@ -74,6 +74,7 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	}
 
 	ResetCombo();
+	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -131,6 +132,8 @@ void ATheFallenSamuraiCharacter::ResetCombo()
 	if (UComboSystem* ComboSystem = UComboSystem::GetInstance())
 	{
 		ComboSystem->ResetCombo();
+		ComboSystem->EndKillStreak();
+		ComboSystem->ResetComboState();
 	}
 }
 
