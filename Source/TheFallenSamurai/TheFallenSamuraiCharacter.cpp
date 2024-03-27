@@ -109,7 +109,7 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 
 	if (PlayerController)
 	{
-		FVector LaunchDirection = GetActorForwardVector();
+		FVector LaunchDirection = GetLastMovementInputVector();
 
 		if (LaunchDirection.IsNearlyZero())
 		{
