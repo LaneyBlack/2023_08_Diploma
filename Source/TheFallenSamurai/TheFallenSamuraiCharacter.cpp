@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TheFallenSamuraiCharacter.h"
+
+#include "ComboSystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -70,6 +72,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+
+	ResetCombo();
+	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -122,6 +127,15 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 	}
 }
 
+void ATheFallenSamuraiCharacter::ResetCombo()
+{
+	if (UComboSystem* ComboSystem = UComboSystem::GetInstance())
+	{
+		ComboSystem->ResetCombo();
+		ComboSystem->EndKillStreak();
+		ComboSystem->ResetComboState();
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Input

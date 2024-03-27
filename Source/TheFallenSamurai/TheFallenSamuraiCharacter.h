@@ -15,6 +15,8 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
+class UComboSystem;
+
 UCLASS(config=Game)
 
 class ATheFallenSamuraiCharacter : public ACharacter
@@ -69,6 +71,7 @@ protected:
 	virtual void Landed(const FHitResult& Hit) override;
 
 	bool bFirstJump = true;
+	
 	bool bDoubleJumpingFromGround = false;
 
 public:
@@ -81,5 +84,7 @@ public:
 
 private:
 	void DoubleJumpLogic();
+	
+	void ResetCombo();
 };
 
