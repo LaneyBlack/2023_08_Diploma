@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TheFallenSamuraiCharacter.h"
+
+#include "ComboSystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -27,7 +29,7 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
@@ -70,6 +72,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+
+	ResetCombo();
+	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -104,7 +109,7 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 
 	if (PlayerController)
 	{
-		FVector LaunchDirection = GetActorForwardVector();
+		FVector LaunchDirection = GetLastMovementInputVector();
 
 		if (LaunchDirection.IsNearlyZero())
 		{
@@ -122,6 +127,15 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 	}
 }
 
+void ATheFallenSamuraiCharacter::ResetCombo()
+{
+	if (UComboSystem* ComboSystem = UComboSystem::GetInstance())
+	{
+		ComboSystem->ResetCombo();
+		ComboSystem->EndKillStreak();
+		ComboSystem->ResetComboState();
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Input
