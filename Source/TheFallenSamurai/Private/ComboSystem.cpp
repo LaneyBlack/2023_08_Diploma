@@ -115,6 +115,7 @@ void UComboSystem::StartKillStreak()
 void UComboSystem::EndKillStreak()
 {
 	KillStreakCount = 0;
+	OnResetKillstreak.Broadcast();
 	KillStreakMessages.Empty();
 }
 
