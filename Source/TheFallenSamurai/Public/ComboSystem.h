@@ -14,6 +14,7 @@ enum class EComboState : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewKillStreakMessage, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetCombo);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetKillstreak);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnComboStart);
 
 UCLASS()
@@ -64,6 +65,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnNewKillStreakMessage OnNewKillStreakMessage;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnResetKillstreak OnResetKillstreak;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnResetCombo OnResetCombo;

@@ -13,6 +13,13 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
+UENUM(BlueprintType)
+enum class ENoJumpState : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Crouch UMETA(DisplayName = "Crouch")
+};
+
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 class UComboSystem;
@@ -53,6 +60,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
 	bool bIsWallrunJumping = false;
 
+	UFUNCTION(BlueprintCallable, Category = "NoJump")
+	void SetNoJumpState(ENoJumpState NewNoJumpState)
+	{
+		NoJumpState = NewNoJumpState;
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "NoJump")
+	void ResetNoJumpState()
+	{
+		NoJumpState = ENoJumpState::None;
+	}
+
 protected:
 
 	/** Called for movement input */
@@ -86,5 +105,7 @@ private:
 	void DoubleJumpLogic();
 	
 	void ResetCombo();
+
+	ENoJumpState NoJumpState;
 };
 

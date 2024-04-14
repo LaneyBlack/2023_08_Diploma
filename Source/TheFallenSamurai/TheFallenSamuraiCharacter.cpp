@@ -87,19 +87,22 @@ void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 
 void ATheFallenSamuraiCharacter::DoubleJump()
 {
-	if (bFirstJump && !bDoubleJumpingFromGround)
+	if (NoJumpState == ENoJumpState::None)
 	{
-		bFirstJump = false;
-		bDoubleJumpingFromGround = true;
-		ACharacter::Jump();
-	}
-	else if (bIsWallrunJumping && !bDoubleJumpingFromGround && !bFirstJump)
-	{
-		DoubleJumpLogic();
-	}
-	else if (!bFirstJump && bDoubleJumpingFromGround)
-	{
-		DoubleJumpLogic();
+		if (bFirstJump && !bDoubleJumpingFromGround)
+		{
+			bFirstJump = false;
+			bDoubleJumpingFromGround = true;
+			ACharacter::Jump();
+		}
+		else if (bIsWallrunJumping && !bDoubleJumpingFromGround && !bFirstJump)
+		{
+			DoubleJumpLogic();
+		}
+		else if (!bFirstJump && bDoubleJumpingFromGround)
+		{
+			DoubleJumpLogic();
+		}
 	}
 }
 
@@ -110,10 +113,13 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 	if (PlayerController)
 	{
 		FVector LaunchDirection = GetLastMovementInputVector();
-
 		if (LaunchDirection.IsNearlyZero())
 		{
-			LaunchDirection = FVector(1.0f, 0.0f, 0.0f);
+			LaunchDirection = GetActorForwardVector();
+		}
+		else
+		{
+			LaunchDirection = GetLastMovementInputVector();
 		}
 
 		LaunchDirection.Normalize();
