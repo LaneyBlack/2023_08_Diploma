@@ -35,6 +35,12 @@ void UCombatSystemComponent::InitializeComponent(ACharacter* player)
 	KatanaSpawnParams.TransformScaleMethod = ESpawnActorScaleMethod::MultiplyWithRoot;
 
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
+
+	EAttachmentRule KatanaAttachRules = EAttachmentRule::SnapToTarget;
+
+	Katana->K2_AttachToComponent(player->GetMesh(), "KatanaSocket",
+								 KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
+								 true);	
 }
 
 // Called every frame
