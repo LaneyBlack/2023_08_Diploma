@@ -25,8 +25,7 @@ void UCombatSystemComponent::BeginPlay()
 	
 }
 
-
-void UCombatSystemComponent::InitializeComponent(ACharacter* player)
+void UCombatSystemComponent::InitializeComponent(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
 
@@ -39,8 +38,8 @@ void UCombatSystemComponent::InitializeComponent(ACharacter* player)
 	EAttachmentRule KatanaAttachRules = EAttachmentRule::SnapToTarget;
 
 	Katana->K2_AttachToComponent(player->GetMesh(), "KatanaSocket",
-								 KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
-								 true);	
+		KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
+		true);
 }
 
 // Called every frame

@@ -23,22 +23,19 @@ protected:
 
 private:	
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class ACharacter* playerCharacter;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	AKatana* Katana;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class UDidItHitActorComponent* HitTracer;
 
 public:
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<AKatana> KatanaActor;
-
 	UFUNCTION(BlueprintCallable)
-	void InitializeComponent(ACharacter* player);
+	void InitializeComponent(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
 
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
