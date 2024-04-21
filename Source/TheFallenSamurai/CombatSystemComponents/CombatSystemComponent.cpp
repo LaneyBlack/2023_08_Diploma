@@ -2,6 +2,8 @@
 
 
 #include "CombatSystemComponent.h"
+#include "GameFramework/Character.h"
+#include "TheFallenSamurai/KatanaSource/Katana.h"
 
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
@@ -23,6 +25,17 @@ void UCombatSystemComponent::BeginPlay()
 	
 }
 
+
+void UCombatSystemComponent::InitializeComponent(ACharacter* player)
+{
+	playerCharacter = player;
+
+	FActorSpawnParameters KatanaSpawnParams;
+	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	KatanaSpawnParams.TransformScaleMethod = ESpawnActorScaleMethod::MultiplyWithRoot;
+
+	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
+}
 
 // Called every frame
 void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

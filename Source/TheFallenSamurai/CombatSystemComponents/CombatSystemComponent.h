@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CombatSystemComponent.generated.h"
 
+class AKatana;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent
@@ -20,10 +21,25 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+private:	
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	class ACharacter* playerCharacter;
+
+	UPROPERTY(EditDefaultsOnly)
+	AKatana* Katana;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UDidItHitActorComponent* HitTracer;
+
+public:
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AKatana> KatanaActor;
+
+	UFUNCTION(BlueprintCallable)
+	void InitializeComponent(ACharacter* player);
+
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
 };
