@@ -32,6 +32,10 @@ private:
 	UPROPERTY()
 	class UDidItHitActorComponent* HitTracer;
 
+	float MaxViewPitchValue = 35.f;
+
+	float MinViewPitchValue = -80.f;
+
 public:
 
 	UFUNCTION(BlueprintCallable)
