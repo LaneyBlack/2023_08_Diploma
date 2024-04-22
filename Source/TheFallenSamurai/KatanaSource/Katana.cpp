@@ -21,6 +21,13 @@ AKatana::AKatana()
 void AKatana::BeginPlay()
 {
 	Super::BeginPlay();
+
+	HitTracer->SetupVariables(KatanaMesh, nullptr);
+
+	//DEBUG:
+	/*auto names = HitTracer->SetupVariables(KatanaMesh, nullptr);
+	for (auto name : names)
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, name.ToString());*/
 	
 }
 

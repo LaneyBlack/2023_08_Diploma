@@ -65,7 +65,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
 	
 	HitTracer = Katana->HitTracer;
-	HitTracer->Activate();
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Magenta, TEXT("hit tracer box extent = ") + HitTracer->BoxHalfSize.ToCompactString());
 
 	EAttachmentRule KatanaAttachRules = EAttachmentRule::SnapToTarget;
@@ -145,5 +144,7 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("hit array num = %i"), HitTracer->HitArray.Num()));
+	/*if(!HitTracer->HitArray.IsEmpty())
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("hit array num = %i"), HitTracer->HitArray.Num()));
+		*/
 }
