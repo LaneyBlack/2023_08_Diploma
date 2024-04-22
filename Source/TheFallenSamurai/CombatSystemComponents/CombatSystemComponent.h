@@ -49,6 +49,8 @@ private:
 
 	FName KatanaSocketForDirection = "TraceEnd";
 
+	FTimerHandle EnemiesTraceTimerHandle = FTimerHandle();
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -76,7 +78,7 @@ public:
 	TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, Category = "Combat Animations")
-	float AttackSpeedMultiplier;
+	float AttackSpeedMultiplier = 1.5f;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
@@ -94,7 +96,7 @@ public:
 	class UParticleSystem* BloodParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
-	FVector BloodScale;
+	FVector BloodScale = FVector(1.5f, 1.5f, 1.5f);
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
 	class UParticleSystem* PerfectParryParticles;

@@ -2,14 +2,22 @@
 
 
 #include "CombatSystemComponent.h"
+
 #include "GameFramework/Character.h"
-#include "TheFallenSamurai/KatanaSource/Katana.h"
+#include "Components/CapsuleComponent.h"
+
 #include "Kismet/GameplayStatics.h"
+
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
+
 #include "DidItHitActorComponent.h"
+
+#include "TheFallenSamurai/KatanaSource/Katana.h"
 #include "TheFallenSamurai/BaseEnemySource/BaseEnemy.h"
+
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
@@ -47,7 +55,7 @@ void UCombatSystemComponent::HandleAttackEnd()
 {
 	TargetPointOffset = FVector::Zero();
 
-	//clear time handle for auto aim function
+	GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 
 	bIsAttacking = false;
 	bInCombat = false;
@@ -55,9 +63,7 @@ void UCombatSystemComponent::HandleAttackEnd()
 	HitTracer->ToggleTraceCheck(false);
 
 	for (auto result : HitTracer->HitArray)
-	{
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
-	}
 }
 
 void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector ImpactPoint)
@@ -93,6 +99,40 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, TEXT("TRACING DURING ATTACK"));
+
+	for (auto& result : HitTracer->HitArray)
+	{
+		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
+		result.Reset();
+	}
+
+	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
+	FVector StartEnd = playerCharacter->GetActorLocation() 
+		+ playerCharacter->GetActorForwardVector() * (2.5f * CapsuleComponent->GetScaledCapsuleRadius());
+
+	FVector HalfSize;
+	HalfSize.X = HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 3.5f;
+	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5f;
+
+	FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+	TArray<AActor*> Ignore;
+	Ignore.Add(playerCharacter);
+
+	FHitResult HitResult;
+	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation, 
+		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResult, true);
+
+	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
+	if (bHit && Enemy)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, TEXT("ENEMY WAS HIT!!!"));
+		//add auto aim
+	}
 
 }
 
@@ -136,17 +176,20 @@ void UCombatSystemComponent::Attack()
 
 	auto MontageToPlay = DetermineNextMontage();
 	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier);
+
+	//start timer
+	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
+		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
+		1 / 120.f, true);
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("Notify Begin: ") + NotifyName.ToString());
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("Notify Begin: ") + NotifyName.ToString());
 	if (NotifyName.IsEqual("TraceWindow"))
 	{
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
-
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Orange, TEXT("HANDLE KATANA PREVIOUS POSITION CALS!"));
 		
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
 			AttackCamShake,
@@ -168,7 +211,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 
 void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("Notify End: ") + NotifyName.ToString());
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("Notify End: ") + NotifyName.ToString());
 
 	if (NotifyName.IsEqual("TraceWindow"))
 	{
@@ -183,7 +226,7 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 {
 	if (bWasInterrupted)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, MontagePlayed->GetName() + TEXT("MONTAGE WAS INTERUPTED!"));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, MontagePlayed->GetName() + TEXT("MONTAGE WAS INTERUPTED!"));
 		HandleAttackEnd();
 	}
 }
