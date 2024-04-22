@@ -36,10 +36,52 @@ private:
 
 	float MinViewPitchValue = -80.f;
 
+	bool bIsAttacking;
+
+	bool bInterputedByItself;
+
+	class UAnimInstance* AnimInstance;
+
+	UFUNCTION()
+	bool CheckIfCanAttack();
+
+	UFUNCTION()
+	UAnimMontage* DetermineNextMontage();
+
+	UFUNCTION()
+	void HandleAttackEnd();
+
 public:
 
+	UPROPERTY(EditAnywhere, Category = "Combat Animations")
+	TArray<UAnimMontage*> AttackMontages;
+
+	UPROPERTY(EditAnywhere, Category = "Combat Animations")
+	float AttackSpeedMultiplier;
+
+	UPROPERTY(EditAnywhere)
+	bool bCanRigUpdate;
+	
+	UPROPERTY(EditAnywhere)
+	bool bInCombat;
+
+	UPROPERTY(EditAnywhere)
+	FVector TargetPointOffset;
+
 	UFUNCTION(BlueprintCallable)
-	void InitializeComponent(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
+	void InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
+
+	UFUNCTION(BlueprintCallable)
+	void Attack();
+
+	UFUNCTION()
+	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
+
+	UFUNCTION()
+	void PlayMontageNotifyEnd(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
+
+	UFUNCTION()
+	void PlayMontageFinished(class UAnimMontage* MontagePlayed, bool bWasInterrupted);
 
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
