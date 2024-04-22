@@ -54,6 +54,9 @@ private:
 	UFUNCTION()
 	void HandleAttackEnd();
 
+	UFUNCTION()
+	void ProcessHitReaction(AActor* HitActor, FVector ImpactPoint);
+
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Combat Animations")

@@ -8,6 +8,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
 #include "DidItHitActorComponent.h"
+#include "TheFallenSamurai/BaseEnemySource/BaseEnemy.h"
 
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
@@ -52,6 +53,20 @@ void UCombatSystemComponent::HandleAttackEnd()
 
 	HitTracer->ToggleTraceCheck(false);
 
+	for (auto result : HitTracer->HitArray)
+	{
+		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
+	}
+}
+
+void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector ImpactPoint)
+{
+	auto Enemy = Cast<ABaseEnemy>(HitActor);
+
+	if (Enemy)
+	{
+		Enemy->ApplyDamage();
+	}
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -103,6 +118,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	{
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
+
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Orange, TEXT("HANDLE KATANA PREVIOUS POSITION CALS!"));
 		
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
