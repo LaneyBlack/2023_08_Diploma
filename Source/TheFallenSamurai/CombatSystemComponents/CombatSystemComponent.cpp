@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "DidItHitActorComponent.h"
 #include "TheFallenSamurai/BaseEnemySource/BaseEnemy.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
@@ -63,19 +64,31 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector Impact
 {
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
+		auto KatanaDirection = DetermineKatanaDirection();
+
+		auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
+			BloodParticles, ImpactPoint, ParticleRotation, BloodScale);
+
 		Enemy->ApplyDamage();
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodParticles, Enemy->GetActorTransform());
 	}
 }
 
 FVector UCombatSystemComponent::DetermineKatanaDirection()
 {
-	return FVector();
+	FVector Direction = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
+	Direction -= KatanaPreviousPosition;
+	Direction.Normalize();
+
+	//debug draw
+
+	return Direction;
 }
 
 FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 {
-	return FVector();
+	return Katana->KatanaMesh->GetSocketLocation(SocketName);
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -134,6 +147,8 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 			AttackCamShake,
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
+
+		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 	}
 	else if (NotifyName.IsEqual("CRigUpdate"))
 	{
