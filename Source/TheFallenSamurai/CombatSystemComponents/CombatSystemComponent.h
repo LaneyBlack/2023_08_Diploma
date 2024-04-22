@@ -67,6 +67,9 @@ private:
 	UFUNCTION()
 	FVector GetKatanaSocketWorldPosition(FName SocketName);
 
+	UFUNCTION()
+	void GetEnemiesInViewportOnAttack();
+
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Combat Animations")
@@ -81,10 +84,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bInCombat;
 
-	UPROPERTY(EditAnywhere, Category = "Camere Shake")
+	UPROPERTY(EditAnywhere, Category = "Camera Shake")
 	TSubclassOf<UCameraShakeBase> AttackCamShake;
 
-	UPROPERTY(EditAnywhere, Category = "Camere Shake")
+	UPROPERTY(EditAnywhere, Category = "Camera Shake")
 	TSubclassOf<UCameraShakeBase> ParryCamShake;
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
@@ -92,6 +95,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
 	FVector BloodScale;
+
+	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	class UParticleSystem* PerfectParryParticles;
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;

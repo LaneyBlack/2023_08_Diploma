@@ -91,6 +91,11 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 	return Katana->KatanaMesh->GetSocketLocation(SocketName);
 }
 
+void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
+{
+
+}
+
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
