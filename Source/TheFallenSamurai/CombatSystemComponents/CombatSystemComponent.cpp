@@ -73,7 +73,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 		KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
 		true);
  
-	auto PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
 	PlayerCameraManager->ViewPitchMin = MinViewPitchValue;
 
@@ -104,7 +104,11 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Orange, TEXT("HANDLE KATANA PREVIOUS POSITION CALS!"));
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Orange, TEXT("HANDLE CAMERA SHAKE!"));
+		
+		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
+			AttackCamShake,
+			playerCharacter->GetActorLocation(), 
+			0, 500, 1);
 	}
 	else if (NotifyName.IsEqual("CRigUpdate"))
 	{

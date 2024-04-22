@@ -7,6 +7,7 @@
 #include "CombatSystemComponent.generated.h"
 
 class AKatana;
+class UCameraShakeBase;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent
@@ -42,6 +43,8 @@ private:
 
 	class UAnimInstance* AnimInstance;
 
+	class APlayerCameraManager* PlayerCameraManager;
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -59,13 +62,19 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat Animations")
 	float AttackSpeedMultiplier;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	bool bInCombat;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Camere Shake")
+	TSubclassOf<UCameraShakeBase> AttackCamShake;
+
+	UPROPERTY(EditAnywhere, Category = "Camere Shake")
+	TSubclassOf<UCameraShakeBase> ParryCamShake;
+
+	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
 
 	UFUNCTION(BlueprintCallable)
