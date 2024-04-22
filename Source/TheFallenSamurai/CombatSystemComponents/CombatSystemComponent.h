@@ -45,6 +45,10 @@ private:
 
 	class APlayerCameraManager* PlayerCameraManager;
 
+	FVector KatanaPreviousPosition;
+
+	FName KatanaSocketForDirection = "TraceEnd";
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -56,6 +60,12 @@ private:
 
 	UFUNCTION()
 	void ProcessHitReaction(AActor* HitActor, FVector ImpactPoint);
+
+	UFUNCTION()
+	FVector DetermineKatanaDirection();
+
+	UFUNCTION()
+	FVector GetKatanaSocketWorldPosition(FName SocketName);
 
 public:
 
@@ -76,6 +86,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Camere Shake")
 	TSubclassOf<UCameraShakeBase> ParryCamShake;
+
+	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	class UParticleSystem* BloodParticles;
+
+	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	FVector BloodScale;
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;

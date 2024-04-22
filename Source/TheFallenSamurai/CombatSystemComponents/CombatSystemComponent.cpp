@@ -61,12 +61,21 @@ void UCombatSystemComponent::HandleAttackEnd()
 
 void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector ImpactPoint)
 {
-	auto Enemy = Cast<ABaseEnemy>(HitActor);
-
-	if (Enemy)
+	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
 		Enemy->ApplyDamage();
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodParticles, Enemy->GetActorTransform());
 	}
+}
+
+FVector UCombatSystemComponent::DetermineKatanaDirection()
+{
+	return FVector();
+}
+
+FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
+{
+	return FVector();
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
