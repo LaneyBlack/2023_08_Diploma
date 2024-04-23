@@ -96,7 +96,7 @@ public:
 	class UParticleSystem* BloodParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
-	FVector BloodScale = FVector(1.5f, 1.5f, 1.5f);
+	FVector BloodScale = FVector(.6f, .6f, .8f);
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
 	class UParticleSystem* PerfectParryParticles;

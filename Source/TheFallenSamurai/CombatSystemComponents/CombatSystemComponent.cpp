@@ -125,21 +125,24 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	FHitResult HitResult;
 	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation, 
-		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResult, true);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true);
 
 	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 	if (bHit && Enemy)
 	{
 		auto VectorToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
-		float TargetPointYOffset = FMath::Clamp(VectorToEnemy.Dot(playerCharacter->GetActorRightVector()), -30, 30);
+
+		float MaxAbsoluteYOffset = 45.f;
+		float TargetPointYOffset = FMath::Clamp(VectorToEnemy.Dot(playerCharacter->GetActorRightVector()), 
+			-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
+
 		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
 			FVector(0.f, TargetPointYOffset, 0.f),
 			GetWorld()->GetDeltaSeconds(),
-			20.f);
+			25.f);
 
 		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, FString::Printf(TEXT("Target point offset = %f"), TargetPointYOffset));
 	}
-
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -191,7 +194,11 @@ void UCombatSystemComponent::Attack()
 
 void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
 {
+	KatanaGripWorldTransform = Katana->KatanaMesh->GetSocketTransform("LeftHand");
 
+	auto PlayerMesh = playerCharacter->GetMesh();
+	LeftHandSocket = PlayerMesh->GetSocketTransform("LeftKatanaReference", ERelativeTransformSpace::RTS_ParentBoneSpace);
+	RightHandSocket = PlayerMesh->GetSocketTransform("KatanaSocket", ERelativeTransformSpace::RTS_ParentBoneSpace);
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
@@ -246,6 +253,8 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TargetPointOffset.ToCompactString());
 
 	/*if(!HitTracer->HitArray.IsEmpty())
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("hit array num = %i"), HitTracer->HitArray.Num()));
