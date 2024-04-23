@@ -23,21 +23,14 @@
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
 // Called when the game starts
 void UCombatSystemComponent::BeginPlay()
 {
-	Super::BeginPlay();
-
-	// ...
-	
+	Super::BeginPlay();	
 }
 
 bool UCombatSystemComponent::CheckIfCanAttack()
@@ -48,7 +41,6 @@ bool UCombatSystemComponent::CheckIfCanAttack()
 UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
 {
 	auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Montage name = %s"), *montage->GetName()));
 	return montage;
 }
 
@@ -88,8 +80,6 @@ FVector UCombatSystemComponent::DetermineKatanaDirection()
 	Direction -= KatanaPreviousPosition;
 	Direction.Normalize();
 
-	//debug draw
-
 	return Direction;
 }
 
@@ -100,8 +90,6 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, TEXT("TRACING DURING ATTACK"));
-
 	for (auto& result : HitTracer->HitArray)
 	{
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
@@ -141,8 +129,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			FVector(0.f, TargetPointYOffset, 0.f),
 			GetWorld()->GetDeltaSeconds(),
 			25.f);
-
-		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, FString::Printf(TEXT("Target point offset = %f"), TargetPointYOffset));
 	}
 }
 
@@ -197,7 +183,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
 	
 	HitTracer = Katana->HitTracer;
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Magenta, TEXT("hit tracer box extent = ") + HitTracer->BoxHalfSize.ToCompactString());
 
 	EAttachmentRule KatanaAttachRules = EAttachmentRule::SnapToTarget;
 
@@ -273,7 +258,6 @@ void UCombatSystemComponent::PerfectParryResponse()
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("Notify Begin: ") + NotifyName.ToString());
 	if (NotifyName.IsEqual("TraceWindow"))
 	{
 		bInCombat = true;
@@ -299,30 +283,22 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 
 void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("Notify End: ") + NotifyName.ToString());
-
 	if (NotifyName.IsEqual("TraceWindow"))
 	{
 		bInterputedByItself = true;
-
-		//more to be done!
 		HandleAttackEnd();
 	}
 }
 
 void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bool bWasInterrupted)
 {
-	//FString text = bWasInterrupted ? " MONTAGE WAS INTERRUPTED" : " MONTAGE WAS FINISHED";
-
 	if (MontagePlayed == PerfectParryMontage)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, .7f, FColor::Emerald, "P A R R Y ----> " + text);
 		bInCombat = false;
 		bInParry = false;
 	} 
 	else if (AttackMontages.Contains(MontagePlayed))
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, .7f, FColor::Emerald, "A T T A C K ----> " + text);
 		HandleAttackEnd();
 	}
 }
