@@ -74,22 +74,19 @@ private:
 
 public:
 
-	UPROPERTY(EditAnywhere, Category = "Combat Animations")
+	UPROPERTY(EditAnywhere, Category = "Attack Data")
 	TArray<UAnimMontage*> AttackMontages;
 
-	UPROPERTY(EditAnywhere, Category = "Combat Animations")
+	UPROPERTY(EditAnywhere, Category = "Attack Data")
 	float AttackSpeedMultiplier = 1.5f;
 
-	UPROPERTY(BlueprintReadOnly)
-	bool bCanRigUpdate;
-	
-	UPROPERTY(BlueprintReadOnly)
-	bool bInCombat;
-
-	UPROPERTY(EditAnywhere, Category = "Camera Shake")
+	UPROPERTY(EditAnywhere, Category = "Attack Data")
 	TSubclassOf<UCameraShakeBase> AttackCamShake;
 
-	UPROPERTY(EditAnywhere, Category = "Camera Shake")
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
+	UAnimMontage* PerfectParryMontage;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
 	TSubclassOf<UCameraShakeBase> ParryCamShake;
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
@@ -102,6 +99,15 @@ public:
 	class UParticleSystem* PerfectParryParticles;
 
 	UPROPERTY(BlueprintReadOnly)
+	bool bCanRigUpdate;
+	
+	UPROPERTY(BlueprintReadOnly)
+	bool bInCombat;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bInParry;
+
+	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
 
 	UFUNCTION(BlueprintCallable)
@@ -112,6 +118,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	void GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket);
+
+	UFUNCTION(BlueprintCallable)
+	void PerfectParry();
+
+	UFUNCTION(BlueprintCallable)
+	void InterruptPerfectParry();
+
+	UFUNCTION(BlueprintCallable)
+	void PerfectParryResponse();
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);

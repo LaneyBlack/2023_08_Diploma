@@ -201,6 +201,35 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 	RightHandSocket = PlayerMesh->GetSocketTransform("KatanaSocket", ERelativeTransformSpace::RTS_ParentBoneSpace);
 }
 
+void UCombatSystemComponent::PerfectParry()
+{
+	bInParry = true;
+	bCanRigUpdate = false;
+	bInCombat = true;
+
+	AnimInstance->Montage_Play(PerfectParryMontage);
+}
+
+void UCombatSystemComponent::InterruptPerfectParry()
+{
+	AnimInstance->Montage_Stop(0.3f, PerfectParryMontage);
+}
+
+void UCombatSystemComponent::PerfectParryResponse()
+{
+	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -800.f;
+	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
+
+	UGameplayStatics::SpawnEmitterAttached(PerfectParryParticles, Katana->KatanaMesh,
+		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, FVector(3.f), EAttachLocation::SnapToTargetIncludingScale);
+
+	PlayerCameraManager->StopAllCameraShakes();
+	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
+		ParryCamShake,
+		playerCharacter->GetActorLocation(),
+		0, 500, 1);
+}
+
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("Notify Begin: ") + NotifyName.ToString());
@@ -242,9 +271,17 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 
 void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bool bWasInterrupted)
 {
-	if (bWasInterrupted)
+	//FString text = bWasInterrupted ? " MONTAGE WAS INTERRUPTED" : " MONTAGE WAS FINISHED";
+
+	if (MontagePlayed == PerfectParryMontage)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, MontagePlayed->GetName() + TEXT("MONTAGE WAS INTERUPTED!"));
+		//GEngine->AddOnScreenDebugMessage(-1, .7f, FColor::Emerald, "P A R R Y ----> " + text);
+		bInCombat = false;
+		bInParry = false;
+	} 
+	else if (AttackMontages.Contains(MontagePlayed))
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, .7f, FColor::Emerald, "A T T A C K ----> " + text);
 		HandleAttackEnd();
 	}
 }
