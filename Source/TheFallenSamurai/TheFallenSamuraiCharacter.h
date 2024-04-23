@@ -36,6 +36,10 @@ class ATheFallenSamuraiCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rewind", meta = (AllowPrivateAccess = "true"))
 	URewindComponent* RewindComponent;
 
+	/** Toggle Rewind Participation Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleRewindParticipationAction;
+
 	/** Rewind Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* RewindAction;
@@ -88,6 +92,9 @@ protected:
 
 	/** Called for rewind input */
 	void StopRewinding(const FInputActionValue& Value);
+
+	/** Called when toggling rewind participation */
+	void ToggleRewindParticipation(const FInputActionValue& Value);
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);

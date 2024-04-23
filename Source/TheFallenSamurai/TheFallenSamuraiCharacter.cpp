@@ -175,6 +175,9 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		// Rewind
 		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);
 		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Completed, this, &ATheFallenSamuraiCharacter::StopRewinding);
+
+		// Toggle Rewind Participation
+		EnhancedInputComponent->BindAction(ToggleRewindParticipationAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleRewindParticipation);
 	}
 	else
 	{
@@ -228,4 +231,9 @@ void ATheFallenSamuraiCharacter::StopRewinding(const FInputActionValue& Value)
 {
 	check(GameMode);
 	if (GameMode) { GameMode->StopGlobalRewind(); }
+}
+
+void ATheFallenSamuraiCharacter::ToggleRewindParticipation(const FInputActionValue& Value)
+{
+	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
 }
