@@ -145,6 +145,35 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	}
 }
 
+void UCombatSystemComponent::GetLookInputVariables(FRotator PreviousCameraRotation)
+{
+	//calculate right hand sway value based on mouse look rotation
+	CurrentCameraRotation = playerCharacter->GetControlRotation();
+	FRotator DeltaLookRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentCameraRotation, PreviousCameraRotation);
+	FRotator TargetRotationRate;
+
+	TargetRotationRate.Roll = -UKismetMathLibrary::FClamp(DeltaLookRotation.Pitch, -5., 5.);
+		TargetRotationRate.Pitch = 0.;
+	TargetRotationRate.Yaw = UKismetMathLibrary::FClamp(DeltaLookRotation.Yaw, -2., 3.);
+
+	CameraRotationRate = UKismetMathLibrary::RInterpTo(CameraRotationRate,
+		TargetRotationRate, GetWorld()->GetDeltaSeconds(), 5.);
+
+	YawSwayValue = CameraRotationRate.Yaw * 5.;
+
+	//calculate right hand location lag based on rotation rate
+	float AlphaOffsetX = UKismetMathLibrary::NormalizeToRange(CameraRotationRate.Yaw, -3., -3.);
+	float AlphaOffsetZ = UKismetMathLibrary::NormalizeToRange(CameraRotationRate.Roll, -5., -5.);
+
+	HandSwayLookOffset.X = UKismetMathLibrary::Lerp(-12., 12., AlphaOffsetX);
+	HandSwayLookOffset.Z = UKismetMathLibrary::Lerp(-3., 8., AlphaOffsetZ);
+}
+
+void UCombatSystemComponent::GetVelocityVariables()
+{
+
+}
+
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
@@ -290,10 +319,12 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	if (!bInCombat) //change to not attacking??
+	{
+		GetLookInputVariables(CurrentCameraRotation);
+		GetVelocityVariables();
 
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TargetPointOffset.ToCompactString());
-
-	/*if(!HitTracer->HitArray.IsEmpty())
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("hit array num = %i"), HitTracer->HitArray.Num()));
-		*/
+		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
+	}
 }

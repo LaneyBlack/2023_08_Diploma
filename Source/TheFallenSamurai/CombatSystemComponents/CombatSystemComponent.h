@@ -51,6 +51,14 @@ private:
 
 	FTimerHandle EnemiesTraceTimerHandle = FTimerHandle();
 
+	FRotator CameraRotationRate;
+
+	FRotator CurrentCameraRotation;
+
+	FVector HandSwayLookOffset;
+
+	FVector LocationLagPosition;
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -71,6 +79,12 @@ private:
 
 	UFUNCTION()
 	void GetEnemiesInViewportOnAttack();
+
+	UFUNCTION()
+	void GetLookInputVariables(FRotator PreviousCameraRotation);
+
+	UFUNCTION()
+	void GetVelocityVariables();
 
 public:
 
@@ -106,6 +120,12 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bInParry;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector HandTotalOffset;
+
+	UPROPERTY(BlueprintReadOnly)
+	float YawSwayValue;
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
