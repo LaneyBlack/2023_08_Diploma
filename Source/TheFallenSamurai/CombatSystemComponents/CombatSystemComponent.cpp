@@ -130,8 +130,14 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 	if (bHit && Enemy)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, TEXT("ENEMY WAS HIT!!!"));
-		//add auto aim
+		auto VectorToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		float TargetPointYOffset = FMath::Clamp(VectorToEnemy.Dot(playerCharacter->GetActorRightVector()), -30, 30);
+		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
+			FVector(0.f, TargetPointYOffset, 0.f),
+			GetWorld()->GetDeltaSeconds(),
+			20.f);
+
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Emerald, FString::Printf(TEXT("Target point offset = %f"), TargetPointYOffset));
 	}
 
 }
@@ -181,6 +187,11 @@ void UCombatSystemComponent::Attack()
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
 		1 / 120.f, true);
+}
+
+void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
+{
+
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)

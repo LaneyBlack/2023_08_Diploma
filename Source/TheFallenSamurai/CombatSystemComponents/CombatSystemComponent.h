@@ -110,6 +110,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Attack();
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	void GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket);
+
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
 
