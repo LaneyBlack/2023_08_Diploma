@@ -5,6 +5,7 @@
 
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -153,7 +154,7 @@ void UCombatSystemComponent::GetLookInputVariables(FRotator PreviousCameraRotati
 	FRotator TargetRotationRate;
 
 	TargetRotationRate.Roll = -UKismetMathLibrary::FClamp(DeltaLookRotation.Pitch, -5., 5.);
-		TargetRotationRate.Pitch = 0.;
+	TargetRotationRate.Pitch = 0.;
 	TargetRotationRate.Yaw = UKismetMathLibrary::FClamp(DeltaLookRotation.Yaw, -2., 3.);
 
 	CameraRotationRate = UKismetMathLibrary::RInterpTo(CameraRotationRate,
@@ -163,15 +164,26 @@ void UCombatSystemComponent::GetLookInputVariables(FRotator PreviousCameraRotati
 
 	//calculate right hand location lag based on rotation rate
 	float AlphaOffsetX = UKismetMathLibrary::NormalizeToRange(CameraRotationRate.Yaw, -3., -3.);
-	float AlphaOffsetZ = UKismetMathLibrary::NormalizeToRange(CameraRotationRate.Roll, -5., -5.);
+	float AlphaOffsetZ = UKismetMathLibrary::NormalizeToRange(CameraRotationRate.Roll, -5., 5.);
 
-	HandSwayLookOffset.X = UKismetMathLibrary::Lerp(-12., 12., AlphaOffsetX);
-	HandSwayLookOffset.Z = UKismetMathLibrary::Lerp(-3., 8., AlphaOffsetZ);
+	HandSwayLookOffset.X = UKismetMathLibrary::Lerp(-3., 8., AlphaOffsetX);
+	HandSwayLookOffset.Z = UKismetMathLibrary::Lerp(-12., 12., AlphaOffsetZ);
 }
 
 void UCombatSystemComponent::GetVelocityVariables()
 {
+	FVector PlayerVelocity = playerCharacter->GetVelocity();
+	auto CharacterMovement = playerCharacter->GetCharacterMovement();
+	float NegatedMaxWalkSpeed = -CharacterMovement->MaxWalkSpeed;
 
+	FVector TargetLagPosition;
+	TargetLagPosition.X = PlayerVelocity.Dot(playerCharacter->GetActorRightVector()) / NegatedMaxWalkSpeed;
+	TargetLagPosition.Y = PlayerVelocity.Dot(playerCharacter->GetActorForwardVector()) / NegatedMaxWalkSpeed;
+	TargetLagPosition.Z = PlayerVelocity.Dot(playerCharacter->GetActorUpVector()) / -CharacterMovement->JumpZVelocity;
+
+	TargetLagPosition = UKismetMathLibrary::ClampVectorSize(TargetLagPosition * 5, 0., 3.5);
+
+	LocationLagPosition = UKismetMathLibrary::VInterpTo(LocationLagPosition, TargetLagPosition, GetWorld()->GetDeltaSeconds(), 13.);
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
