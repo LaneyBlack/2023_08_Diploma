@@ -12,6 +12,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "RewindComponent.h"
+#include "PlayerGameModeBase.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -20,6 +22,12 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 {
+	// Setup a rewind component that snapshots 30 times per second
+	RewindComponent = CreateDefaultSubobject<URewindComponent>(TEXT("RewindComponent"));
+	RewindComponent->SnapshotFrequencySeconds = 1.0f / 30.0f;
+	RewindComponent->bSnapshotMovementVelocityAndMode = true;
+	RewindComponent->bPauseAnimationDuringTimeScrubbing = true;
+	
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -63,6 +71,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// Capture game mode for driving global rewind
+	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -160,6 +171,10 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
+
+		// Rewind
+		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);
+		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Completed, this, &ATheFallenSamuraiCharacter::StopRewinding);
 	}
 	else
 	{
@@ -201,4 +216,16 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void ATheFallenSamuraiCharacter::Rewind(const FInputActionValue& Value)
+{
+	check(GameMode);
+	if (GameMode) { GameMode->StartGlobalRewind(); }
+}
+
+void ATheFallenSamuraiCharacter::StopRewinding(const FInputActionValue& Value)
+{
+	check(GameMode);
+	if (GameMode) { GameMode->StopGlobalRewind(); }
 }
