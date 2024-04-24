@@ -40,8 +40,11 @@ bool UCombatSystemComponent::CheckIfCanAttack()
 
 UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
 {
-	auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
-	return montage;
+	/*auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
+	return montage;*/
+
+	static int index = 0;
+	return AttackMontages[index++ % AttackMontages.Num()];
 }
 
 void UCombatSystemComponent::HandleAttackEnd()
@@ -210,7 +213,7 @@ void UCombatSystemComponent::Attack()
 	bInterputedByItself = false;
 
 	auto MontageToPlay = DetermineNextMontage();
-	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier);
+	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, .23);
 
 	//start timer
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
