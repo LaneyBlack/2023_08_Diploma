@@ -116,7 +116,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	Ignore.Add(playerCharacter);
 
 	FHitResult HitResult;
-	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation, 
+	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
 		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true);
 
 	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());

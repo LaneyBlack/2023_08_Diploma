@@ -164,6 +164,13 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
+
+		//Attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack);
+
+		//Perfect Parry
+
+		//Perfect Parry Interrupt
 	}
 	else
 	{
@@ -205,4 +212,20 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("attack!"));
+	CombatSystemComponent->Attack();
+}
+
+void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Start()
+{
+
+}
+
+void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Interput()
+{
+
 }
