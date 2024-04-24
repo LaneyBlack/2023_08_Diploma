@@ -216,16 +216,17 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("attack!"));
 	CombatSystemComponent->Attack();
 }
 
 void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Start()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("parry!"));
 
 }
 
 void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Interput()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("parry interrupt!"));
 
 }
