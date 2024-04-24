@@ -169,8 +169,12 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack);
 
 		//Perfect Parry
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, this,
+			&ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Start);
 
 		//Perfect Parry Interrupt
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, this,
+			&ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Interput);
 	}
 	else
 	{
@@ -221,12 +225,10 @@ void ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack()
 
 void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Start()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("parry!"));
-
+	CombatSystemComponent->PerfectParry();
 }
 
 void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Interput()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("parry interrupt!"));
-
+	CombatSystemComponent->InterruptPerfectParry();
 }

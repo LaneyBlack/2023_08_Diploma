@@ -213,7 +213,8 @@ void UCombatSystemComponent::Attack()
 	bInterputedByItself = false;
 
 	auto MontageToPlay = DetermineNextMontage();
-	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, .23);
+	float AttackMontageStartPercent = .21f;
+	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
 	//start timer
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
@@ -241,7 +242,7 @@ void UCombatSystemComponent::PerfectParry()
 
 void UCombatSystemComponent::InterruptPerfectParry()
 {
-	AnimInstance->Montage_Stop(0.3f, PerfectParryMontage);
+	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 }
 
 void UCombatSystemComponent::PerfectParryResponse()
