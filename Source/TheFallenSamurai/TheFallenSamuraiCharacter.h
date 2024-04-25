@@ -88,11 +88,6 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-
-	void TriggerCombatCompomonentAttack();
-
-	void TriggerCombatCompomonentPerfectParry_Start();
-	void TriggerCombatCompomonentPerfectParry_Interput();
 	
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

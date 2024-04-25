@@ -35,7 +35,7 @@ private:
 
 	float MaxViewPitchValue = 35.f;
 
-	float MinViewPitchValue = -80.f;
+	float MinViewPitchValue = -70.f;
 
 	bool bIsAttacking;
 

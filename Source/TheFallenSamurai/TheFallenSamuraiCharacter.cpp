@@ -166,15 +166,16 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
 
 		//Attack
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::Attack);
 
 		//Perfect Parry
-		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, this,
-			&ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Start);
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::PerfectParry);
 
 		//Perfect Parry Interrupt
-		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, this,
-			&ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Interput);
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
+			&UCombatSystemComponent::InterruptPerfectParry);
 	}
 	else
 	{
@@ -216,19 +217,4 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
-}
-
-void ATheFallenSamuraiCharacter::TriggerCombatCompomonentAttack()
-{
-	CombatSystemComponent->Attack();
-}
-
-void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Start()
-{
-	CombatSystemComponent->PerfectParry();
-}
-
-void ATheFallenSamuraiCharacter::TriggerCombatCompomonentPerfectParry_Interput()
-{
-	CombatSystemComponent->InterruptPerfectParry();
 }

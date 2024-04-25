@@ -162,6 +162,7 @@ void UCombatSystemComponent::GetLookInputVariables(FRotator PreviousCameraRotati
 void UCombatSystemComponent::GetVelocityVariables()
 {
 	FVector PlayerVelocity = playerCharacter->GetVelocity();
+
 	auto CharacterMovement = playerCharacter->GetCharacterMovement();
 	float NegatedMaxWalkSpeed = -CharacterMovement->MaxWalkSpeed;
 
