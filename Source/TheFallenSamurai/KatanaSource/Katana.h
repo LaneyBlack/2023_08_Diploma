@@ -31,7 +31,7 @@ public:
 	void OffsetTraceEndSocket(float OffsetScale);
 
 	UFUNCTION()
-	FVector GetBladeDirectionVector();
+	FVector GetBladeWorldVector();
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

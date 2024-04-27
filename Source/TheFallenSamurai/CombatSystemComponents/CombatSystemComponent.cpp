@@ -93,8 +93,6 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
-	//HitTracer->BoxOrientation = Katana->GetBladeDirectionVector().Rotation();
-
 	for (auto& result : HitTracer->HitArray)
 	{
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
@@ -102,12 +100,15 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	}
 
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
-	FVector StartEnd = playerCharacter->GetActorLocation() 
-		+ playerCharacter->GetActorForwardVector() * (2.5 * CapsuleComponent->GetScaledCapsuleRadius());
 
 	FVector HalfSize;
-	HalfSize.X = HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
+	HalfSize.X = Katana->GetBladeWorldVector().Length() * TeleportTriggerScale;
+	HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
 	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5;
+
+	FVector StartEnd = playerCharacter->GetActorLocation() + playerCharacter->GetActorForwardVector() * HalfSize.X;
+
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
 	FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
 
@@ -119,7 +120,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	FHitResult HitResult;
 	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResult, true, FColor::Red, FColor::Green, 1.5f);
 
 	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 	if (bHit && Enemy)

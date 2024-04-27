@@ -46,15 +46,15 @@ void AKatana::OffsetTraceEndSocket(float OffsetScale)
 	const_cast<UStaticMeshSocket*>(TraceEndSocket)->RelativeLocation = TraceEndFinalPosition;
 }
 
-FVector AKatana::GetBladeDirectionVector()
+FVector AKatana::GetBladeWorldVector() //change name to world
 {
 	/*auto TraceStart = KatanaMesh->GetSocketByName("TraceStart")->RelativeLocation;
-	auto BladeEnd = KatanaMesh->GetSocketByName("BladeEnd")->RelativeLocation;*/
-	
+	auto BladeEnd = KatanaMesh->GetSocketByName("BladeEnd")->RelativeLocation;
+	auto Direction = BladeEnd - TraceStart;*/
+
 	auto TraceStart = KatanaMesh->GetSocketLocation("TraceStart");
 	auto BladeEnd = KatanaMesh->GetSocketLocation("BladeEnd");
 	auto Direction = BladeEnd - TraceStart;
-	Direction.Normalize();
 
 	return Direction;
 }
