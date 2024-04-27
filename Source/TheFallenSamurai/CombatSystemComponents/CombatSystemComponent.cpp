@@ -108,7 +108,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	FVector StartEnd = playerCharacter->GetActorLocation() + playerCharacter->GetActorForwardVector() * HalfSize.X;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
+	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
 	FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
 
@@ -135,6 +135,16 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			FVector(0.f, TargetPointYOffset, 0.f),
 			GetWorld()->GetDeltaSeconds(),
 			25.f);
+
+		auto DistanceSquaredToEnemy = VectorToEnemy.SquaredLength();
+		if (DistanceSquaredToEnemy > Katana->ColliderMaxDistanceSquared)
+		{
+			TeleportToClosestEnemy(Enemy);
+			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
+			/*GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
+				&UCombatSystemComponent::TeleportToClosestEnemy,
+				1 / 120.f, true);*/
+		}
 	}
 }
 
@@ -194,6 +204,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
 	Katana->OffsetTraceEndSocket(KatanaBladeTriggerScale);
+	//TeleportTriggerLength = Katana->GetBladeWorldVector().Length() * TeleportTriggerScale;
 	
 	HitTracer = Katana->HitTracer;
 

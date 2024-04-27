@@ -59,6 +59,8 @@ private:
 
 	FVector LocationLagPosition;
 
+	//float TeleportTriggerLength;
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
