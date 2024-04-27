@@ -86,6 +86,9 @@ private:
 	UFUNCTION()
 	void GetVelocityVariables();
 
+	UFUNCTION()
+	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
+
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data")
@@ -111,6 +114,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
 	class UParticleSystem* PerfectParryParticles;
+
+	UPROPERTY(EditAnywhere, Category = "Combat Colliders")
+	float KatanaBladeTriggerScale = 2.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat Colliders")
+	float TeleportTriggerScale = 3.f;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;

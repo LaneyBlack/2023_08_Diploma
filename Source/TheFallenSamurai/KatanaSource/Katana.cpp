@@ -4,6 +4,7 @@
 #include "Katana.h"
 #include "Components/StaticMeshComponent.h"
 #include "DidItHitActorComponent.h"
+#include "Engine/StaticMeshSocket.h"
 
 // Sets default values
 AKatana::AKatana()
@@ -29,6 +30,33 @@ void AKatana::BeginPlay()
 	for (auto name : names)
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, name.ToString());*/
 	
+}
+
+void AKatana::OffsetTraceEndSocket(float OffsetScale)
+{
+	const UStaticMeshSocket* TraceStartSocket = KatanaMesh->GetSocketByName("TraceStart");
+	const UStaticMeshSocket* TraceEndSocket = KatanaMesh->GetSocketByName("TraceEnd");
+
+	const UStaticMeshSocket* BladeEndSocket = KatanaMesh->GetSocketByName("BladeEnd");
+
+	auto TraceStart = TraceStartSocket->RelativeLocation;
+	auto BladeEnd = BladeEndSocket->RelativeLocation;
+
+	FVector TraceEndFinalPosition = TraceStart + (BladeEnd - TraceStart) * OffsetScale;
+	const_cast<UStaticMeshSocket*>(TraceEndSocket)->RelativeLocation = TraceEndFinalPosition;
+}
+
+FVector AKatana::GetBladeDirectionVector()
+{
+	/*auto TraceStart = KatanaMesh->GetSocketByName("TraceStart")->RelativeLocation;
+	auto BladeEnd = KatanaMesh->GetSocketByName("BladeEnd")->RelativeLocation;*/
+	
+	auto TraceStart = KatanaMesh->GetSocketLocation("TraceStart");
+	auto BladeEnd = KatanaMesh->GetSocketLocation("BladeEnd");
+	auto Direction = BladeEnd - TraceStart;
+	Direction.Normalize();
+
+	return Direction;
 }
 
 // Called every frame

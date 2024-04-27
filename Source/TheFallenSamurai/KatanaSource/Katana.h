@@ -27,6 +27,12 @@ public:
 	UPROPERTY(EditAnywhere)
 	class UDidItHitActorComponent* HitTracer;
 
+	UFUNCTION()
+	void OffsetTraceEndSocket(float OffsetScale);
+
+	UFUNCTION()
+	FVector GetBladeDirectionVector();
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 };

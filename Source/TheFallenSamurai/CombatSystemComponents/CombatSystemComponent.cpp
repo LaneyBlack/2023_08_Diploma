@@ -93,6 +93,8 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
+	//HitTracer->BoxOrientation = Katana->GetBladeDirectionVector().Rotation();
+
 	for (auto& result : HitTracer->HitArray)
 	{
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
@@ -101,11 +103,11 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
 	FVector StartEnd = playerCharacter->GetActorLocation() 
-		+ playerCharacter->GetActorForwardVector() * (2.5f * CapsuleComponent->GetScaledCapsuleRadius());
+		+ playerCharacter->GetActorForwardVector() * (2.5 * CapsuleComponent->GetScaledCapsuleRadius());
 
 	FVector HalfSize;
-	HalfSize.X = HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 3.5f;
-	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5f;
+	HalfSize.X = HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
+	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5;
 
 	FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
 
@@ -117,7 +119,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	FHitResult HitResult;
 	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true, FColor::Red, FColor::Green, 1.5f);
 
 	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 	if (bHit && Enemy)
@@ -176,6 +178,11 @@ void UCombatSystemComponent::GetVelocityVariables()
 	LocationLagPosition = UKismetMathLibrary::VInterpTo(LocationLagPosition, TargetLagPosition, GetWorld()->GetDeltaSeconds(), 13.);
 }
 
+void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
+{
+
+}
+
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
@@ -185,6 +192,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	KatanaSpawnParams.TransformScaleMethod = ESpawnActorScaleMethod::MultiplyWithRoot;
 
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
+	Katana->OffsetTraceEndSocket(KatanaBladeTriggerScale);
 	
 	HitTracer = Katana->HitTracer;
 
