@@ -202,9 +202,10 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
-	playerCharacter->GetCharacterMovement()->StopMovementImmediately();
+	/*playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetCharacterMovement()->DisableMovement();
-	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
+
 	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
 
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
@@ -212,8 +213,26 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.8f; //change to unsafe normal for perfomance?
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.6f; //change to unsafe normal for perfomance?
+	//PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
+	//check if can safely teleport
+	FVector Start = PlayerDestinationForTeleport;
+	FVector End = Start - (Enemy->GetActorUpVector() * 200);
+	//FVector End = Start - (Enemy->GetActorUpVector() * playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 1.2f);
+	FHitResult OutHit;
+
+	//change to capusle trace?
+	bool bHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
+		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility)), 
+		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
+
+	if (bHit)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
+		//OutHit.Distance
+	}
+	
 	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 	RotationToEnemy = playerCharacter->GetControlRotation();
 	RotationToEnemy.Yaw = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport).Yaw;
@@ -228,6 +247,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
 	TeleportTimeline.PlayFromStart();
+
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
