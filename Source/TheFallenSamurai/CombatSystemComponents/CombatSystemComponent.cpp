@@ -20,6 +20,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+//DEBUG
+#include "DrawDebugHelpers.h"
+
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
 {
@@ -203,22 +206,22 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
-	playerCharacter->GetCharacterMovement()->DisableMovement();
-	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
 
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 
-	float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	//float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.6f; //change to unsafe normal for perfomance?
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
 	//check if can safely teleport
+	float TraceDepth = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 1.3f;
 	FVector Start = PlayerDestinationForTeleport;
-	FVector End = Start - (Enemy->GetActorUpVector() * 200);
+	//Start.Z = Enemy->GetActorLocation().Z;
+
+	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
 	//FVector End = Start - (Enemy->GetActorUpVector() * playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 1.2f);
 	FHitResult OutHit;
 
@@ -227,29 +230,57 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility)), 
 		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
-	if (bHit)
+	/*if (bHit)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Allowed Trace Depth = %f"), TraceDepth * .4));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
+	}*/
+
+	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f))
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
+		//DrawDebugLine(GetWorld(), Start, Start - (Enemy->GetActorUpVector() * OutHit.Distance), FColor::Cyan, false, 5.f, 0, 1.5);
 		//OutHit.Distance
+
+		playerCharacter->GetCharacterMovement()->DisableMovement();
+		playerCharacter->GetController()->SetIgnoreLookInput(true);
+		playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		//change Z so that it matches the Z of hit object
+		PlayerDestinationForTeleport = OutHit.Location;
+		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
+		RotationToEnemy = playerCharacter->GetControlRotation();
+
+		auto FakeDestination = PlayerDestinationForTeleport;
+		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;
+
+		FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport); //change to enemies location?
+
+		/*FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(playerCharacter->GetControlRotation().Vector(),
+			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
+
+		/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(), 
+			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).Rotation());*/
+
+		RotationToEnemy.Yaw = LookAt.Yaw;
+		//RotationToEnemy.Pitch = -LookAt.Pitch;
+
+
+		/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Teleport Trigger  = %f"), TeleportTriggerLength));*/
+
+		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0.1, TotalTeleportTime);
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
+		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
+
+		bInTeleport = true;
+		AnimInstance->Montage_Pause(CurrentAttackMontage);
+		//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, .4);
+		TeleportTimeline.PlayFromStart();
 	}
-	
-	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
-	RotationToEnemy = playerCharacter->GetControlRotation();
-	RotationToEnemy.Yaw = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport).Yaw;
-
-
-	/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
-	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
-	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Teleport Trigger  = %f"), TeleportTriggerLength));*/
-
-	float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0, TotalTeleportTime);
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
-	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
-
-	bInTeleport = true;
-	AnimInstance->Montage_Pause(CurrentAttackMontage);
-	//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, .4);
-	TeleportTimeline.PlayFromStart();
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -456,6 +487,7 @@ void UCombatSystemComponent::TimelineProgessFOV(float Value)
 void UCombatSystemComponent::EnablePlayerVariables()
 {
 	//playerCharacter->GetCharacterMovement()->StopMovementImmediately();
+	playerCharacter->GetController()->SetIgnoreLookInput(false);
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	bInTeleport = false;
