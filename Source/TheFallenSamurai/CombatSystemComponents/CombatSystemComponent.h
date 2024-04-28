@@ -76,7 +76,11 @@ private:
 
 	FVector PlayerDestinationForTeleport;
 
+	FRotator PlayerOnTeleportRotation;
+
 	FRotator RotationToEnemy;
+
+	float PlayerCameraFOV;
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
@@ -147,7 +151,10 @@ public:
 	float TotalTeleportTime = .3f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
-	UCurveFloat* TeleportCurve;
+	UCurveFloat* LocationCurve;
+
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	UCurveFloat* RotationCurve;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	UCurveFloat* FOVCurve;
@@ -198,7 +205,13 @@ public:
 	void PlayMontageFinished(class UAnimMontage* MontagePlayed, bool bWasInterrupted);
 
 	UFUNCTION()
-	void TimelineProgess(float Value);
+	void TimelineProgessLocation(float Value);
+
+	UFUNCTION()
+	void TimelineProgessRotation(float Value);
+
+	UFUNCTION()
+	void TimelineProgessFOV(float Value);
 
 	UFUNCTION()
 	void EnablePlayerVariables();

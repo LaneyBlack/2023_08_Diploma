@@ -111,7 +111,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
-	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from foward vector?
+	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from forward vector?
 	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
@@ -214,6 +214,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.8f; //change to unsafe normal for perfomance?
 
+	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 	RotationToEnemy = playerCharacter->GetControlRotation();
 	RotationToEnemy.Yaw = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport).Yaw;
 
@@ -236,6 +237,8 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	auto PlayerMesh = playerCharacter->GetMesh();
 	CharacterArmsLength = FVector::Distance(PlayerMesh->GetBoneLocation("clavicle_r"), PlayerMesh->GetBoneLocation("hand_r"));
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
+
+	//PlayerCameraFOV = playerCharacter->get
 
 	FActorSpawnParameters KatanaSpawnParams;
 	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -269,15 +272,21 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
 
-	//bind teleport curve data
-	FOnTimelineFloat TimelineProgress;
-	TimelineProgress.BindUFunction(this, FName("TimelineProgess"));
-	TeleportTimeline.AddInterpFloat(TeleportCurve, TimelineProgress);
-	TeleportTimeline.SetLooping(false);
+	//bind teleport curve data: location
+	FOnTimelineFloat TimelineProgressLocation;
+	TimelineProgressLocation.BindUFunction(this, FName("TimelineProgessLocation"));
+	TeleportTimeline.AddInterpFloat(LocationCurve, TimelineProgressLocation);
+
+	FOnTimelineFloat TimelineProgressRotation;
+	TimelineProgressRotation.BindUFunction(this, FName("TimelineProgessRotation"));
+	TeleportTimeline.AddInterpFloat(RotationCurve, TimelineProgressRotation);
+
 
 	FOnTimelineEvent TimelineFinished;
 	TimelineFinished.BindUFunction(this, FName("EnablePlayerVariables"));
 	TeleportTimeline.SetTimelineFinishedFunc(TimelineFinished);
+
+	TeleportTimeline.SetLooping(false);
 }
 
 void UCombatSystemComponent::Attack()
@@ -293,7 +302,7 @@ void UCombatSystemComponent::Attack()
 	bShouldIgnoreTeleport = false;
 
 	auto MontageToPlay = DetermineNextMontage();
-	float AttackMontageStartPercent = .17f;
+	float AttackMontageStartPercent = .19f;
 	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
 	//start timer for auto aim
@@ -397,13 +406,21 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 	}
 }
 
-void UCombatSystemComponent::TimelineProgess(float Value)
+void UCombatSystemComponent::TimelineProgessLocation(float Value)
 {
 	auto NewLocation = FMath::Lerp(PlayerStartForTeleport, PlayerDestinationForTeleport, Value);
 	playerCharacter->SetActorLocation(NewLocation);
+}
 
-	auto NewRotation = FMath::Lerp(playerCharacter->GetControlRotation(), RotationToEnemy, Value);
+void UCombatSystemComponent::TimelineProgessRotation(float Value)
+{
+	auto NewRotation = FMath::Lerp(PlayerOnTeleportRotation, RotationToEnemy, Value);
 	playerCharacter->GetController()->SetControlRotation(NewRotation);
+}
+
+void UCombatSystemComponent::TimelineProgessFOV(float Value)
+{
+
 }
 
 void UCombatSystemComponent::EnablePlayerVariables()
