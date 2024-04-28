@@ -213,11 +213,11 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	//float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.6f; //change to unsafe normal for perfomance?
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.5f; //change to unsafe normal for perfomance?
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
 	//check if can safely teleport
-	float TraceDepth = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 1.3f;
+	float TraceDepth = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
 	FVector Start = PlayerDestinationForTeleport;
 	//Start.Z = Enemy->GetActorLocation().Z;
 
@@ -236,7 +236,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
 	}*/
 
-	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f))
+	if (bHit && OutHit.Distance >= (TraceDepth * 0.f))
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
 		//DrawDebugLine(GetWorld(), Start, Start - (Enemy->GetActorUpVector() * OutHit.Distance), FColor::Cyan, false, 5.f, 0, 1.5);
