@@ -44,7 +44,8 @@ UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
 	return montage;*/
 
 	static int index = 0;
-	return AttackMontages[index++ % AttackMontages.Num()];
+	CurrentAttackMontage = AttackMontages[index++ % AttackMontages.Num()];
+	return CurrentAttackMontage;
 }
 
 void UCombatSystemComponent::HandleAttackEnd()
@@ -202,7 +203,6 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
-	playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetCharacterMovement()->DisableMovement();
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -247,6 +247,8 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
 	bInTeleport = true;
+	AnimInstance->Montage_Pause(CurrentAttackMontage);
+	//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, .4);
 	TeleportTimeline.PlayFromStart();
 }
 
@@ -322,7 +324,7 @@ void UCombatSystemComponent::Attack()
 	bShouldIgnoreTeleport = false;
 
 	auto MontageToPlay = DetermineNextMontage();
-	float AttackMontageStartPercent = .19f;
+	float AttackMontageStartPercent = .21f;
 	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
 	//start timer for auto aim
@@ -347,6 +349,9 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
+	if (bInTeleport)
+		return;
+
 	bInParry = true;
 	bCanRigUpdate = false;
 	bInCombat = true;
@@ -430,6 +435,11 @@ void UCombatSystemComponent::TimelineProgessLocation(float Value)
 {
 	auto NewLocation = FMath::Lerp(PlayerStartForTeleport, PlayerDestinationForTeleport, Value);
 	playerCharacter->SetActorLocation(NewLocation);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), Value));
+
+	if(Value >= .6f)
+		AnimInstance->Montage_Resume(CurrentAttackMontage);
 }
 
 void UCombatSystemComponent::TimelineProgessRotation(float Value)
@@ -445,6 +455,7 @@ void UCombatSystemComponent::TimelineProgessFOV(float Value)
 
 void UCombatSystemComponent::EnablePlayerVariables()
 {
+	//playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	bInTeleport = false;

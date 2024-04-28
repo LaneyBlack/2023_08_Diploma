@@ -44,6 +44,8 @@ private:
 
 	class UAnimInstance* AnimInstance;
 
+	UAnimMontage* CurrentAttackMontage;
+
 	class APlayerCameraManager* PlayerCameraManager;
 
 	FVector KatanaPreviousPosition;
