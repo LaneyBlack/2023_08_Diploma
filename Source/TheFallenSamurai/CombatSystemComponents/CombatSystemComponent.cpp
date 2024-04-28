@@ -202,9 +202,9 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
-	/*playerCharacter->GetCharacterMovement()->StopMovementImmediately();
+	playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetCharacterMovement()->DisableMovement();
-	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
+	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
 
@@ -214,7 +214,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.6f; //change to unsafe normal for perfomance?
-	//PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
+	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
 	//check if can safely teleport
 	FVector Start = PlayerDestinationForTeleport;
@@ -246,8 +246,8 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
 	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
+	bInTeleport = true;
 	TeleportTimeline.PlayFromStart();
-
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -447,6 +447,7 @@ void UCombatSystemComponent::EnablePlayerVariables()
 {
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	bInTeleport = false;
 }
 
 // Called every frame

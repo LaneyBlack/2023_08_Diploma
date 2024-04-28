@@ -177,6 +177,9 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
 
+	UPROPERTY(BlueprintReadOnly)
+	bool bInTeleport;
+
 	UFUNCTION(BlueprintCallable)
 	void InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
 
