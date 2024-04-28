@@ -62,6 +62,8 @@ private:
 
 	float KatanaTriggerLenSquared;
 
+	float TeleportTriggerLength;
+
 	float CharacterArmsLength;
 
 	bool bShouldIgnoreTeleport = false;
@@ -142,7 +144,7 @@ public:
 	float TeleportTriggerScale = 3.f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
-	float TotalTime = .3f;
+	float TotalTeleportTime = .3f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	UCurveFloat* TeleportCurve;

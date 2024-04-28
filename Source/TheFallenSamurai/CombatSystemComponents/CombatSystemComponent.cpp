@@ -102,7 +102,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
 
 	FVector HalfSize;
-	HalfSize.X = Katana->GetBladeWorldVector().Length() * TeleportTriggerScale;
+	//HalfSize.X = Katana->GetBladeWorldVector().Length() * TeleportTriggerScale;
+	HalfSize.X = TeleportTriggerLength / 2;
 	HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
 	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5;
 
@@ -141,8 +142,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		{
 			auto DistanceSquaredToEnemy = ToEnemy.Length();
 
-			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Collider Length = %f"), KatanaTriggerLenSquared));
-			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Distance To Enemy = %f"), DistanceSquaredToEnemy));
+			/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Collider Length = %f"), KatanaTriggerLenSquared));
+			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Distance To Enemy = %f"), DistanceSquaredToEnemy));*/
 
 			if (DistanceSquaredToEnemy > KatanaTriggerLenSquared)
 			{
@@ -199,7 +200,7 @@ void UCombatSystemComponent::GetVelocityVariables()
 
 void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
 	playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetCharacterMovement()->DisableMovement();
@@ -207,17 +208,25 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
 
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-	ToPlayer.Normalize();
+
 	float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer * KatanaTriggerLenSquared * 0.8f;
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.8f; //change to unsafe normal for perfomance?
 
 	RotationToEnemy = playerCharacter->GetControlRotation();
 	RotationToEnemy.Yaw = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport).Yaw;
 
+
+	/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Teleport Trigger  = %f"), TeleportTriggerLength));*/
+
+	float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0, TotalTeleportTime);
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
+	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
+
 	TeleportTimeline.PlayFromStart();
-	TeleportTimeline.SetPlayRate(1.f);
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -226,8 +235,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 
 	auto PlayerMesh = playerCharacter->GetMesh();
 	CharacterArmsLength = FVector::Distance(PlayerMesh->GetBoneLocation("clavicle_r"), PlayerMesh->GetBoneLocation("hand_r"));
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
-
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
 
 	FActorSpawnParameters KatanaSpawnParams;
 	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -235,7 +243,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
 	Katana->OffsetTraceEndSocket(KatanaBladeTriggerScale);
-	//TeleportTriggerLength = Katana->GetBladeWorldVector().Length() * TeleportTriggerScale;
 	
 	HitTracer = Katana->HitTracer;
 
@@ -245,8 +252,12 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 		KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
 		true);
 
-	KatanaTriggerLenSquared = (Katana->GetBladeWorldVector() * KatanaBladeTriggerScale).Length() + CharacterArmsLength;
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Collider length = %f"), KatanaTriggerLenSquared));
+	auto BladeVector = Katana->GetBladeWorldVector();
+	KatanaTriggerLenSquared = (BladeVector * KatanaBladeTriggerScale).Length() + CharacterArmsLength;
+	TeleportTriggerLength = KatanaTriggerLenSquared * TeleportTriggerScale;	// collider scale relative to katana collider
+	//TeleportTriggerLength = BladeVector.Length() * TeleportTriggerScale * 2;	//previous solution: collider scale relative to katana blade
+	
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Teleport trigger length = %f"), TeleportTriggerLength));
  
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
@@ -359,7 +370,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	} 
 	else if (NotifyName.IsEqual("TeleportIgnore"))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("TeleportIgnore hit!"));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("TeleportIgnore hit!"));
 		bShouldIgnoreTeleport = true;
 	}
 }
