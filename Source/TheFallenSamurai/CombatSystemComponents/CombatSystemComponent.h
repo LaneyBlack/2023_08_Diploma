@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/TimelineComponent.h"
 #include "CombatSystemComponent.generated.h"
 
 class AKatana;
@@ -59,7 +60,21 @@ private:
 
 	FVector LocationLagPosition;
 
-	//float TeleportTriggerLength;
+	float KatanaTriggerLenSquared;
+
+	float CharacterArmsLength;
+
+	bool bShouldIgnoreTeleport = false;
+
+	//FTimerHandle TeleportTimerHandle = FTimerHandle();
+
+	FTimeline TeleportTimeline;
+
+	FVector PlayerStartForTeleport;
+
+	FVector PlayerDestinationForTeleport;
+
+	FRotator RotationToEnemy;
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
@@ -87,6 +102,9 @@ private:
 
 	UFUNCTION()
 	void GetVelocityVariables();
+
+	/*UFUNCTION()
+	void TraceForEnemiesToTeleport();*/
 
 	UFUNCTION()
 	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
@@ -117,11 +135,20 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
 	class UParticleSystem* PerfectParryParticles;
 
-	UPROPERTY(EditAnywhere, Category = "Combat Colliders")
+	UPROPERTY(EditAnywhere, Category = "Katana Collider")
 	float KatanaBladeTriggerScale = 2.f;
 
-	UPROPERTY(EditAnywhere, Category = "Combat Colliders")
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
+
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	float TotalTime = .3f;
+
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	UCurveFloat* TeleportCurve;
+
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	UCurveFloat* FOVCurve;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
@@ -167,6 +194,12 @@ public:
 
 	UFUNCTION()
 	void PlayMontageFinished(class UAnimMontage* MontagePlayed, bool bWasInterrupted);
+
+	UFUNCTION()
+	void TimelineProgess(float Value);
+
+	UFUNCTION()
+	void EnablePlayerVariables();
 
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	

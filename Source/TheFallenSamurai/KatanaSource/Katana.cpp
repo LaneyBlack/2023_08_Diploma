@@ -46,7 +46,7 @@ void AKatana::OffsetTraceEndSocket(float OffsetScale)
 	FVector TraceEndFinalPosition = TraceStart + ColliderVector;
 	const_cast<UStaticMeshSocket*>(TraceEndSocket)->RelativeLocation = TraceEndFinalPosition;
 
-	ColliderMaxDistanceSquared = ColliderVector.SquaredLength();
+	//ColliderMaxDistanceSquared = ColliderVector.SquaredLength();
 }
 
 FVector AKatana::GetBladeWorldVector()

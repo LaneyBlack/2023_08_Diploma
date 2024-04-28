@@ -108,9 +108,10 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	FVector StartEnd = playerCharacter->GetActorLocation() + playerCharacter->GetActorForwardVector() * HalfSize.X;
 
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
-	FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
+	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from foward vector?
+	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
@@ -120,15 +121,15 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	FHitResult HitResult;
 	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResult, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true, FColor::Red, FColor::Green, 1.5f);
 
 	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 	if (bHit && Enemy)
 	{
-		auto VectorToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		auto ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
 
 		float MaxAbsoluteYOffset = 45.f;
-		float TargetPointYOffset = FMath::Clamp(VectorToEnemy.Dot(playerCharacter->GetActorRightVector()), 
+		float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()), 
 			-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
 		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
@@ -136,14 +137,21 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			GetWorld()->GetDeltaSeconds(),
 			25.f);
 
-		auto DistanceSquaredToEnemy = VectorToEnemy.SquaredLength();
-		if (DistanceSquaredToEnemy > Katana->ColliderMaxDistanceSquared)
+		if (!bShouldIgnoreTeleport)
 		{
-			TeleportToClosestEnemy(Enemy);
-			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
-			/*GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
-				&UCombatSystemComponent::TeleportToClosestEnemy,
-				1 / 120.f, true);*/
+			auto DistanceSquaredToEnemy = ToEnemy.Length();
+
+			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Collider Length = %f"), KatanaTriggerLenSquared));
+			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Distance To Enemy = %f"), DistanceSquaredToEnemy));
+
+			if (DistanceSquaredToEnemy > KatanaTriggerLenSquared)
+			{
+				TeleportToClosestEnemy(Enemy);
+				GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
+				/*GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
+					&UCombatSystemComponent::TeleportToClosestEnemy,
+					1 / 120.f, true);*/
+			}
 		}
 	}
 }
@@ -191,12 +199,35 @@ void UCombatSystemComponent::GetVelocityVariables()
 
 void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
+	playerCharacter->GetCharacterMovement()->StopMovementImmediately();
+	playerCharacter->GetCharacterMovement()->DisableMovement();
+	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
+
+	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
+	ToPlayer.Normalize();
+	float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
+
+	PlayerStartForTeleport = playerCharacter->GetActorLocation();
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer * KatanaTriggerLenSquared * 0.8f;
+
+	RotationToEnemy = playerCharacter->GetControlRotation();
+	RotationToEnemy.Yaw = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport).Yaw;
+
+	TeleportTimeline.PlayFromStart();
+	TeleportTimeline.SetPlayRate(1.f);
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
+
+	auto PlayerMesh = playerCharacter->GetMesh();
+	CharacterArmsLength = FVector::Distance(PlayerMesh->GetBoneLocation("clavicle_r"), PlayerMesh->GetBoneLocation("hand_r"));
+	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
+
 
 	FActorSpawnParameters KatanaSpawnParams;
 	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -213,6 +244,9 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	Katana->K2_AttachToComponent(player->GetMesh(), "KatanaSocket",
 		KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
 		true);
+
+	KatanaTriggerLenSquared = (Katana->GetBladeWorldVector() * KatanaBladeTriggerScale).Length() + CharacterArmsLength;
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Collider length = %f"), KatanaTriggerLenSquared));
  
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
@@ -223,6 +257,16 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyBegin);
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
+
+	//bind teleport curve data
+	FOnTimelineFloat TimelineProgress;
+	TimelineProgress.BindUFunction(this, FName("TimelineProgess"));
+	TeleportTimeline.AddInterpFloat(TeleportCurve, TimelineProgress);
+	TeleportTimeline.SetLooping(false);
+
+	FOnTimelineEvent TimelineFinished;
+	TimelineFinished.BindUFunction(this, FName("EnablePlayerVariables"));
+	TeleportTimeline.SetTimelineFinishedFunc(TimelineFinished);
 }
 
 void UCombatSystemComponent::Attack()
@@ -230,17 +274,26 @@ void UCombatSystemComponent::Attack()
 	if (!CheckIfCanAttack())
 		return;
 
+	//reset this cock-sucking plugin that barely works
+	HitTracer->ClearHitArray();
+
 	bIsAttacking = true;
 	bInterputedByItself = false;
+	bShouldIgnoreTeleport = false;
 
 	auto MontageToPlay = DetermineNextMontage();
-	float AttackMontageStartPercent = .21f;
+	float AttackMontageStartPercent = .17f;
 	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
-	//start timer
+	//start timer for auto aim
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
 		1 / 120.f, true);
+
+	//start timer for teleport
+	/*GetWorld()->GetTimerManager().SetTimer(TeleportTraceTimerHandle, this,
+		&UCombatSystemComponent::TraceForEnemiesToTeleport,
+		1 / 120.f, true);*/
 }
 
 void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
@@ -303,6 +356,11 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	{
 		bCanRigUpdate = false;
 		bInCombat = false;
+	} 
+	else if (NotifyName.IsEqual("TeleportIgnore"))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("TeleportIgnore hit!"));
+		bShouldIgnoreTeleport = true;
 	}
 }
 
@@ -328,10 +386,27 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 	}
 }
 
+void UCombatSystemComponent::TimelineProgess(float Value)
+{
+	auto NewLocation = FMath::Lerp(PlayerStartForTeleport, PlayerDestinationForTeleport, Value);
+	playerCharacter->SetActorLocation(NewLocation);
+
+	auto NewRotation = FMath::Lerp(playerCharacter->GetControlRotation(), RotationToEnemy, Value);
+	playerCharacter->GetController()->SetControlRotation(NewRotation);
+}
+
+void UCombatSystemComponent::EnablePlayerVariables()
+{
+	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+}
+
 // Called every frame
 void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	TeleportTimeline.TickTimeline(DeltaTime);
 	
 	if (!bInCombat) //change to not attacking??
 	{
