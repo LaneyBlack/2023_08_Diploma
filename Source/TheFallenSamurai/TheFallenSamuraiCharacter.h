@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "AbilitySystemInterface.h"
 #include "TheFallenSamuraiCharacter.generated.h"
 
 class USpringArmComponent;
@@ -26,7 +27,7 @@ class UComboSystem;
 
 UCLASS(config=Game)
 
-class ATheFallenSamuraiCharacter : public ACharacter
+class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -76,6 +77,17 @@ public:
 	}
 
 protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
+	class UAbilitySystemComponent* AbilitySystemComponent;
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override
+	{
+		return AbilitySystemComponent;
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
+	const class UPlayerAttributeSet* PlayerAttributeSet;
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
