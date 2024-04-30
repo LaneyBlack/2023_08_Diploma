@@ -366,6 +366,8 @@ void UCombatSystemComponent::Attack()
 	//quickly stop perfect parry montage
 	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
 
+	ParrySlowMoTimeline.SetNewTime(30.f);
+
 	bIsAttacking = true;
 	bInterputedByItself = false;
 	bShouldIgnoreTeleport = false;
@@ -396,7 +398,7 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
-	if (bInTeleport || bInParry)
+	if (bInTeleport)
 		return;
 
 	bInParry = true;
@@ -430,7 +432,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 
 	//AnimInstance->Montage_Stop(0.5, PerfectParryMontage);
 
-	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -800.f;
+	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -300.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 
 	UGameplayStatics::SpawnEmitterAttached(PerfectParryParticles, Katana->KatanaMesh,
