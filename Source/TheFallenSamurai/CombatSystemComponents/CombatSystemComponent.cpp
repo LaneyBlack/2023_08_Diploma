@@ -395,8 +395,13 @@ void UCombatSystemComponent::InterruptPerfectParry()
 	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 }
 
-void UCombatSystemComponent::PerfectParryResponse()
+void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0)
 {
+	if(StolenTokens < MaxStolenTokens)
+		StolenTokens += InTokens;
+
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
+
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -800.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 

@@ -84,6 +84,8 @@ private:
 
 	float PlayerCameraFOV;
 
+	int StolenTokens = 0;
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -161,6 +163,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	UCurveFloat* FOVCurve;
 
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	int MaxStolenTokens = 3;
+
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
 	
@@ -198,7 +203,7 @@ public:
 	void InterruptPerfectParry();
 
 	UFUNCTION(BlueprintCallable)
-	void PerfectParryResponse();
+	void PerfectParryResponse(int InTokens);
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
