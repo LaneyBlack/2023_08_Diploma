@@ -29,7 +29,6 @@ UCombatSystemComponent::UCombatSystemComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-
 // Called when the game starts
 void UCombatSystemComponent::BeginPlay()
 {
@@ -213,7 +212,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	//float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.5f; //change to unsafe normal for perfomance?
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
 	//check if can safely teleport
