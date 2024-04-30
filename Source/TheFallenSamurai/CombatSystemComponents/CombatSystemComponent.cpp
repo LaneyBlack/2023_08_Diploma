@@ -477,10 +477,13 @@ void UCombatSystemComponent::TimelineProgessLocation(float Value)
 	auto NewLocation = FMath::Lerp(PlayerStartForTeleport, PlayerDestinationForTeleport, Value);
 	playerCharacter->SetActorLocation(NewLocation);
 
-	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), Value));
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), TeleportTimeline.GetPlaybackPosition()));
 
-	if(Value >= .6f)
+	if (TeleportTimeline.GetPlaybackPosition() >= .3f)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("playing again"));
 		AnimInstance->Montage_Resume(CurrentAttackMontage);
+	}
 }
 
 void UCombatSystemComponent::TimelineProgessRotation(float Value)
