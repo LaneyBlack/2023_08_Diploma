@@ -227,7 +227,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	//change to capusle trace?
 	bool bHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
-		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility)), 
+		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
 		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
 	/*if (bHit)
@@ -236,6 +236,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
 	}*/
 
+	//OutHit.GetActor()->col
 	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f))
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
