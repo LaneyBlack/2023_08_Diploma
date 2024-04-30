@@ -350,6 +350,9 @@ void UCombatSystemComponent::Attack()
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
 
+	//quickly stop perfect parry montage
+	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
+
 	bIsAttacking = true;
 	bInterputedByItself = false;
 	bShouldIgnoreTeleport = false;
@@ -387,7 +390,7 @@ void UCombatSystemComponent::PerfectParry()
 	bCanRigUpdate = false;
 	bInCombat = true;
 
-	AnimInstance->Montage_Play(PerfectParryMontage, 1, EMontagePlayReturnType::MontageLength, .25);
+	AnimInstance->Montage_Play(PerfectParryMontage, 1, EMontagePlayReturnType::MontageLength);
 }
 
 void UCombatSystemComponent::InterruptPerfectParry()
@@ -402,7 +405,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0)
 
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
 
-	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
+	//AnimInstance->Montage_Stop(0.5, PerfectParryMontage);
 
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -800.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
