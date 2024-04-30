@@ -236,7 +236,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
 	}*/
 
-	if (bHit && OutHit.Distance >= (TraceDepth * 0.f))
+	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f))
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
 		//DrawDebugLine(GetWorld(), Start, Start - (Enemy->GetActorUpVector() * OutHit.Distance), FColor::Cyan, false, 5.f, 0, 1.5);
