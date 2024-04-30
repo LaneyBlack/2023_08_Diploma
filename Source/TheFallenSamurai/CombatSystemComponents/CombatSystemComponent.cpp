@@ -380,14 +380,14 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
-	if (bInTeleport)
+	if (bInTeleport || bInParry)
 		return;
 
 	bInParry = true;
 	bCanRigUpdate = false;
 	bInCombat = true;
 
-	AnimInstance->Montage_Play(PerfectParryMontage);
+	AnimInstance->Montage_Play(PerfectParryMontage, 1, EMontagePlayReturnType::MontageLength, .25);
 }
 
 void UCombatSystemComponent::InterruptPerfectParry()
@@ -400,7 +400,9 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0)
 	if(StolenTokens < MaxStolenTokens)
 		StolenTokens += InTokens;
 
-	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
+
+	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -800.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);

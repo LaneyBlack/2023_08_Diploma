@@ -174,8 +174,8 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 			&UCombatSystemComponent::PerfectParry);
 
 		//Perfect Parry Interrupt
-		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
-			&UCombatSystemComponent::InterruptPerfectParry);
+		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
+			&UCombatSystemComponent::InterruptPerfectParry);*/
 	}
 	else
 	{
