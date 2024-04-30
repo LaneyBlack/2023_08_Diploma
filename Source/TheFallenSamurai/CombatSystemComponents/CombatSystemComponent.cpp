@@ -20,6 +20,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+#include "GameFramework/WorldSettings.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -325,7 +327,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
 
-	//bind teleport curve data: location
+	//bind teleport curve data
 	FOnTimelineFloat TimelineProgressLocation;
 	TimelineProgressLocation.BindUFunction(this, FName("TimelineProgessLocation"));
 	TeleportTimeline.AddInterpFloat(LocationCurve, TimelineProgressLocation);
@@ -335,11 +337,22 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	TeleportTimeline.AddInterpFloat(RotationCurve, TimelineProgressRotation);
 
 
-	FOnTimelineEvent TimelineFinished;
-	TimelineFinished.BindUFunction(this, FName("EnablePlayerVariables"));
-	TeleportTimeline.SetTimelineFinishedFunc(TimelineFinished);
+	FOnTimelineEvent TeleportTimelineFinished;
+	TeleportTimelineFinished.BindUFunction(this, FName("TeleportTimelineFinish"));
+	TeleportTimeline.SetTimelineFinishedFunc(TeleportTimelineFinished);
 
 	TeleportTimeline.SetLooping(false);
+
+	//bind slow-mo after parry curve data
+	FOnTimelineFloat TimelineProgressSlowMo;
+	TimelineProgressSlowMo.BindUFunction(this, FName("TimelineProgessSlowMo"));
+	ParrySlowMoTimeline.AddInterpFloat(SlowMoCurve, TimelineProgressSlowMo);
+
+	FOnTimelineEvent SlowMoTimelineFinished;
+	SlowMoTimelineFinished.BindUFunction(this, FName("SlowMoTimelineFinish"));
+	ParrySlowMoTimeline.SetTimelineFinishedFunc(SlowMoTimelineFinished);
+
+	ParrySlowMoTimeline.SetLooping(false);
 }
 
 void UCombatSystemComponent::Attack()
@@ -398,10 +411,20 @@ void UCombatSystemComponent::InterruptPerfectParry()
 	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 }
 
-void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0)
+void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
 {
 	if(StolenTokens < MaxStolenTokens)
 		StolenTokens += InTokens;
+
+	if (bEnableSlowMo)
+	{
+		float part;
+		int sec;
+		UGameplayStatics::GetAccurateRealTime(sec, part);
+		DebugTimeStamp = sec + part;
+		ParrySlowMoTimeline.PlayFromStart();
+		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Timeline start"));
+	}
 
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
 
@@ -497,7 +520,17 @@ void UCombatSystemComponent::TimelineProgessFOV(float Value)
 
 }
 
-void UCombatSystemComponent::EnablePlayerVariables()
+void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
+{
+	float SlowMoValue = FMath::Lerp(1, .05, Value);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Slow-mo value = %f"), SlowMoValue));
+
+	ParrySlowMoTimeline.SetPlayRate(1.f / SlowMoValue);
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SlowMoValue);
+}
+
+void UCombatSystemComponent::TeleportTimelineFinish()
 {
 	//playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetController()->SetIgnoreLookInput(false);
@@ -506,12 +539,25 @@ void UCombatSystemComponent::EnablePlayerVariables()
 	bInTeleport = false;
 }
 
+void UCombatSystemComponent::SlowMoTimelineFinish()
+{
+	float part;
+	int sec;
+	UGameplayStatics::GetAccurateRealTime(sec, part);
+	float totalseconds = sec + part;
+
+	float elapsed = totalseconds - DebugTimeStamp;
+
+	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Real time passed = %f"), elapsed));
+}
+
 // Called every frame
 void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	TeleportTimeline.TickTimeline(DeltaTime);
+	ParrySlowMoTimeline.TickTimeline(DeltaTime);
 	
 	if (!bInCombat) //change to not attacking??
 	{

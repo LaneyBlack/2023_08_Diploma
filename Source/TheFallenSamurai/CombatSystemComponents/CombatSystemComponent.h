@@ -86,6 +86,12 @@ private:
 
 	int StolenTokens = 0;
 
+	FTimeline ParrySlowMoTimeline;
+
+	float TimeDilationBeforeParry = 1.f;
+
+	float DebugTimeStamp;
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -135,6 +141,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
 	TSubclassOf<UCameraShakeBase> ParryCamShake;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
+	UCurveFloat* SlowMoCurve;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
+	float MinTimeDilation = 0.05f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
 	class UParticleSystem* BloodParticles;
@@ -203,7 +215,7 @@ public:
 	void InterruptPerfectParry();
 
 	UFUNCTION(BlueprintCallable)
-	void PerfectParryResponse(int InTokens);
+	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
@@ -224,7 +236,13 @@ public:
 	void TimelineProgessFOV(float Value);
 
 	UFUNCTION()
-	void EnablePlayerVariables();
+	void TimelineProgessSlowMo(float Value);
+
+	UFUNCTION()
+	void TeleportTimelineFinish();
+
+	UFUNCTION()
+	void SlowMoTimelineFinish();
 
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
