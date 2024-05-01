@@ -436,7 +436,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 	AnimInstance->Montage_Play(ParryImpactMontage, 1.3);
 	bInCombat = true;
 
-	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -400.f;
+	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -250.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 
 	UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
