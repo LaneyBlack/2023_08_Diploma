@@ -538,7 +538,7 @@ void UCombatSystemComponent::TimelineProgessFOV(float Value)
 
 void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
 {
-	float SlowMoValue = FMath::Lerp(1, .05, Value);
+	float SlowMoValue = FMath::Lerp(1.f, MinTimeDilation, Value);
 
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Slow-mo value = %f"), SlowMoValue));
 	if(!bShouldSpeedUpSlowMoTimeline)
