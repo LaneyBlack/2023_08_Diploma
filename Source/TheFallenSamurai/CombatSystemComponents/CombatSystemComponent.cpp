@@ -366,7 +366,7 @@ void UCombatSystemComponent::Attack()
 	//quickly stop perfect parry montage
 	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
 
-	ParrySlowMoTimeline.SetNewTime(30.f);
+	SpeedUpSlowMoTimeline();
 
 	bIsAttacking = true;
 	bInterputedByItself = false;
@@ -405,6 +405,8 @@ void UCombatSystemComponent::PerfectParry()
 	bCanRigUpdate = false;
 	bInCombat = true;
 
+	SpeedUpSlowMoTimeline();
+
 	AnimInstance->Montage_Play(PerfectParryMontage, 1, EMontagePlayReturnType::MontageLength);
 }
 
@@ -424,6 +426,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		int sec;
 		UGameplayStatics::GetAccurateRealTime(sec, part);
 		DebugTimeStamp = sec + part;
+		bShouldSpeedUpSlowMoTimeline = false;
 		ParrySlowMoTimeline.PlayFromStart();
 		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Timeline start"));
 	}
@@ -443,6 +446,12 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		ParryCamShake,
 		playerCharacter->GetActorLocation(),
 		0, 500, 1);
+}
+
+void UCombatSystemComponent::SpeedUpSlowMoTimeline()
+{
+	bShouldSpeedUpSlowMoTimeline = true;
+	ParrySlowMoTimeline.SetPlayRate(60.f);
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
@@ -527,8 +536,9 @@ void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
 	float SlowMoValue = FMath::Lerp(1, .05, Value);
 
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Slow-mo value = %f"), SlowMoValue));
-
-	ParrySlowMoTimeline.SetPlayRate(1.f / SlowMoValue);
+	if(!bShouldSpeedUpSlowMoTimeline)
+		ParrySlowMoTimeline.SetPlayRate(1.f / SlowMoValue);
+	
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SlowMoValue);
 }
 
@@ -543,6 +553,9 @@ void UCombatSystemComponent::TeleportTimelineFinish()
 
 void UCombatSystemComponent::SlowMoTimelineFinish()
 {
+	bShouldSpeedUpSlowMoTimeline = false;
+
+	//debug:
 	float part;
 	int sec;
 	UGameplayStatics::GetAccurateRealTime(sec, part);

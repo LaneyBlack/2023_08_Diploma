@@ -90,6 +90,8 @@ private:
 
 	float TimeDilationBeforeParry = 1.f;
 
+	bool bShouldSpeedUpSlowMoTimeline = false;
+
 	float DebugTimeStamp;
 
 	UFUNCTION()
@@ -216,6 +218,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
+
+	UFUNCTION(BlueprintCallable)
+	void SpeedUpSlowMoTimeline();
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
