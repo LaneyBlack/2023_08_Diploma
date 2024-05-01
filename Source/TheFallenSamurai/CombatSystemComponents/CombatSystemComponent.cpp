@@ -451,7 +451,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 void UCombatSystemComponent::SpeedUpSlowMoTimeline()
 {
 	bShouldSpeedUpSlowMoTimeline = true;
-	ParrySlowMoTimeline.SetPlayRate(60.f);
+	ParrySlowMoTimeline.SetPlayRate(55.f);
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
