@@ -129,44 +129,50 @@ private:
 
 public:
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data")
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	TArray<UAnimMontage*> AttackMontages;
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data")
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data")
-	TSubclassOf<UCameraShakeBase> AttackCamShake;
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shakes")
+	TSubclassOf<UCameraShakeBase> AttackCameraShake;
 
-	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
-	UAnimMontage* PerfectParryMontage;
-
-	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
-	UAnimMontage* ParryImpactMontage;
-
-	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
-	TSubclassOf<UCameraShakeBase> ParryCamShake;
-
-	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
-	UCurveFloat* SlowMoCurve;
-
-	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
-	float MinTimeDilation = 0.05f;
-
-	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	class UParticleSystem* BloodParticles;
 
-	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	FVector BloodScale = FVector(.6f, .6f, .8f);
 
-	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Katana Collider")
+	float KatanaBladeTriggerScale = 2.f;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Animation")
+	UAnimMontage* PerfectParryMontage;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Animation")
+	UAnimMontage* ParryImpactMontage;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Camera Shakes")
+	TSubclassOf<UCameraShakeBase> ParryCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Slow-mo")
+	UCurveFloat* SlowMoCurve;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Slow-mo")
+	float MinTimeDilation = 0.05f;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	class UParticleSystem* PerfectParrySparks;
 
-	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
+	FVector PerfectParrySparksSize = FVector(3.f, 3.f, 3.f);
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	class UParticleSystem* PerfectParryShockwave;
 
-	UPROPERTY(EditAnywhere, Category = "Katana Collider")
-	float KatanaBladeTriggerScale = 2.f;
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
+	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
@@ -174,13 +180,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TotalTeleportTime = .3f;
 
-	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* LocationCurve;
 
-	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* RotationCurve;
 
-	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* FOVCurve;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")

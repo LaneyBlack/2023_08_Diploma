@@ -440,11 +440,14 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 
 	UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
-		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, FVector(3.f), EAttachLocation::SnapToTargetIncludingScale);
+		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
+
+	UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
+		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);
 
 	PlayerCameraManager->StopAllCameraShakes();
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
-		ParryCamShake,
+		ParryCameraShake,
 		playerCharacter->GetActorLocation(),
 		0, 500, 1);
 }
@@ -463,7 +466,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		HitTracer->ToggleTraceCheck(true);
 		
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
-			AttackCamShake,
+			AttackCameraShake,
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
 
