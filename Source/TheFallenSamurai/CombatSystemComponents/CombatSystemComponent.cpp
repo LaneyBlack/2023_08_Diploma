@@ -497,6 +497,7 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 {
 	if (MontagePlayed == PerfectParryMontage)
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, playerCharacter->GetCurrentMontage()->GetName());
 		bInCombat = false;
 		bInParry = false;
 	} 
