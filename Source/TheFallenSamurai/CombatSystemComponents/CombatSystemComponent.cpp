@@ -237,8 +237,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
 	}*/
 
-	//OutHit.GetActor()->col
-	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f))
+	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f)) //must be change to be relatve to players capsule
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Got Ground!"));
 		//DrawDebugLine(GetWorld(), Start, Start - (Enemy->GetActorUpVector() * OutHit.Distance), FColor::Cyan, false, 5.f, 0, 1.5);
@@ -403,7 +402,7 @@ void UCombatSystemComponent::PerfectParry()
 
 	bInParry = true;
 	bCanRigUpdate = false;
-	bInCombat = true;
+	//bInCombat = true;
 
 	SpeedUpSlowMoTimeline();
 
@@ -433,12 +432,14 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
 
-	//AnimInstance->Montage_Stop(0.5, PerfectParryMontage);
+	//AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
+	AnimInstance->Montage_Play(ParryImpactMontage, 1.3);
+	bInCombat = true;
 
-	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -300.f;
+	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -400.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 
-	UGameplayStatics::SpawnEmitterAttached(PerfectParryParticles, Katana->KatanaMesh,
+	UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
 		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, FVector(3.f), EAttachLocation::SnapToTargetIncludingScale);
 
 	PlayerCameraManager->StopAllCameraShakes();

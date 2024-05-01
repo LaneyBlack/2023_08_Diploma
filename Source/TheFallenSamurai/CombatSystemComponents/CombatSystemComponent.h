@@ -142,6 +142,9 @@ public:
 	UAnimMontage* PerfectParryMontage;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
+	UAnimMontage* ParryImpactMontage;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
 	TSubclassOf<UCameraShakeBase> ParryCamShake;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
@@ -157,7 +160,10 @@ public:
 	FVector BloodScale = FVector(.6f, .6f, .8f);
 
 	UPROPERTY(EditAnywhere, Category = "Combat VFX")
-	class UParticleSystem* PerfectParryParticles;
+	class UParticleSystem* PerfectParrySparks;
+
+	UPROPERTY(EditAnywhere, Category = "Combat VFX")
+	class UParticleSystem* PerfectParryShockwave;
 
 	UPROPERTY(EditAnywhere, Category = "Katana Collider")
 	float KatanaBladeTriggerScale = 2.f;
