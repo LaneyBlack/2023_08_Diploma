@@ -233,7 +233,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	bool bEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
 
 	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeHit)
@@ -315,6 +315,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		bInTeleport = true;
 		AnimInstance->Montage_Pause(CurrentAttackMontage);
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Montage pasued"));
 		//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, .4);
 		TeleportTimeline.PlayFromStart();
 	}
@@ -554,9 +555,9 @@ void UCombatSystemComponent::TimelineProgessLocation(float Value)
 
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), TeleportTimeline.GetPlaybackPosition()));
 
-	if (TeleportTimeline.GetPlaybackPosition() >= .3f)
+	if (TeleportTimeline.GetPlaybackPosition() >= .4)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("playing again"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("playing again"));
 		AnimInstance->Montage_Resume(CurrentAttackMontage);
 	}
 }
