@@ -22,6 +22,9 @@
 
 #include "GameFramework/WorldSettings.h"
 
+//#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -530,8 +533,12 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
 			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
 
-		UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
+		
+		auto x = UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
 			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);
+
+		//so that shockwave is not affected by slow mo after parry
+		x->CustomTimeDilation = 1.f;
 	}
 }
 
