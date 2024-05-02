@@ -628,7 +628,7 @@ void UCombatSystemComponent::SlowMoTimelineFinish()
 
 	float elapsed = totalseconds - DebugTimeStamp;
 
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Real time passed = %f"), elapsed));
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Real time passed = %f"), elapsed));
 }
 
 // Called every frame
