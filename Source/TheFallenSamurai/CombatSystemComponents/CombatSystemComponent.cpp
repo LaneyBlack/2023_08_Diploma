@@ -127,7 +127,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<FHitResult> HitResults;
 
 	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
 	//float MinDot = -1;
@@ -222,18 +222,25 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 
-	//eye trace
+	//eye trace(move it out of the teleport function?)
 	FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
 	FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
 	//FVector End = Start + playerCharacter->GetActorForwardVector() * MinDistance; //use forward vector or camera rotation? 
 	FHitResult EyeOutHit;
 
-	bool bEyeHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), EyeStart, EyeEnd,
-		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility)),
-		true, { playerCharacter, Katana }, EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 
+	bool bEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+		ObjToTrace, true, { playerCharacter, Katana },
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+
+	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeHit)
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("eyes hit = %s"), *EyeOutHit.GetActor()->GetActorLabel()));
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("eyes hit = %s"), *EyeOutHit.GetActor()->GetActorLabel()));
+		return;
+	}
 
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
@@ -615,4 +622,6 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
+
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("In combat = %i"), bInCombat));
 }
