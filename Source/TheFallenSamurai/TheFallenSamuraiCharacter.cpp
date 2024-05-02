@@ -13,6 +13,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "CombatSystemComponents\CombatSystemComponent.h"
+#include "AbilitySystemComponent.h"
+#include "GAS/PlayerAttributeSet.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -58,6 +60,9 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 
 	//setup combat system component
 	CombatSystemComponent = CreateDefaultSubobject<UCombatSystemComponent>(TEXT("CombatSystem_cpp"));
+	
+	//setup GAS
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -77,8 +82,14 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 		}
 	}
 
+	//Initialize AttributeSets
+	if(IsValid(AbilitySystemComponent))
+	{
+		PlayerAttributeSet = AbilitySystemComponent -> GetSet<UPlayerAttributeSet>();
+	}
+
+	//Reset combo on start
 	ResetCombo();
-	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -119,7 +130,7 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 		FVector LaunchDirection = GetLastMovementInputVector();
 		if (LaunchDirection.IsNearlyZero())
 		{
-			LaunchDirection = GetActorForwardVector();
+			LaunchDirection = FVector(0, 0, 1);;
 		}
 		else
 		{
