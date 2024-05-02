@@ -236,7 +236,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	bool bEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana },
-		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
 
 	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeHit)
@@ -268,7 +268,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	//change to capusle trace?
 	bool bHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
+		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
 	/*if (bHit)
 	{
