@@ -20,12 +20,19 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+#include "GameFramework/WorldSettings.h"
+
+//#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+
+//DEBUG
+#include "DrawDebugHelpers.h"
+
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
-
 
 // Called when the game starts
 void UCombatSystemComponent::BeginPlay()
@@ -40,8 +47,12 @@ bool UCombatSystemComponent::CheckIfCanAttack()
 
 UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
 {
-	auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
-	return montage;
+	/*auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
+	return montage;*/
+
+	static int index = 0;
+	CurrentAttackMontage = AttackMontages[index++ % AttackMontages.Num()];
+	return CurrentAttackMontage;
 }
 
 void UCombatSystemComponent::HandleAttackEnd()
@@ -97,14 +108,18 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	}
 
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
-	FVector StartEnd = playerCharacter->GetActorLocation() 
-		+ playerCharacter->GetActorForwardVector() * (2.5f * CapsuleComponent->GetScaledCapsuleRadius());
 
 	FVector HalfSize;
-	HalfSize.X = HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 3.5f;
-	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5f;
+	HalfSize.X = TeleportTriggerLength / 2;
+	HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
+	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5;
 
-	FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
+	FVector StartEnd = playerCharacter->GetActorLocation() + playerCharacter->GetActorForwardVector() * HalfSize.X;
+
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
+
+	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from forward vector?
+	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
@@ -112,23 +127,56 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<AActor*> Ignore;
 	Ignore.Add(playerCharacter);
 
-	FHitResult HitResult;
-	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation, 
-		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true);
+	TArray<FHitResult> HitResults;
 
-	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
-	if (bHit && Enemy)
+	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+
+	float MinDistance = TeleportTriggerLength + 100;
+	//float MinDot = -1;
+	ABaseEnemy* Closest = nullptr;
+	for (auto HitResult : HitResults)
 	{
-		auto VectorToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
+		if (!Enemy)
+			continue;
+
+		/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Hit) = %f"), HitResult.Distance));
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Math) = %f"), Enemy->GetDistanceTo(playerCharacter)));*/
+
+		float CurrentDistance = Enemy->GetDistanceTo(playerCharacter);
+		/*FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);*/
+		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Dot = %f"), Dot));
+
+		if (CurrentDistance < MinDistance)
+		{
+			MinDistance = CurrentDistance;
+			Closest = Enemy;
+			//MinDot = Dot;
+		}
+	}
+
+	if (Closest)
+	{
+		auto ToEnemy = Closest->GetActorLocation() - playerCharacter->GetActorLocation();
 
 		float MaxAbsoluteYOffset = 45.f;
-		float TargetPointYOffset = FMath::Clamp(VectorToEnemy.Dot(playerCharacter->GetActorRightVector()), 
+		float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()),
 			-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
 		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
 			FVector(0.f, TargetPointYOffset, 0.f),
 			GetWorld()->GetDeltaSeconds(),
 			25.f);
+
+		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
+		{
+			TeleportToClosestEnemy(Closest);
+			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
+		}
 	}
 }
 
@@ -159,6 +207,7 @@ void UCombatSystemComponent::GetLookInputVariables(FRotator PreviousCameraRotati
 void UCombatSystemComponent::GetVelocityVariables()
 {
 	FVector PlayerVelocity = playerCharacter->GetVelocity();
+
 	auto CharacterMovement = playerCharacter->GetCharacterMovement();
 	float NegatedMaxWalkSpeed = -CharacterMovement->MaxWalkSpeed;
 
@@ -172,15 +221,127 @@ void UCombatSystemComponent::GetVelocityVariables()
 	LocationLagPosition = UKismetMathLibrary::VInterpTo(LocationLagPosition, TargetLagPosition, GetWorld()->GetDeltaSeconds(), 13.);
 }
 
+void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
+{
+	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
+
+	//eye trace(move it out of the teleport function?)
+	FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
+	FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
+	//FVector End = Start + playerCharacter->GetActorForwardVector() * MinDistance; //use forward vector or camera rotation? 
+	FHitResult EyeOutHit;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+
+	bool bEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+		ObjToTrace, true, { playerCharacter, Katana },
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+
+	//we hit a static object on the teleport path -> dont teleport
+	if (bEyeHit)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("eyes hit = %s"), *EyeOutHit.GetActor()->GetActorLabel()));
+		return;
+	}
+
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
+
+	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
+
+
+	//float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
+
+	PlayerStartForTeleport = playerCharacter->GetActorLocation();
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
+	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
+
+	//check if can safely teleport
+	float TraceDepth = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
+	FVector Start = PlayerDestinationForTeleport;
+	//Start.Z = Enemy->GetActorLocation().Z;
+
+	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
+	//FVector End = Start - (Enemy->GetActorUpVector() * playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 1.2f);
+	FHitResult OutHit;
+
+	//change to capusle trace?
+	bool bHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
+		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
+		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
+
+	/*if (bHit)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Allowed Trace Depth = %f"), TraceDepth * .4));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
+	}*/
+
+	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f)) //must be change to be relatve to players capsule
+	{
+		//DrawDebugLine(GetWorld(), Start, Start - (Enemy->GetActorUpVector() * OutHit.Distance), FColor::Cyan, false, 5.f, 0, 1.5);
+
+		//to do better collision check
+
+		playerCharacter->GetCharacterMovement()->DisableMovement();
+		playerCharacter->GetController()->SetIgnoreLookInput(true);
+		playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		//change Z so that it matches the Z of hit object
+		PlayerDestinationForTeleport = OutHit.Location;
+		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
+		RotationToEnemy = playerCharacter->GetControlRotation();
+
+		auto FakeDestination = PlayerDestinationForTeleport;
+		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;
+
+		FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport); //change to enemies location?
+
+		/*FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(playerCharacter->GetControlRotation().Vector(),
+			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
+
+		/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(), 
+			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).Rotation());*/
+
+		RotationToEnemy.Yaw = LookAt.Yaw;
+		//RotationToEnemy.Pitch = -LookAt.Pitch;
+
+
+		/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Teleport Trigger  = %f"), TeleportTriggerLength));*/
+
+		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0.1, TotalTeleportTime);
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
+		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
+
+		bInTeleport = true;
+		AnimInstance->Montage_Pause(CurrentAttackMontage);
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Montage pasued"));
+		//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, .4);
+		TeleportTimeline.PlayFromStart();
+
+		OnIFramesChanged.Broadcast(true);
+	}
+}
+
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
+
+	auto PlayerMesh = playerCharacter->GetMesh();
+	CharacterArmsLength = FVector::Distance(PlayerMesh->GetBoneLocation("clavicle_r"), PlayerMesh->GetBoneLocation("hand_r"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
+
+	//PlayerCameraFOV = playerCharacter->get
 
 	FActorSpawnParameters KatanaSpawnParams;
 	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	KatanaSpawnParams.TransformScaleMethod = ESpawnActorScaleMethod::MultiplyWithRoot;
 
 	Katana = GetWorld()->SpawnActor<AKatana>(KatanaActor, player->GetTransform(), KatanaSpawnParams);
+	Katana->OffsetTraceEndSocket(KatanaBladeTriggerScale);
 	
 	HitTracer = Katana->HitTracer;
 
@@ -189,6 +350,13 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	Katana->K2_AttachToComponent(player->GetMesh(), "KatanaSocket",
 		KatanaAttachRules, KatanaAttachRules, KatanaAttachRules,
 		true);
+
+	auto BladeVector = Katana->GetBladeWorldVector();
+	KatanaTriggerLenSquared = (BladeVector * KatanaBladeTriggerScale).Length() + CharacterArmsLength;
+	TeleportTriggerLength = KatanaTriggerLenSquared * TeleportTriggerScale;	// collider scale relative to katana collider
+	//TeleportTriggerLength = BladeVector.Length() * TeleportTriggerScale * 2;	//previous solution: collider scale relative to katana blade
+	
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Teleport trigger length = %f"), TeleportTriggerLength));
  
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
@@ -199,6 +367,33 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyBegin);
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
+
+	//bind teleport curve data
+	FOnTimelineFloat TimelineProgressLocation;
+	TimelineProgressLocation.BindUFunction(this, FName("TimelineProgessLocation"));
+	TeleportTimeline.AddInterpFloat(LocationCurve, TimelineProgressLocation);
+
+	FOnTimelineFloat TimelineProgressRotation;
+	TimelineProgressRotation.BindUFunction(this, FName("TimelineProgessRotation"));
+	TeleportTimeline.AddInterpFloat(RotationCurve, TimelineProgressRotation);
+
+
+	FOnTimelineEvent TeleportTimelineFinished;
+	TeleportTimelineFinished.BindUFunction(this, FName("TeleportTimelineFinish"));
+	TeleportTimeline.SetTimelineFinishedFunc(TeleportTimelineFinished);
+
+	TeleportTimeline.SetLooping(false);
+
+	//bind slow-mo after parry curve data
+	FOnTimelineFloat TimelineProgressSlowMo;
+	TimelineProgressSlowMo.BindUFunction(this, FName("TimelineProgessSlowMo"));
+	ParrySlowMoTimeline.AddInterpFloat(SlowMoCurve, TimelineProgressSlowMo);
+
+	FOnTimelineEvent SlowMoTimelineFinished;
+	SlowMoTimelineFinished.BindUFunction(this, FName("SlowMoTimelineFinish"));
+	ParrySlowMoTimeline.SetTimelineFinishedFunc(SlowMoTimelineFinished);
+
+	ParrySlowMoTimeline.SetLooping(false);
 }
 
 void UCombatSystemComponent::Attack()
@@ -206,16 +401,31 @@ void UCombatSystemComponent::Attack()
 	if (!CheckIfCanAttack())
 		return;
 
+	//reset this cock-sucking plugin that barely works
+	HitTracer->ClearHitArray();
+
+	//quickly stop perfect parry montage
+	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
+
+	SpeedUpSlowMoTimeline();
+
 	bIsAttacking = true;
 	bInterputedByItself = false;
+	bShouldIgnoreTeleport = false;
 
 	auto MontageToPlay = DetermineNextMontage();
-	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier);
+	float AttackMontageStartPercent = .21f;
+	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
-	//start timer
+	//start timer for auto aim
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
 		1 / 120.f, true);
+
+	//start timer for teleport
+	/*GetWorld()->GetTimerManager().SetTimer(TeleportTraceTimerHandle, this,
+		&UCombatSystemComponent::TraceForEnemiesToTeleport,
+		1 / 120.f, true);*/
 }
 
 void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
@@ -229,31 +439,65 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
+	if (bInTeleport || bInParry)
+		return;
+
 	bInParry = true;
 	bCanRigUpdate = false;
 	bInCombat = true;
 
-	AnimInstance->Montage_Play(PerfectParryMontage);
+	SpeedUpSlowMoTimeline();
+
+	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
 }
 
 void UCombatSystemComponent::InterruptPerfectParry()
 {
-	AnimInstance->Montage_Stop(0.3f, PerfectParryMontage);
+	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 }
 
-void UCombatSystemComponent::PerfectParryResponse()
+void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
 {
-	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -800.f;
+	if(StolenTokens < MaxStolenTokens)
+		StolenTokens += InTokens;
+
+	if (bEnableSlowMo)
+	{
+		float part;
+		int sec;
+		UGameplayStatics::GetAccurateRealTime(sec, part);
+		DebugTimeStamp = sec + part;
+		bShouldSpeedUpSlowMoTimeline = false;
+		ParrySlowMoTimeline.PlayFromStart();
+		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Timeline start"));
+	}
+
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
+
+	//AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
+	AnimInstance->Montage_Play(ParryImpactMontage, ParryImpactMontageSpeed);
+	//bInCombat = true;
+
+	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -250.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 
-	UGameplayStatics::SpawnEmitterAttached(PerfectParryParticles, Katana->KatanaMesh,
-		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, FVector(3.f), EAttachLocation::SnapToTargetIncludingScale);
+	/*UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
+		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
+
+	UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
+		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);*/
 
 	PlayerCameraManager->StopAllCameraShakes();
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
-		ParryCamShake,
+		ParryCameraShake,
 		playerCharacter->GetActorLocation(),
 		0, 500, 1);
+}
+
+void UCombatSystemComponent::SpeedUpSlowMoTimeline()
+{
+	bShouldSpeedUpSlowMoTimeline = true;
+	ParrySlowMoTimeline.SetPlayRate(55.f);
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
@@ -264,7 +508,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		HitTracer->ToggleTraceCheck(true);
 		
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
-			AttackCamShake,
+			AttackCameraShake,
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
 
@@ -278,6 +522,23 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	{
 		bCanRigUpdate = false;
 		bInCombat = false;
+	} 
+	else if (NotifyName.IsEqual("TeleportIgnore"))
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("TeleportIgnore hit!"));
+		bShouldIgnoreTeleport = true;
+	}
+	else if (NotifyName.IsEqual("SuccessfulParryEffect"))
+	{
+		UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
+			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
+
+		
+		auto x = UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
+			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);
+
+		//so that shockwave is not affected by slow mo after parry
+		x->CustomTimeDilation = 1.f;
 	}
 }
 
@@ -287,6 +548,7 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 	{
 		bInterputedByItself = true;
 		HandleAttackEnd();
+		OnIFramesChanged.Broadcast(false);
 	}
 }
 
@@ -294,19 +556,88 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 {
 	if (MontagePlayed == PerfectParryMontage)
 	{
-		bInCombat = false;
+		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, playerCharacter->GetCurrentMontage()->GetName());
+		if(!bWasInterrupted)
+			bInCombat = false;
 		bInParry = false;
 	} 
 	else if (AttackMontages.Contains(MontagePlayed))
 	{
 		HandleAttackEnd();
 	}
+	else if (MontagePlayed == ParryImpactMontage)
+	{
+		bInCombat = false;
+	}
+}
+
+void UCombatSystemComponent::TimelineProgessLocation(float Value)
+{
+	auto NewLocation = FMath::Lerp(PlayerStartForTeleport, PlayerDestinationForTeleport, Value);
+	playerCharacter->SetActorLocation(NewLocation);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), TeleportTimeline.GetPlaybackPosition()));
+
+	if (TeleportTimeline.GetPlaybackPosition() >= .4)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("playing again"));
+		AnimInstance->Montage_Resume(CurrentAttackMontage);
+	}
+}
+
+void UCombatSystemComponent::TimelineProgessRotation(float Value)
+{
+	auto NewRotation = FMath::Lerp(PlayerOnTeleportRotation, RotationToEnemy, Value);
+	playerCharacter->GetController()->SetControlRotation(NewRotation);
+}
+
+void UCombatSystemComponent::TimelineProgessFOV(float Value)
+{
+
+}
+
+void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
+{
+	float SlowMoValue = FMath::Lerp(1.f, MinTimeDilation, Value);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Slow-mo value = %f"), SlowMoValue));
+	if(!bShouldSpeedUpSlowMoTimeline)
+		ParrySlowMoTimeline.SetPlayRate(1.f / SlowMoValue);
+	
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SlowMoValue);
+}
+
+void UCombatSystemComponent::TeleportTimelineFinish()
+{
+	//playerCharacter->GetCharacterMovement()->StopMovementImmediately();
+	playerCharacter->GetController()->SetIgnoreLookInput(false);
+	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	bInTeleport = false;
+}
+
+void UCombatSystemComponent::SlowMoTimelineFinish()
+{
+	bShouldSpeedUpSlowMoTimeline = false;
+
+	//debug:
+	float part;
+	int sec;
+	UGameplayStatics::GetAccurateRealTime(sec, part);
+	float totalseconds = sec + part;
+
+	float elapsed = totalseconds - DebugTimeStamp;
+
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Real time passed = %f"), elapsed));
 }
 
 // Called every frame
 void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	TeleportTimeline.TickTimeline(DeltaTime);
+	ParrySlowMoTimeline.TickTimeline(DeltaTime);
 	
 	if (!bInCombat) //change to not attacking??
 	{
@@ -315,4 +646,6 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
+
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("In combat = %i"), bInCombat));
 }

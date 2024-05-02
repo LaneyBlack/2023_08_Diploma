@@ -15,6 +15,8 @@ public:
 	// Sets default values for this actor's properties
 	AKatana();
 
+	//float ColliderMaxDistanceSquared;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -26,6 +28,12 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class UDidItHitActorComponent* HitTracer;
+
+	UFUNCTION()
+	void OffsetTraceEndSocket(float OffsetScale);
+
+	UFUNCTION()
+	FVector GetBladeWorldVector();
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

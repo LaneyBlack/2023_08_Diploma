@@ -164,6 +164,18 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
+
+		//Attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::Attack);
+
+		//Perfect Parry
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::PerfectParry);
+
+		//Perfect Parry Interrupt
+		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
+			&UCombatSystemComponent::InterruptPerfectParry);*/
 	}
 	else
 	{
