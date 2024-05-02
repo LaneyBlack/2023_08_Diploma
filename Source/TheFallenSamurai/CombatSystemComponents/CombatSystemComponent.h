@@ -7,6 +7,8 @@
 #include "Components/TimelineComponent.h"
 #include "CombatSystemComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
+
 class AKatana;
 class UCameraShakeBase;
 
@@ -191,6 +193,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	int MaxStolenTokens = 3;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnIFramesChanged OnIFramesChanged;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
