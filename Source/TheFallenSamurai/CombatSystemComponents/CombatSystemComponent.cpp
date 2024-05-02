@@ -478,11 +478,11 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -250.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 
-	UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
+	/*UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
 		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
 
 	UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
-		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);
+		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);*/
 
 	PlayerCameraManager->StopAllCameraShakes();
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
@@ -524,6 +524,14 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("TeleportIgnore hit!"));
 		bShouldIgnoreTeleport = true;
+	}
+	else if (NotifyName.IsEqual("SuccessfulParryEffect"))
+	{
+		UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
+			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
+
+		UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
+			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);
 	}
 }
 
