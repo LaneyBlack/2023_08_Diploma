@@ -153,7 +153,13 @@ public:
 	UAnimMontage* PerfectParryMontage;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Animation")
+	float PerfectParryMontageSpeed = 1.4f;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Animation")
 	UAnimMontage* ParryImpactMontage;
+
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Animation")
+	float ParryImpactMontageSpeed = 1.3f;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|Camera Shakes")
 	TSubclassOf<UCameraShakeBase> ParryCameraShake;

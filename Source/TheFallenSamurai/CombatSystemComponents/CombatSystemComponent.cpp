@@ -445,7 +445,7 @@ void UCombatSystemComponent::PerfectParry()
 
 	SpeedUpSlowMoTimeline();
 
-	AnimInstance->Montage_Play(PerfectParryMontage, 1, EMontagePlayReturnType::MontageLength);
+	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
 }
 
 void UCombatSystemComponent::InterruptPerfectParry()
@@ -472,7 +472,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
 
 	//AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
-	AnimInstance->Montage_Play(ParryImpactMontage, 1.3);
+	AnimInstance->Montage_Play(ParryImpactMontage, ParryImpactMontageSpeed);
 	bInCombat = true;
 
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -250.f;
