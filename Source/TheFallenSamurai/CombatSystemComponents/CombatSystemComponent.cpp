@@ -436,12 +436,12 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
-	if (bInTeleport)
+	if (bInTeleport || bInParry)
 		return;
 
 	bInParry = true;
 	bCanRigUpdate = false;
-	//bInCombat = true;
+	bInCombat = true;
 
 	SpeedUpSlowMoTimeline();
 
@@ -473,7 +473,7 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 
 	//AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 	AnimInstance->Montage_Play(ParryImpactMontage, ParryImpactMontageSpeed);
-	bInCombat = true;
+	//bInCombat = true;
 
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -250.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
@@ -542,12 +542,17 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 	if (MontagePlayed == PerfectParryMontage)
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, playerCharacter->GetCurrentMontage()->GetName());
-		bInCombat = false;
+		if(!bWasInterrupted)
+			bInCombat = false;
 		bInParry = false;
 	} 
 	else if (AttackMontages.Contains(MontagePlayed))
 	{
 		HandleAttackEnd();
+	}
+	else if (MontagePlayed == ParryImpactMontage)
+	{
+		bInCombat = false;
 	}
 }
 
