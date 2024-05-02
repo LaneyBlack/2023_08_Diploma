@@ -220,11 +220,25 @@ void UCombatSystemComponent::GetVelocityVariables()
 
 void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 {
+	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
+
+	//eye trace
+	FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
+	FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
+	//FVector End = Start + playerCharacter->GetActorForwardVector() * MinDistance; //use forward vector or camera rotation? 
+	FHitResult EyeOutHit;
+
+	bool bEyeHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), EyeStart, EyeEnd,
+		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Visibility)),
+		true, { playerCharacter, Katana }, EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+
+	if (bEyeHit)
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("eyes hit = %s"), *EyeOutHit.GetActor()->GetActorLabel()));
+
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
 
 	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
 
-	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 
 	//float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
