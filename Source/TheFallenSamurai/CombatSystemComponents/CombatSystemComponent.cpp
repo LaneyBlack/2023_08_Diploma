@@ -107,7 +107,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
 
 	FVector HalfSize;
-	//HalfSize.X = Katana->GetBladeWorldVector().Length() * TeleportTriggerScale;
 	HalfSize.X = TeleportTriggerLength / 2;
 	HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
 	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5;
@@ -125,17 +124,44 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<AActor*> Ignore;
 	Ignore.Add(playerCharacter);
 
-	FHitResult HitResult;
-	bool bHit = UKismetSystemLibrary::BoxTraceSingleForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResult, true, FColor::Red, FColor::Green, 1.5f);
+	TArray<FHitResult> HitResults;
 
-	auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
-	if (bHit && Enemy)
+	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
+		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+
+	float MinDistance = TeleportTriggerLength + 100;
+	//float MinDot = -1;
+	ABaseEnemy* Closest = nullptr;
+	for (auto HitResult : HitResults)
 	{
-		auto ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
+		if (!Enemy)
+			continue;
+
+		/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Hit) = %f"), HitResult.Distance));
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Math) = %f"), Enemy->GetDistanceTo(playerCharacter)));*/
+
+		float CurrentDistance = Enemy->GetDistanceTo(playerCharacter);
+		/*FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);*/
+		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Dot = %f"), Dot));
+
+		if (CurrentDistance < MinDistance)
+		{
+			MinDistance = CurrentDistance;
+			Closest = Enemy;
+			//MinDot = Dot;
+		}
+	}
+
+	if (Closest)
+	{
+		auto ToEnemy = Closest->GetActorLocation() - playerCharacter->GetActorLocation();
 
 		float MaxAbsoluteYOffset = 45.f;
-		float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()), 
+		float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()),
 			-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
 		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
@@ -143,21 +169,10 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			GetWorld()->GetDeltaSeconds(),
 			25.f);
 
-		if (!bShouldIgnoreTeleport)
+		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
-			auto DistanceSquaredToEnemy = ToEnemy.Length();
-
-			/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Collider Length = %f"), KatanaTriggerLenSquared));
-			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Distance To Enemy = %f"), DistanceSquaredToEnemy));*/
-
-			if (DistanceSquaredToEnemy > KatanaTriggerLenSquared)
-			{
-				TeleportToClosestEnemy(Enemy);
-				GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
-				/*GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
-					&UCombatSystemComponent::TeleportToClosestEnemy,
-					1 / 120.f, true);*/
-			}
+			TeleportToClosestEnemy(Closest);
+			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
 	}
 }
