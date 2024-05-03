@@ -188,6 +188,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TotalTeleportTime = .3f;
 
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	float MinFOVValue = 70.f;
+
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* LocationCurve;
 

@@ -312,6 +312,8 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Teleport Trigger  = %f"), TeleportTriggerLength));*/
 
+		PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
+
 		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0.1, TotalTeleportTime);
 		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
 		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
@@ -376,6 +378,10 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	FOnTimelineFloat TimelineProgressRotation;
 	TimelineProgressRotation.BindUFunction(this, FName("TimelineProgessRotation"));
 	TeleportTimeline.AddInterpFloat(RotationCurve, TimelineProgressRotation);
+
+	FOnTimelineFloat TimelineProgressFOV;
+	TimelineProgressFOV.BindUFunction(this, FName("TimelineProgessFOV"));
+	TeleportTimeline.AddInterpFloat(FOVCurve, TimelineProgressFOV);
 
 
 	FOnTimelineEvent TeleportTimelineFinished;
@@ -593,7 +599,8 @@ void UCombatSystemComponent::TimelineProgessRotation(float Value)
 
 void UCombatSystemComponent::TimelineProgessFOV(float Value)
 {
-
+	float NewFOV = FMath::Lerp(PlayerCameraFOV, MinFOVValue, Value);
+	PlayerCameraManager->SetFOV(NewFOV);
 }
 
 void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
@@ -647,5 +654,5 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
 
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("In combat = %i"), bInCombat));
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Player FOV = %f"), PlayerCameraManager->GetFOVAngle()));
 }
