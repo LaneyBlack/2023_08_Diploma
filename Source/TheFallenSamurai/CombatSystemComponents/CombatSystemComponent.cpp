@@ -44,7 +44,8 @@ void UCombatSystemComponent::BeginPlay()
 
 bool UCombatSystemComponent::CheckIfCanAttack()
 {
-	return !bIsAttacking && (bInterputedByItself || !AttackMontages.Contains(playerCharacter->GetCurrentMontage()));
+	//return !bIsAttacking && (bInterputedByItself || !AttackMontages.Contains(playerCharacter->GetCurrentMontage()));
+	return !bIsAttacking && (bInterputedByItself || CurrentAttackData.AttackMontage != playerCharacter->GetCurrentMontage() || !CurrentAttackData.AttackMontage);
 }
 
 UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
@@ -53,8 +54,8 @@ UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
 	return montage;*/
 
 	static int index = 0;
-	CurrentAttackMontage = AttackMontages[index++ % AttackMontages.Num()];
-	return CurrentAttackMontage;
+	CurrentAttackData = AttackMontages[index++ % AttackMontages.Num()];
+	return CurrentAttackData.AttackMontage;
 }
 
 void UCombatSystemComponent::HandleAttackEnd()
@@ -316,21 +317,23 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
 
-		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0.1, TotalTeleportTime);
+		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0.15, TotalTeleportTime);
 		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
 		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
 		bInTeleport = true;
-		AnimInstance->Montage_Pause(CurrentAttackMontage);
-		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Montage pasued"));
-		//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, .4);
+		//AnimInstance->Montage_Pause(CurrentAttackData.AttackMontage);
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
+		auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
+		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
+		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, TimeToPerfectAttack / NormalizedTeleportTime);
 		TeleportTimeline.PlayFromStart();
 
 		OnIFramesChanged.Broadcast(true);
 	}
 }
 
-float UCombatSystemComponent::GetNotifyTimeOfMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
+float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
 {
 	/*auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
 		return CurrentEvent.NotifyName.IsEqual(NotifyName);
@@ -349,17 +352,11 @@ float UCombatSystemComponent::GetNotifyTimeOfMontage(UAnimMontage* Montage, FNam
 
 	if (track)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+
+		return track->Notifies[0]->GetTriggerTime();
 	}
-
-	/*if(NotifyEvent)
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("TRIGGER TIME = %f"), NotifyEvent->GetTriggerTime()));
-	else
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, TEXT("NOT FOUND"));*/
-
-
-//	FString message = "Time of " + NotifyName.ToString() + " = %f";
 	
 	return 0;
 
@@ -456,7 +453,11 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 
 	ParrySlowMoTimeline.SetLooping(false);
 
-	GetNotifyTimeOfMontage(AttackMontages[0], "TraceWindow", "PerfectAttackTrack");
+	for (auto& AttackMontageData : AttackMontages)
+	{
+		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
+		//AttackMontageData.NormalizedChance = AttackMontageData.Chance / AttackMontages.Num();
+	}
 }
 
 void UCombatSystemComponent::Attack()
@@ -484,11 +485,6 @@ void UCombatSystemComponent::Attack()
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
 		1 / 120.f, true);
-
-	//start timer for teleport
-	/*GetWorld()->GetTimerManager().SetTimer(TeleportTraceTimerHandle, this,
-		&UCombatSystemComponent::TraceForEnemiesToTeleport,
-		1 / 120.f, true);*/
 }
 
 void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
@@ -576,7 +572,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 			0, 500, 1);
 
 		/*auto current = playerCharacter->GetCurrentMontage();
-		GetNotifyTimeOfMontage(current, "TraceWindow", "PerfectAttackTrack");*/
+		GetNotifyTimeInMontage(current, "TraceWindow", "PerfectAttackTrack");*/
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 	}
@@ -626,7 +622,7 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 			bInCombat = false;
 		bInParry = false;
 	} 
-	else if (AttackMontages.Contains(MontagePlayed))
+	else if (/*AttackMontages.Contains(MontagePlayed)*/ CurrentAttackData.AttackMontage == MontagePlayed) //test this
 	{
 		HandleAttackEnd();
 	}
@@ -643,11 +639,11 @@ void UCombatSystemComponent::TimelineProgessLocation(float Value)
 
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), TeleportTimeline.GetPlaybackPosition()));
 
-	if (TeleportTimeline.GetPlaybackPosition() >= .4)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("playing again"));
-		AnimInstance->Montage_Resume(CurrentAttackMontage);
-	}
+	//if (TeleportTimeline.GetPlaybackPosition() >= 1)
+	//{
+	//	//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("playing again"));
+	//	AnimInstance->Montage_Resume(CurrentAttackData.AttackMontage);
+	//}
 }
 
 void UCombatSystemComponent::TimelineProgessRotation(float Value)
@@ -679,7 +675,11 @@ void UCombatSystemComponent::TeleportTimelineFinish()
 	playerCharacter->GetController()->SetIgnoreLookInput(false);
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
 	bInTeleport = false;
+
+	//AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage, AttackSpeedMultiplier);
+
 }
 
 void UCombatSystemComponent::SlowMoTimelineFinish()

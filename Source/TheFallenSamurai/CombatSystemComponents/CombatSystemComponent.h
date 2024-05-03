@@ -9,6 +9,27 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 
+
+USTRUCT(BlueprintType)
+struct FAttackAnimData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* AttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Chance;				//how often should this montage be player
+
+	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
+
+	float PlayRate;
+	float PerfectAttackTime;
+
+	//for later 
+	//hand offset of crig
+};
+
 class AKatana;
 class UCameraShakeBase;
 
@@ -46,7 +67,7 @@ private:
 
 	class UAnimInstance* AnimInstance;
 
-	UAnimMontage* CurrentAttackMontage;
+	FAttackAnimData CurrentAttackData;
 
 	class APlayerCameraManager* PlayerCameraManager;
 
@@ -130,12 +151,13 @@ private:
 	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
 
 	UFUNCTION()
-	float GetNotifyTimeOfMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
 
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
-	TArray<UAnimMontage*> AttackMontages;
+	TArray<FAttackAnimData> AttackMontages;
+	//TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
