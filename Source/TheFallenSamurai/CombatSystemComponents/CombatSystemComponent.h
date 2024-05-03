@@ -129,6 +129,9 @@ private:
 	UFUNCTION()
 	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
 
+	UFUNCTION()
+	float GetNotifyTimeOfMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
+
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")

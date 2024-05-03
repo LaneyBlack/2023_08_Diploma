@@ -11,6 +11,8 @@
 
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimTypes.h"
+#include "AnimNotifies/AnimNotify_PlayMontageNotify.h"
 
 #include "DidItHitActorComponent.h"
 
@@ -328,6 +330,59 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	}
 }
 
+float UCombatSystemComponent::GetNotifyTimeOfMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
+{
+	/*auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
+		return CurrentEvent.NotifyName.IsEqual(NotifyName);
+		});*/
+
+	/*auto notifies = Montage->Notifies;
+	for (const auto& x : notifies)
+	{
+		UAnimNotify_PlayMontageNotify* MontageNotify = Cast<UAnimNotify_PlayMontageNotify>(x.Notify);
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify name = %f"), *MontageNotify->NotifyName.ToString()));
+	}*/
+
+	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
+		return CurrentTrack.TrackName.IsEqual(TrackName);
+		});
+
+	if (track)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+	}
+
+	/*if(NotifyEvent)
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("TRIGGER TIME = %f"), NotifyEvent->GetTriggerTime()));
+	else
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, TEXT("NOT FOUND"));*/
+
+
+//	FString message = "Time of " + NotifyName.ToString() + " = %f";
+	
+	return 0;
+
+
+	//if (NotifyTrack)
+	//{
+	//	// Iterate through the notifies in the notify track
+	//	for (const FAnimNotifyEvent& NotifyEvent : NotifyTrack->Notifies)
+	//	{
+	//		// Check if this is the notify we are looking for
+	//		if (NotifyEvent.NotifyName == NotifyName)
+	//		{
+	//			// Calculate the remaining time before the notify is fired
+	//			float TimeToNotify = NotifyEvent.GetTime() - MontagePosition;
+
+	//			// Now TimeToNotify contains the time remaining before the notify fires
+	//			// You can use this value as needed
+	//			break;
+	//		}
+	//	}
+	//}
+}
+
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
@@ -400,6 +455,8 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	ParrySlowMoTimeline.SetTimelineFinishedFunc(SlowMoTimelineFinished);
 
 	ParrySlowMoTimeline.SetLooping(false);
+
+	GetNotifyTimeOfMontage(AttackMontages[0], "TraceWindow", "PerfectAttackTrack");
 }
 
 void UCombatSystemComponent::Attack()
@@ -518,6 +575,9 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
 
+		/*auto current = playerCharacter->GetCurrentMontage();
+		GetNotifyTimeOfMontage(current, "TraceWindow", "PerfectAttackTrack");*/
+
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 	}
 	else if (NotifyName.IsEqual("CRigUpdate"))
@@ -538,13 +598,12 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	{
 		UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
 			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
-
 		
-		auto x = UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
+		auto SpawnedShockwave = UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
 			"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);
 
 		//so that shockwave is not affected by slow mo after parry
-		x->CustomTimeDilation = 1.f;
+		SpawnedShockwave->CustomTimeDilation = 1.f;
 	}
 }
 
@@ -654,5 +713,9 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
 
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Player FOV = %f"), PlayerCameraManager->GetFOVAngle()));
+	/*auto current = playerCharacter->GetCurrentMontage();
+	if (current)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Animation Position = %f"), AnimInstance->Montage_GetPosition(current)));
+	}*/
 }
