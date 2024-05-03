@@ -317,8 +317,11 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
 
-		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, TeleportTriggerLength, 0.15, TotalTeleportTime);
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
+		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, 
+			TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
+
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
+
 		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
 		bInTeleport = true;

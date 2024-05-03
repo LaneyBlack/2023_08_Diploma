@@ -211,7 +211,10 @@ public:
 	float TeleportTriggerScale = 3.f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
-	float TotalTeleportTime = .3f;
+	float MinTotalTeleportTime = .3f;
+
+	UPROPERTY(EditAnywhere, Category = "Teleport Data")
+	float MaxTotalTeleportTime = .3f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float MinFOVValue = 70.f;
