@@ -324,9 +324,15 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		bInTeleport = true;
 		//AnimInstance->Montage_Pause(CurrentAttackData.AttackMontage);
 		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
+
 		auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
 		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, TimeToPerfectAttack / NormalizedTeleportTime);
+		float x = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
+
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Montage Speed up  = %f"), x));
+
+		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, x);
+
 		TeleportTimeline.PlayFromStart();
 
 		OnIFramesChanged.Broadcast(true);
@@ -679,7 +685,7 @@ void UCombatSystemComponent::TeleportTimelineFinish()
 	bInTeleport = false;
 
 	//AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage, AttackSpeedMultiplier);
-
+	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, TEXT("TELEPORT FINISHED"));
 }
 
 void UCombatSystemComponent::SlowMoTimelineFinish()
