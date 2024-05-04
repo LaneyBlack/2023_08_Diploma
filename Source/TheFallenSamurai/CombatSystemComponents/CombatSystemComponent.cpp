@@ -48,14 +48,20 @@ bool UCombatSystemComponent::CheckIfCanAttack()
 	return !bIsAttacking && (bInterputedByItself || CurrentAttackData.AttackMontage != playerCharacter->GetCurrentMontage() || !CurrentAttackData.AttackMontage);
 }
 
-UAnimMontage* UCombatSystemComponent::DetermineNextMontage()
+const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 {
 	/*auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
 	return montage;*/
 
 	static int index = 0;
-	CurrentAttackData = AttackMontages[index++ % AttackMontages.Num()];
-	return CurrentAttackData.AttackMontage;
+	//CurrentAttackData = AttackMontages[index++ % AttackMontages.Num()];
+	return AttackMontages[index++ % AttackMontages.Num()];
+}
+
+const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
+{
+	static int index = 0;
+	return *CounterAttackMontages[index++ % CounterAttackMontages.Num()];
 }
 
 void UCombatSystemComponent::HandleAttackEnd()
@@ -243,17 +249,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeHit)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("eyes hit = %s"), *EyeOutHit.GetActor()->GetActorLabel()));
 		return;
-	}
-
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, TEXT("teleport"));
-
-	//playerCharacter->GetCharacterMovement()->StopActiveMovement();
-
-
-	//float EnemyCapsuleRadius = Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
@@ -320,21 +316,19 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, 
 			TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
 
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Total Time  = %f"), NormalizedTeleportTime));
-
 		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
 		bInTeleport = true;
-		//AnimInstance->Montage_Pause(CurrentAttackData.AttackMontage);
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
+
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
 
 		auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
 		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-		float x = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
+		float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
 
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Montage Speed up  = %f"), x));
+		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Montage Speed up  = %f"), AcctualPlayRate));
 
-		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, x);
+		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
 
 		TeleportTimeline.PlayFromStart();
 
@@ -431,6 +425,23 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
 
+	NextAttackData = DetermineNextAttackData();
+
+	for (auto& anim : AttackMontages)
+	{
+		if (anim.PerfectForCounter)
+			CounterAttackMontages.Add(&anim);
+	}
+
+	/*CounterAttackMontages = AttackMontages.FilterByPredicate([&](const FAttackAnimData& animdata) -> bool {
+		return animdata.PerfectForCounter;
+		});*/
+
+	/*for (auto x : CounterAttackMontages)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("counterattack name = %s"), *x.AttackMontage->GetName()));
+	}*/
+
 	//bind teleport curve data
 	FOnTimelineFloat TimelineProgressLocation;
 	TimelineProgressLocation.BindUFunction(this, FName("TimelineProgessLocation"));
@@ -486,9 +497,12 @@ void UCombatSystemComponent::Attack()
 	bInterputedByItself = false;
 	bShouldIgnoreTeleport = false;
 
-	auto MontageToPlay = DetermineNextMontage();
+	CurrentAttackData = NextAttackData;
+
 	float AttackMontageStartPercent = .21f;
-	AnimInstance->Montage_Play(MontageToPlay, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+	AnimInstance->Montage_Play(CurrentAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+
+	NextAttackData = DetermineNextAttackData();
 
 	//start timer for auto aim
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
@@ -546,14 +560,10 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 	AnimInstance->Montage_Play(ParryImpactMontage, ParryImpactMontageSpeed);
 	//bInCombat = true;
 
+	NextAttackData = DetermineNextCounterAttackData();
+
 	auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -250.f;
 	playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
-
-	/*UGameplayStatics::SpawnEmitterAttached(PerfectParrySparks, Katana->KatanaMesh,
-		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParrySparksSize, EAttachLocation::SnapToTargetIncludingScale);
-
-	UGameplayStatics::SpawnEmitterAttached(PerfectParryShockwave, Katana->KatanaMesh,
-		"ParryEffect", FVector::Zero(), FRotator::ZeroRotator, PerfectParryShockwaveSize, EAttachLocation::SnapToTargetIncludingScale);*/
 
 	PlayerCameraManager->StopAllCameraShakes();
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
@@ -562,10 +572,10 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		0, 500, 1);
 }
 
-void UCombatSystemComponent::SpeedUpSlowMoTimeline()
+void UCombatSystemComponent::SpeedUpSlowMoTimeline(float SpeedUpValue)
 {
 	bShouldSpeedUpSlowMoTimeline = true;
-	ParrySlowMoTimeline.SetPlayRate(55.f);
+	ParrySlowMoTimeline.SetPlayRate(SpeedUpValue);
 }
 
 void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
@@ -687,8 +697,7 @@ void UCombatSystemComponent::TeleportTimelineFinish()
 
 	bInTeleport = false;
 
-	//AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage, AttackSpeedMultiplier);
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, TEXT("TELEPORT FINISHED"));
+	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, TEXT("TELEPORT FINISHED"));
 }
 
 void UCombatSystemComponent::SlowMoTimelineFinish()
@@ -721,10 +730,4 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
-
-	/*auto current = playerCharacter->GetCurrentMontage();
-	if (current)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Animation Position = %f"), AnimInstance->Montage_GetPosition(current)));
-	}*/
 }

@@ -21,9 +21,12 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Chance;				//how often should this montage be player
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool PerfectForCounter = false;				
+
 	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
-	float PlayRate;
+	//float PlayRate;
 	float PerfectAttackTime;
 
 	//for later 
@@ -68,6 +71,10 @@ private:
 	class UAnimInstance* AnimInstance;
 
 	FAttackAnimData CurrentAttackData;
+
+	FAttackAnimData NextAttackData;
+
+	TArray<FAttackAnimData*> CounterAttackMontages;
 
 	class APlayerCameraManager* PlayerCameraManager;
 
@@ -121,7 +128,10 @@ private:
 	bool CheckIfCanAttack();
 
 	UFUNCTION()
-	UAnimMontage* DetermineNextMontage();
+	const FAttackAnimData& DetermineNextAttackData();
+
+	UFUNCTION()
+	const FAttackAnimData& DetermineNextCounterAttackData();
 
 	UFUNCTION()
 	void HandleAttackEnd();
@@ -274,7 +284,7 @@ public:
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
 
 	UFUNCTION(BlueprintCallable)
-	void SpeedUpSlowMoTimeline();
+	void SpeedUpSlowMoTimeline(float SpeedUpValue = 60.f);
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
