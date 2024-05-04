@@ -139,7 +139,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<FHitResult> HitResults;
 
 	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
 	//float MinDot = -1;
@@ -154,11 +154,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Math) = %f"), Enemy->GetDistanceTo(playerCharacter)));*/
 
 		float CurrentDistance = Enemy->GetDistanceTo(playerCharacter);
-		/*FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
-		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);*/
-		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
-
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Dot = %f"), Dot));
 
 		if (CurrentDistance < MinDistance)
 		{
@@ -166,6 +161,20 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			Closest = Enemy;
 			//MinDot = Dot;
 		}
+
+		FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
+		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Dot = %f"), Dot));
+		float InDot = 1.f / Dot;
+
+		float dotweight = 600.f;
+		float distweight = .5f;
+
+		float a = dotweight * FMath::Abs(Dot - 0.7071) / CurrentDistance;
+		Enemy->SetDebugTextValue(a);
+		//Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
 
 	if (Closest)
@@ -183,7 +192,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
-			TeleportToClosestEnemy(Closest);
+			//TeleportToClosestEnemy(Closest);
 			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
 	}

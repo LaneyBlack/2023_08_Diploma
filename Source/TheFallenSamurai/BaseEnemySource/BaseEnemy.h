@@ -26,6 +26,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void ApplyDamage();
 
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void SetDebugTextValue(float value);
+
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
