@@ -30,6 +30,9 @@
 //DEBUG
 #include "DrawDebugHelpers.h"
 
+#define PRINT(mess)  GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT(mess));
+#define PRINT_F(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT(prompt), mess));
+
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
 {
@@ -166,7 +169,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
 		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
 
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Dot = %f"), Dot));
 		float InDot = 1.f / Dot;
 
 		float dotweight = 600.f;
