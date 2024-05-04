@@ -2,6 +2,7 @@
 
 #pragma once
 
+//#include "Templates/Tuple.h"
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Components/TimelineComponent.h"
@@ -35,6 +36,8 @@ struct FAttackAnimData
 
 class AKatana;
 class UCameraShakeBase;
+template<typename... Types>
+struct TTuple;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent
@@ -124,6 +127,10 @@ private:
 
 	float DebugTimeStamp;
 
+	//FVector TargetPointInitialPosition;
+
+	TTuple<FVector, bool> GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -162,7 +169,6 @@ private:
 
 	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
-
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
@@ -261,6 +267,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
+
+	/*UPROPERTY(BlueprintReadOnly)
+	FVector TargetPointPosition;*/
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bInTeleport;

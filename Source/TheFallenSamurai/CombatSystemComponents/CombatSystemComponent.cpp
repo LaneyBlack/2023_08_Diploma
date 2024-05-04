@@ -27,6 +27,8 @@
 //#include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+//#include "Templates/Tuple.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -171,17 +173,17 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 		float InDot = 1.f / Dot;
 
-		float dotweight = 600.f;
+		float DotWeight = 600.f;
 		float distweight = .5f;
 
-		float a = dotweight * FMath::Abs(Dot - 0.7071) / CurrentDistance;
+		float a = DotWeight * FMath::Abs(Dot - 0.7071) / CurrentDistance;
 		Enemy->SetDebugTextValue(a);
 		//Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
 
 	if (Closest)
 	{
-		auto ToEnemy = Closest->GetActorLocation() - playerCharacter->GetActorLocation();
+		/*auto ToEnemy = Closest->GetActorLocation() - playerCharacter->GetActorLocation();
 
 		float MaxAbsoluteYOffset = 45.f;
 		float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()),
@@ -190,7 +192,13 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
 			FVector(0.f, TargetPointYOffset, 0.f),
 			GetWorld()->GetDeltaSeconds(),
-			25.f);
+			25.f);*/
+		//bool bVerticalOverflow = false;
+		const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation());
+		//const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetActorLocation(), Closest->GetActorLocation());
+
+		//TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset, NextTargetPointOffset, GetWorld()->GetDeltaSeconds(), .f);
+		TargetPointOffset = NextTargetPointOffset;
 
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
@@ -373,25 +381,21 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 	}
 	
 	return 0;
+}
 
+TTuple<FVector, bool> UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
+{
+	auto ToEnemy = EnemyLocation - PlayerLocation;
 
-	//if (NotifyTrack)
-	//{
-	//	// Iterate through the notifies in the notify track
-	//	for (const FAnimNotifyEvent& NotifyEvent : NotifyTrack->Notifies)
-	//	{
-	//		// Check if this is the notify we are looking for
-	//		if (NotifyEvent.NotifyName == NotifyName)
-	//		{
-	//			// Calculate the remaining time before the notify is fired
-	//			float TimeToNotify = NotifyEvent.GetTime() - MontagePosition;
+	float MaxAbsoluteYOffset = 45.f;
+	float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()),
+		-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
-	//			// Now TimeToNotify contains the time remaining before the notify fires
-	//			// You can use this value as needed
-	//			break;
-	//		}
-	//	}
-	//}
+	//float MaxAbsoluteZOffset = 15.f;
+	PRINT_F("dot value = %f", ToEnemy.Dot(playerCharacter->GetActorUpVector()));
+	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorUpVector()), -15, 5);
+
+	return { FVector(0.f, TargetPointYOffset, TargetPointZOffset), false };
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -429,6 +433,8 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
 	PlayerCameraManager->ViewPitchMin = MinViewPitchValue;
+
+	//TargetPointInitialPosition = PlayerCameraManager->camera;
 
 	AnimInstance = playerCharacter->GetMesh()->GetAnimInstance();
 
@@ -741,4 +747,6 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
+
+	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
 }
