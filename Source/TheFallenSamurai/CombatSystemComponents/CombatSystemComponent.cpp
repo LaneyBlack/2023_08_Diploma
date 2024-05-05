@@ -124,11 +124,12 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
 
 	FVector HalfSize;
-	HalfSize.X = TeleportTriggerLength / 2;
+	HalfSize.X = 1.f;
 	HalfSize.Y = CapsuleComponent->GetScaledCapsuleRadius() * 4.;
 	HalfSize.Z = CapsuleComponent->GetScaledCapsuleHalfHeight() * 1.5;
 
-	FVector StartEnd = playerCharacter->GetActorLocation() + playerCharacter->GetActorForwardVector() * HalfSize.X;
+	FVector Start = playerCharacter->GetActorLocation();
+	FVector End = Start + playerCharacter->GetControlRotation().Vector() * TeleportTriggerLength;
 
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
@@ -143,7 +144,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	TArray<FHitResult> HitResults;
 
-	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
+	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), Start, End, HalfSize, BoxRotation,
 		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
