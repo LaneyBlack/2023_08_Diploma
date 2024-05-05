@@ -71,7 +71,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
 
 void UCombatSystemComponent::HandleAttackEnd()
 {
-	TargetPointOffset = FVector::Zero();
+	//TargetPointOffset = FVector::Zero();
 
 	GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 
@@ -144,7 +144,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<FHitResult> HitResults;
 
 	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), StartEnd, StartEnd, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::ForDuration, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
 	//float MinDot = -1;
@@ -194,7 +194,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			GetWorld()->GetDeltaSeconds(),
 			25.f);*/
 		//bool bVerticalOverflow = false;
-		const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation());
+		FVector NextTargetPointOffset = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation());
 		//const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetActorLocation(), Closest->GetActorLocation());
 
 		//TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset, NextTargetPointOffset, GetWorld()->GetDeltaSeconds(), .f);
@@ -202,7 +202,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
-			//TeleportToClosestEnemy(Closest);
+			TeleportToClosestEnemy(Closest);
 			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
 	}
@@ -275,7 +275,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
 	//check if can safely teleport
-	float TraceDepth = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
+	float TraceDepth = playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
 	FVector Start = PlayerDestinationForTeleport;
 	//Start.Z = Enemy->GetActorLocation().Z;
 
@@ -284,35 +284,29 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	FHitResult OutHit;
 
 	//change to capusle trace?
-	bool bHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
+	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
+		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
-	/*if (bHit)
+	/*if (bHasGround)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Allowed Trace Depth = %f"), TraceDepth * .4));
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
 	}*/
 
-	if (bHit && OutHit.Distance >= (TraceDepth * 0.4f)) //must be change to be relatve to players capsule
+	if (bHasGround) //must be change to be relatve to players capsule
 	{
-		//DrawDebugLine(GetWorld(), Start, Start - (Enemy->GetActorUpVector() * OutHit.Distance), FColor::Cyan, false, 5.f, 0, 1.5);
-
-		//to do better collision check
-
-		playerCharacter->GetCharacterMovement()->DisableMovement();
-		playerCharacter->GetController()->SetIgnoreLookInput(true);
-		playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 		//change Z so that it matches the Z of hit object
 		PlayerDestinationForTeleport = OutHit.Location;
 		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
+
 		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 		RotationToEnemy = playerCharacter->GetControlRotation();
 
-		auto FakeDestination = PlayerDestinationForTeleport;
-		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;
+		/*auto FakeDestination = PlayerDestinationForTeleport;
+		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
 
 		FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport); //change to enemies location?
 
@@ -323,8 +317,34 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).Rotation());*/
 
 		RotationToEnemy.Yaw = LookAt.Yaw;
-		//RotationToEnemy.Pitch = -LookAt.Pitch;
+		//RotationToEnemy.Pitch = LookAt.Pitch;
 
+		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
+		auto CombatPoint = OutHit.Location + FeetToHead;
+
+		CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset; //which check is better?
+
+		//previous solution with calculating the target point 
+		/*auto Dest = PlayerDestinationForTeleport;
+		Dest.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
+		//TargetPointOffset = GetAutoAimOffset(Dest, Enemy->GetActorLocation());
+		//CombatPoint += TargetPointOffset;
+
+		FVector EnemyBottom = Enemy->GetActorLocation() - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
+		FVector EnemyTop = Enemy->GetActorLocation() + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
+
+		/*DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 3);
+
+		DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 20);
+		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 20);*/
+
+		if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
+		{
+			PRINT("abort teleport");
+			return;
+		}
+		else
+			PRINT("continue teleport");
 
 		/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
@@ -348,6 +368,11 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Montage Speed up  = %f"), AcctualPlayRate));
 
 		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
+		PRINT_F("play rate = %f", AcctualPlayRate);
+
+		playerCharacter->GetCharacterMovement()->DisableMovement();
+		playerCharacter->GetController()->SetIgnoreLookInput(true);
+		playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 		TeleportTimeline.PlayFromStart();
 
@@ -383,7 +408,7 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 	return 0;
 }
 
-TTuple<FVector, bool> UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
+FVector UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
 {
 	auto ToEnemy = EnemyLocation - PlayerLocation;
 
@@ -392,10 +417,10 @@ TTuple<FVector, bool> UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLoc
 		-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
 	//float MaxAbsoluteZOffset = 15.f;
-	PRINT_F("dot value = %f", ToEnemy.Dot(playerCharacter->GetActorUpVector()));
+	//PRINT_F("dot value = %f", ToEnemy.Dot(playerCharacter->GetActorUpVector()));
 	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorUpVector()), -15, 5);
 
-	return { FVector(0.f, TargetPointYOffset, TargetPointZOffset), false };
+	return FVector(0.f, TargetPointYOffset, TargetPointZOffset);
 }
 
 void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
@@ -442,7 +467,9 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
 
-	NextAttackData = DetermineNextAttackData();
+	//NextAttackData = DetermineNextAttackData();
+	//PRINT("init");
+	NextAttackData = AttackMontages[0];
 
 	for (auto& anim : AttackMontages)
 	{
@@ -514,10 +541,10 @@ void UCombatSystemComponent::Attack()
 	bInterputedByItself = false;
 	bShouldIgnoreTeleport = false;
 
-	CurrentAttackData = NextAttackData;
 
+	CurrentAttackData = NextAttackData;
 	float AttackMontageStartPercent = .21f;
-	AnimInstance->Montage_Play(CurrentAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
 	NextAttackData = DetermineNextAttackData();
 
@@ -661,6 +688,14 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 	else if (/*AttackMontages.Contains(MontagePlayed)*/ CurrentAttackData.AttackMontage == MontagePlayed) //test this
 	{
 		HandleAttackEnd();
+		/*if (bWasInterrupted)
+		{
+			PRINT("interupted");
+		}
+		else
+		{
+			PRINT("finished");
+		}*/
 	}
 	else if (MontagePlayed == ParryImpactMontage)
 	{

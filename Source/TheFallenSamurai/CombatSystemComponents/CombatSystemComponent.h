@@ -129,7 +129,7 @@ private:
 
 	//FVector TargetPointInitialPosition;
 
-	TTuple<FVector, bool> GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
+	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
