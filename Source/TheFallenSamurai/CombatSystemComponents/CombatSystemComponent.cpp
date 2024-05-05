@@ -268,33 +268,35 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
-	//check if can safely teleport
 	float TraceDepth = playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
 	FVector Start = PlayerDestinationForTeleport;
-	//Start.Z = Enemy->GetActorLocation().Z;
 
 	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
-	//FVector End = Start - (Enemy->GetActorUpVector() * playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 1.2f);
 	FHitResult OutHit;
 
-	//change to capusle trace?
 	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
+		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
-	/*if (bHasGround)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Allowed Trace Depth = %f"), TraceDepth * .4));
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Emerald, FString::Printf(TEXT("Distance = %f"), OutHit.Distance));
-	}*/
-
-	if (bHasGround) //must be change to be relatve to players capsule
+	if (bHasGround) 
 	{
 
-		//change Z so that it matches the Z of hit object
+		//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
 		PlayerDestinationForTeleport = OutHit.Location;
 		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
+		ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+		ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+		auto playerCapsule = playerCharacter->GetCapsuleComponent();
+		FHitResult CapsuleSpaceHit;
+
+		bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport, 
+			playerCapsule->GetScaledCapsuleRadius() * .8f, playerCapsule->GetScaledCapsuleHalfHeight() - 2.f,
+			ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::None, CapsuleSpaceHit, true);
+
+		if (bTeleportBlock)
+			return;
 
 		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 		RotationToEnemy = playerCharacter->GetControlRotation();
@@ -333,12 +335,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 20);*/
 
 		if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
-		{
-			PRINT("abort teleport");
 			return;
-		}
-		else
-			PRINT("continue teleport");
 
 		/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
@@ -359,10 +356,9 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
 		float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
 
-		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Montage Speed up  = %f"), AcctualPlayRate));
+		//PRINT_F("Montage Speed up  = %f", AcctualPlayRate);
 
 		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
-		PRINT_F("play rate = %f", AcctualPlayRate);
 
 		playerCharacter->GetCharacterMovement()->DisableMovement();
 		playerCharacter->GetController()->SetIgnoreLookInput(true);
