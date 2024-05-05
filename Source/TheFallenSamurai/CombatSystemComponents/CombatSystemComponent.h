@@ -77,7 +77,7 @@ private:
 
 	FAttackAnimData NextAttackData;
 
-	TArray<FAttackAnimData*> CounterAttackMontages;
+	TArray<FAttackAnimData> CounterAttackMontages;
 
 	class APlayerCameraManager* PlayerCameraManager;
 

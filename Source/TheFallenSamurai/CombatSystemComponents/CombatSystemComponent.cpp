@@ -66,7 +66,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
 {
 	static int index = 0;
-	return *CounterAttackMontages[index++ % CounterAttackMontages.Num()];
+	return CounterAttackMontages[index++ % CounterAttackMontages.Num()];
 }
 
 void UCombatSystemComponent::HandleAttackEnd()
@@ -467,15 +467,17 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &UCombatSystemComponent::PlayMontageNotifyEnd);
 	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatSystemComponent::PlayMontageFinished);
 
-	//NextAttackData = DetermineNextAttackData();
-	//PRINT("init");
-	NextAttackData = AttackMontages[0];
-
-	for (auto& anim : AttackMontages)
+	for (auto& AttackMontageData : AttackMontages)
 	{
-		if (anim.PerfectForCounter)
-			CounterAttackMontages.Add(&anim);
+		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
+		//AttackMontageData.NormalizedChance = AttackMontageData.Chance / AttackMontages.Num();
+
+		if (AttackMontageData.PerfectForCounter)
+			CounterAttackMontages.Add(AttackMontageData);
 	}
+
+	NextAttackData = DetermineNextAttackData();
+
 
 	/*CounterAttackMontages = AttackMontages.FilterByPredicate([&](const FAttackAnimData& animdata) -> bool {
 		return animdata.PerfectForCounter;
@@ -516,12 +518,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	ParrySlowMoTimeline.SetTimelineFinishedFunc(SlowMoTimelineFinished);
 
 	ParrySlowMoTimeline.SetLooping(false);
-
-	for (auto& AttackMontageData : AttackMontages)
-	{
-		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
-		//AttackMontageData.NormalizedChance = AttackMontageData.Chance / AttackMontages.Num();
-	}
 }
 
 void UCombatSystemComponent::Attack()
@@ -541,11 +537,10 @@ void UCombatSystemComponent::Attack()
 	bInterputedByItself = false;
 	bShouldIgnoreTeleport = false;
 
-
-	CurrentAttackData = NextAttackData;
 	float AttackMontageStartPercent = .21f;
 	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
 
+	CurrentAttackData = NextAttackData;
 	NextAttackData = DetermineNextAttackData();
 
 	//start timer for auto aim
