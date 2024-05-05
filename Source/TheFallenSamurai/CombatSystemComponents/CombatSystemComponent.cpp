@@ -121,6 +121,9 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		result.Reset();
 	}
 
+	if (bInTeleport)
+		return;
+
 	auto CapsuleComponent = playerCharacter->GetCapsuleComponent();
 
 	FVector HalfSize;
@@ -184,16 +187,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 	if (Closest)
 	{
-		/*auto ToEnemy = Closest->GetActorLocation() - playerCharacter->GetActorLocation();
-
-		float MaxAbsoluteYOffset = 45.f;
-		float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()),
-			-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
-
-		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset,
-			FVector(0.f, TargetPointYOffset, 0.f),
-			GetWorld()->GetDeltaSeconds(),
-			25.f);*/
 		//bool bVerticalOverflow = false;
 		FVector NextTargetPointOffset = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation());
 		//const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetActorLocation(), Closest->GetActorLocation());
@@ -204,7 +197,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			TeleportToClosestEnemy(Closest);
-			GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
+			//GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
 	}
 }
