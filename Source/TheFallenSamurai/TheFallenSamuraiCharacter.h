@@ -61,6 +61,9 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* PerfectParryAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SuperAbilityAction;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CombatSystem, meta = (AllowPrivateAccess = "true"))
 	class UCombatSystemComponent* CombatSystemComponent;
 

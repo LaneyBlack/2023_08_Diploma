@@ -569,8 +569,11 @@ void UCombatSystemComponent::InterruptPerfectParry()
 
 void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
 {
-	if(StolenTokens < MaxStolenTokens)
+	if (InTokens != 0 && StolenTokens < MaxStolenTokens)
+	{
 		StolenTokens += InTokens;
+		OnStolenTokensChanged.Broadcast(StolenTokens); //should be called when slow-mo timeline finishes?
+	}
 
 	if (bEnableSlowMo)
 	{
@@ -599,6 +602,16 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		ParryCameraShake,
 		playerCharacter->GetActorLocation(),
 		0, 500, 1);
+}
+
+void UCombatSystemComponent::SuperAbility()
+{
+	PRINT("started ability");
+}
+
+void UCombatSystemComponent::CancelSuperAbility()
+{
+	PRINT("canceled ability");
 }
 
 void UCombatSystemComponent::SpeedUpSlowMoTimeline(float SpeedUpValue)

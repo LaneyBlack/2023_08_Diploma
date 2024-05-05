@@ -9,6 +9,9 @@
 #include "CombatSystemComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityCalled, bool, bWasSuccess); 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
 
 
 USTRUCT(BlueprintType)
@@ -247,8 +250,23 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	int MaxStolenTokens = 3;
 
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	float MaxJumpRadius = 200.f;
+
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	int EnemyTargetLimit = 4;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnStolenTokensChanged OnStolenTokensChanged;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnIFramesChanged OnIFramesChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnSuperAbilityCalled OnSuperAbilityCalled;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnSuperAbilityCancelled OnSuperAbilityCancelled;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
@@ -291,6 +309,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
+
+	UFUNCTION(BlueprintCallable)
+	void SuperAbility();
+
+	UFUNCTION(BlueprintCallable)
+	void CancelSuperAbility();
 
 	UFUNCTION(BlueprintCallable)
 	void SpeedUpSlowMoTimeline(float SpeedUpValue = 60.f);
