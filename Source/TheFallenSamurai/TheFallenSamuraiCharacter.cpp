@@ -100,6 +100,17 @@ void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 	bIsWallrunJumping = false;
 }
 
+void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (GetCharacterMovement()->MovementMode == MOVE_None)
+	{
+		bFirstJump = true;
+		bDoubleJumpingFromGround = false;
+	}
+}
+
 void ATheFallenSamuraiCharacter::DoubleJump()
 {
 	if (NoJumpState == ENoJumpState::None)
