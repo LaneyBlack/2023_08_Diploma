@@ -33,6 +33,7 @@
 #include "DrawDebugHelpers.h"
 
 #define PRINT(mess)  GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT(mess));
+#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
 #define PRINT_F(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT(prompt), mess));
 
 // Sets default values for this component's properties
@@ -398,6 +399,42 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 	return 0;
 }
 
+bool UCombatSystemComponent::ExecuteSuperAbility()
+{
+	PRINT("called execute ability");
+
+	FVector Start = playerCharacter->GetActorLocation();
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+	TArray<AActor*> Ignore;
+	Ignore.Add(playerCharacter);
+
+	TArray<FHitResult> HitResults;
+	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, Start, MaxJumpRadius, ObjToTrace,
+		true, Ignore, EDrawDebugTrace::ForDuration, HitResults, true);
+
+	if (HitResults.Num() == 0)
+	{
+		return false;
+	}
+
+	SA_State = SuperAbilityState::WAITING;
+	/*while (SA_State == SuperAbilityState::WAITING)
+	{
+		PRINTC("during wait", FColor::Red);
+	}
+
+	PRINTC("during wait", FColor::Cyan);*/
+	//playerCharacter->GetCharacterMovement()->DisableMovement();
+	//more?
+
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
+
+	return true;
+}
+
 FVector UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
 {
 	auto ToEnemy = EnemyLocation - PlayerLocation;
@@ -583,12 +620,9 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		DebugTimeStamp = sec + part;
 		bShouldSpeedUpSlowMoTimeline = false;
 		ParrySlowMoTimeline.PlayFromStart();
-		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TEXT("Timeline start"));
 	}
 
-	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Total Stolen Tokens = %i"), StolenTokens));
 
-	//AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 	AnimInstance->Montage_Play(ParryImpactMontage, ParryImpactMontageSpeed);
 	//bInCombat = true;
 
@@ -606,12 +640,48 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 
 void UCombatSystemComponent::SuperAbility()
 {
-	PRINT("started ability");
+	if (SA_State == SuperAbilityState::WAITING)
+	{
+		CancelSuperAbility();
+		return;
+	}
+
+	PRINT("called ability");
+
+	if (StolenTokens < MaxStolenTokens)
+	{
+		PRINT("Not enough tokens");
+		OnSuperAbilityCalled.Broadcast(false, "Not enough tokens");
+		return;
+	}
+	else if (!ExecuteSuperAbility())
+	{
+		PRINT("No enemies nearby");
+		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
+		return;
+	}
+
+	OnSuperAbilityCalled.Broadcast(true, "");
+	StolenTokens = 0;
+	OnStolenTokensChanged.Broadcast(StolenTokens);
+
+	for (int i = 1; i < EnemyTargetLimit; ++i)
+	{
+		if (!ExecuteSuperAbility())
+		{
+			CancelSuperAbility();
+			break;
+		}
+	}
 }
 
 void UCombatSystemComponent::CancelSuperAbility()
 {
-	PRINT("canceled ability");
+	PRINT("canceled ability call");
+	SA_State = SuperAbilityState::NONE;
+	OnSuperAbilityCancelled.Broadcast();
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
+	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 
 void UCombatSystemComponent::SpeedUpSlowMoTimeline(float SpeedUpValue)

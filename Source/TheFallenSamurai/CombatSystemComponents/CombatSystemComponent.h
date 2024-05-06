@@ -10,8 +10,16 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityCalled, bool, bWasSuccess); 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
+
+UENUM(BlueprintType)
+enum class SuperAbilityState : uint8 {
+	NONE = 0 UMETA(DisplayName = "NONE"),
+	WAITING = 1  UMETA(DisplayName = "WAITING"),
+	//CALLED = 2  UMETA(DisplayName = "CALLED"),
+	DURING = 2  UMETA(DisplayName = "DURING")
+};
 
 
 USTRUCT(BlueprintType)
@@ -134,6 +142,8 @@ private:
 
 	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
 
+	SuperAbilityState SA_State = SuperAbilityState::NONE;
+
 	UFUNCTION()
 	bool CheckIfCanAttack();
 
@@ -172,6 +182,9 @@ private:
 
 	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
+
+	UFUNCTION()
+	bool ExecuteSuperAbility();
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
@@ -255,6 +268,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	int EnemyTargetLimit = 4;
+
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	float SuperAbilitySlowMo = 0.1f;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnStolenTokensChanged OnStolenTokensChanged;

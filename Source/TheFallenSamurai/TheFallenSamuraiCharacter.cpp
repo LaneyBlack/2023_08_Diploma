@@ -192,9 +192,9 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
 			&UCombatSystemComponent::SuperAbility);
 
-		//Cancel Super Ability
-		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,
-			&UCombatSystemComponent::CancelSuperAbility);
+		////Cancel Super Ability
+		//EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,
+		//	&UCombatSystemComponent::CancelSuperAbility);
 	}
 	else
 	{
