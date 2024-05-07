@@ -110,6 +110,8 @@ protected:
 	// To add mapping context
 	virtual void BeginPlay();
 
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+
 	// Reset Double Jump
 	virtual void Landed(const FHitResult& Hit) override;
 
