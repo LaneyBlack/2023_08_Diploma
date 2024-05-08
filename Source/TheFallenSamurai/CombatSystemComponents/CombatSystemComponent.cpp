@@ -353,13 +353,13 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
 
-		auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
-		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-		float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
+		//auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
+		//float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
+		//float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
 
-		//PRINT_F("Montage Speed up  = %f", AcctualPlayRate);
+		////PRINT_F("Montage Speed up  = %f", AcctualPlayRate);
 
-		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
+		//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
 
 		playerCharacter->GetCharacterMovement()->DisableMovement();
 		playerCharacter->GetController()->SetIgnoreLookInput(true);
@@ -384,17 +384,17 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify name = %f"), *MontageNotify->NotifyName.ToString()));
 	}*/
 
-	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
-		return CurrentTrack.TrackName.IsEqual(TrackName);
-		});
+	//auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
+	//	return CurrentTrack.TrackName.IsEqual(TrackName);
+	//	});
 
-	if (track)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+	//if (track)
+	//{
+	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
+	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
 
-		return track->Notifies[0]->GetTriggerTime();
-	}
+	//	return track->Notifies[0]->GetTriggerTime();
+	//}
 	
 	return 0;
 }
