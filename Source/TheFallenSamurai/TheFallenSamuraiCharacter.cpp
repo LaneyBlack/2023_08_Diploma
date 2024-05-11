@@ -200,8 +200,8 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 			&UCombatSystemComponent::InterruptPerfectParry);*/
 
 		//Super Ability
-		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
-			&UCombatSystemComponent::SuperAbility);*/
+		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::SuperAbility);
 
 		////Cancel Super Ability
 		//EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,

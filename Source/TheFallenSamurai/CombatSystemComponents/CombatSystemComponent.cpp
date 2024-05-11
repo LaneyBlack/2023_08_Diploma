@@ -259,11 +259,14 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	bool bEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Red, FColor::Green, 5.f);
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Blue, FColor::Black, 5.f);
 
 	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeHit)
+	{
+		//PRINT("Got obstacle between enemy and player");
 		return;
+	}
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
@@ -277,11 +280,11 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
+		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
 	if (bHasGround) 
 	{
-
+		//PRINT("has ground");
 		//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
 		PlayerDestinationForTeleport = OutHit.Location;
 		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
@@ -297,7 +300,10 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 			ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::None, CapsuleSpaceHit, true);
 
 		if (bTeleportBlock)
+		{
+			//PRINT("something blocks the spawn position");
 			return;
+		}
 
 		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 		RotationToEnemy = playerCharacter->GetControlRotation();
