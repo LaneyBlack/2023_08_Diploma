@@ -35,6 +35,8 @@
 #define PRINT(mess)  GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
 #define PRINT_F(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+
 
 // Sets default values for this component's properties
 UCombatSystemComponent::UCombatSystemComponent()
@@ -359,13 +361,13 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
 
-		//auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
-		//float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-		//float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
+		auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
+		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
+		float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
 
-		////PRINT_F("Montage Speed up  = %f", AcctualPlayRate);
+		//PRINT_F("Montage Speed up  = %f", AcctualPlayRate);
 
-		//AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
+		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
 
 		playerCharacter->GetCharacterMovement()->DisableMovement();
 		playerCharacter->GetController()->SetIgnoreLookInput(true);
@@ -390,17 +392,17 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify name = %f"), *MontageNotify->NotifyName.ToString()));
 	}*/
 
-	//auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
-	//	return CurrentTrack.TrackName.IsEqual(TrackName);
-	//	});
+	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
+		return CurrentTrack.TrackName.IsEqual(TrackName);
+		});
 
-	//if (track)
-	//{
-	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+	if (track)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
 
-	//	return track->Notifies[0]->GetTriggerTime();
-	//}
+		return track->Notifies[0]->GetTriggerTime();
+	}
 	
 	return 0;
 }
@@ -858,4 +860,11 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
+	PRINT_B("Is Attacking %s", bIsAttacking);
+	PRINT_B("Interputed By Itself %s", bInterputedByItself);
+	PRINT_B("Can Rig Update %s", bCanRigUpdate);
+	PRINT_B("In Combat %s", bInCombat);
+	PRINT_B("In Parry %s", bInParry);
+	PRINT_B("In Teleport %s", bInTeleport);
+
 }
