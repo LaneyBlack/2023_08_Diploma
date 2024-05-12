@@ -17,8 +17,8 @@ UENUM(BlueprintType)
 enum class SuperAbilityState : uint8 {
 	NONE = 0 UMETA(DisplayName = "NONE"),
 	WAITING = 1  UMETA(DisplayName = "WAITING"),
-	//CALLED = 2  UMETA(DisplayName = "CALLED"),
-	DURING = 2  UMETA(DisplayName = "DURING")
+	GOTTARGET = 2  UMETA(DisplayName = "GOTTARGET"),
+	TELEPORTING = 3  UMETA(DisplayName = "TELEPORTING")
 };
 
 
@@ -114,8 +114,6 @@ private:
 
 	bool bShouldIgnoreTeleport = false;
 
-	//FTimerHandle TeleportTimerHandle = FTimerHandle();
-
 	FTimeline TeleportTimeline;
 
 	FVector PlayerStartForTeleport;
@@ -143,6 +141,10 @@ private:
 	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
 
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
+
+	ABaseEnemy* SuperAbilityTarget = nullptr;
+
+	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
@@ -184,7 +186,13 @@ private:
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
 
 	UFUNCTION()
-	bool ExecuteSuperAbility();
+	void ExecuteSuperAbility();
+
+	/*UFUNCTION()
+	void WaitForTargets();*/
+
+	/*UFUNCTION()
+	bool ScanSurroundingForSuperAbility();*/
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")

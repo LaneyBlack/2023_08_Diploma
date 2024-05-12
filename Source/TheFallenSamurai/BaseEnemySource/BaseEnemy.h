@@ -27,7 +27,10 @@ public:
 	void ApplyDamage();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void SetDebugTextValue(float value);
+	void SetDebugTextValue(const FString& value);
+
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void SetEnableTargetWidget(bool bIsSelected);
 
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

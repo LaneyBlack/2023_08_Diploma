@@ -27,14 +27,14 @@
 //#include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
-//#include "Templates/Tuple.h"
+#include "UObject/Class.h"
 
 //DEBUG
 #include "DrawDebugHelpers.h"
 
-#define PRINT(mess)  GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT(mess));
+#define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
-#define PRINT_F(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
 #define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
 
@@ -184,7 +184,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		float distweight = .5f;
 
 		float a = DotWeight * FMath::Abs(Dot - 0.7071) / CurrentDistance;
-		Enemy->SetDebugTextValue(a);
+		Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
 		//Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
 
@@ -407,9 +407,9 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 	return 0;
 }
 
-bool UCombatSystemComponent::ExecuteSuperAbility()
+void UCombatSystemComponent::ExecuteSuperAbility()
 {
-	PRINT("called execute ability");
+	PRINT("execute ability in progress", 0);
 
 	FVector Start = playerCharacter->GetActorLocation();
 
@@ -421,27 +421,80 @@ bool UCombatSystemComponent::ExecuteSuperAbility()
 
 	TArray<FHitResult> HitResults;
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, Start, MaxJumpRadius, ObjToTrace,
-		true, Ignore, EDrawDebugTrace::ForDuration, HitResults, true);
+		true, Ignore, EDrawDebugTrace::None, HitResults, true);
 
 	if (HitResults.Num() == 0)
 	{
-		return false;
+		PRINT("No enemies nearby", 2);
+		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
+
+		GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
+
+		return;
 	}
 
 	SA_State = SuperAbilityState::WAITING;
-	/*while (SA_State == SuperAbilityState::WAITING)
-	{
-		PRINTC("during wait", FColor::Red);
-	}
-
-	PRINTC("during wait", FColor::Cyan);*/
-	//playerCharacter->GetCharacterMovement()->DisableMovement();
-	//more?
-
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 
-	return true;
+	float MaxDot = -1;
+	ABaseEnemy* Target = nullptr;
+	for (auto HitResult : HitResults)
+	{
+		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
+		if (!Enemy)
+			continue;
+
+		Enemy->SetDebugTextValue("-");
+		Enemy->SetEnableTargetWidget(false);
+
+		FHitResult BlockHit;
+		FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
+		FVector EyeEnd = Enemy->GetActorLocation();
+
+		FCollisionQueryParams CollisionParams;
+		CollisionParams.bTraceComplex = true;
+		CollisionParams.AddIgnoredActor(playerCharacter);
+		CollisionParams.AddIgnoredActor(Katana);
+
+		bool bIsBlocked = GetWorld()->LineTraceSingleByChannel(BlockHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+		if (bIsBlocked && BlockHit.GetActor() != Enemy)
+		{
+			Enemy->SetDebugTextValue("IM BLOCKED by " + BlockHit.GetActor()->GetName());
+			continue;
+		}
+
+
+		FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+
+		/*auto ForwardVector2D = playerCharacter->GetActorForwardVector();
+		ForwardVector2D.Z = 0;
+		//ForwardVector2D.Normalize(); // is normalization needed?
+		float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());*/
+
+		float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
+
+		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
+
+		if (dot >= .995f && dot > MaxDot)
+		{
+			MaxDot = dot;
+			Target = Enemy;
+		}
+	}
+
+	if (Target)
+	{
+		Target->SetDebugTextValue("Current Target");
+		Target->SetEnableTargetWidget(true);
+		//SA_State = SuperAbilityState::GOTTARGET;
+	}
 }
+
+//void UCombatSystemComponent::WaitForTargets()
+//{
+//
+//}
 
 FVector UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
 {
@@ -654,38 +707,35 @@ void UCombatSystemComponent::SuperAbility()
 		return;
 	}
 
-	PRINT("called ability");
+	PRINT("called ability", 2);
 
 	if (StolenTokens < MaxStolenTokens)
 	{
-		PRINT("Not enough tokens");
+		PRINT("Not enough tokens", 2);
 		OnSuperAbilityCalled.Broadcast(false, "Not enough tokens");
 		return;
 	}
-	else if (!ExecuteSuperAbility())
+	/*else if (!ExecuteSuperAbility())
 	{
 		PRINT("No enemies nearby");
 		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
 		return;
-	}
+	}*/
+
+	//ExecuteSuperAbility();
+
+	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
 
 	OnSuperAbilityCalled.Broadcast(true, "");
 	StolenTokens = 0;
 	OnStolenTokensChanged.Broadcast(StolenTokens);
-
-	for (int i = 1; i < EnemyTargetLimit; ++i)
-	{
-		if (!ExecuteSuperAbility())
-		{
-			CancelSuperAbility();
-			break;
-		}
-	}
 }
 
 void UCombatSystemComponent::CancelSuperAbility()
 {
-	PRINT("canceled ability call");
+	PRINT("canceled ability call", 2);
+	GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
+
 	SA_State = SuperAbilityState::NONE;
 	OnSuperAbilityCancelled.Broadcast();
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
@@ -860,11 +910,12 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
-	PRINT_B("Is Attacking %s", bIsAttacking);
+	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
+	/*PRINT_B("Is Attacking %s", bIsAttacking);
 	PRINT_B("Interputed By Itself %s", bInterputedByItself);
 	PRINT_B("Can Rig Update %s", bCanRigUpdate);
 	PRINT_B("In Combat %s", bInCombat);
 	PRINT_B("In Parry %s", bInParry);
-	PRINT_B("In Teleport %s", bInTeleport);
+	PRINT_B("In Teleport %s", bInTeleport);*/
 
 }
