@@ -430,6 +430,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
+		//cancel superability?
+
 		return;
 	}
 
@@ -455,28 +457,32 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		CollisionParams.bTraceComplex = true;
 		CollisionParams.AddIgnoredActor(playerCharacter);
 		CollisionParams.AddIgnoredActor(Katana);
+		CollisionParams.AddIgnoredActor(Enemy);
 
 		bool bIsBlocked = GetWorld()->LineTraceSingleByChannel(BlockHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
 
-		if (bIsBlocked && BlockHit.GetActor() != Enemy)
+		//DrawDebugLine(GetWorld(), EyeStart, EyeEnd, FColor::Cyan, false, 5);
+
+		if (bIsBlocked)
 		{
-			Enemy->SetDebugTextValue("IM BLOCKED by " + BlockHit.GetActor()->GetName());
+			Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(BlockHit.GetComponent()));
+			//DrawDebugBox(GetWorld(), BlockHit.ImpactPoint, FVector(5), FColor::Magenta, false, 5);
 			continue;
 		}
 
 
 		FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
 
-		/*auto ForwardVector2D = playerCharacter->GetActorForwardVector();
-		ForwardVector2D.Z = 0;
-		//ForwardVector2D.Normalize(); // is normalization needed?
-		float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());*/
+		//auto ForwardVector2D = playerCharacter->GetActorForwardVector();
+		//ForwardVector2D.Z = 0;
+		////ForwardVector2D.Normalize(); // is normalization needed?
+		//float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());
 
 		float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
 
 		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
-		if (dot >= .995f && dot > MaxDot)
+		if (dot >= .99f && dot > MaxDot)
 		{
 			MaxDot = dot;
 			Target = Enemy;
@@ -485,8 +491,9 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (Target)
 	{
-		Target->SetDebugTextValue("Current Target");
+		//Target->SetDebugTextValue("Current Target");
 		Target->SetEnableTargetWidget(true);
+		SuperAbilityTarget = Target;
 		//SA_State = SuperAbilityState::GOTTARGET;
 	}
 }
@@ -735,6 +742,12 @@ void UCombatSystemComponent::CancelSuperAbility()
 {
 	PRINT("canceled ability call", 2);
 	GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
+
+	if (SuperAbilityTarget)
+	{
+		SuperAbilityTarget->SetEnableTargetWidget(false);
+		SuperAbilityTarget = nullptr;
+	}
 
 	SA_State = SuperAbilityState::NONE;
 	OnSuperAbilityCancelled.Broadcast();
