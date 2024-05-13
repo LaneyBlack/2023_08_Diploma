@@ -14,7 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSu
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
 
 UENUM(BlueprintType)
-enum class SuperAbilityState : uint8 {
+enum class SuperAbilityState : uint8 
+{
 	NONE = 0 UMETA(DisplayName = "NONE"),
 	WAITING = 1  UMETA(DisplayName = "WAITING"),
 	GOTTARGET = 2  UMETA(DisplayName = "GOTTARGET"),
@@ -187,6 +188,9 @@ private:
 
 	UFUNCTION()
 	void ExecuteSuperAbility();
+
+	UFUNCTION()
+	void SwingKatana();
 
 	/*UFUNCTION()
 	void WaitForTargets();*/

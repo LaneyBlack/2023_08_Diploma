@@ -513,6 +513,34 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	SuperAbilityTarget = Target;
 }
 
+void UCombatSystemComponent::SwingKatana()
+{
+	PRINTC("Normal attack", FColor::Cyan);
+
+	//reset this cock-sucking plugin that barely works
+	HitTracer->ClearHitArray();
+
+	//quickly stop perfect parry montage
+	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
+
+	SpeedUpSlowMoTimeline();
+
+	bIsAttacking = true;
+	bInterputedByItself = false;
+	bShouldIgnoreTeleport = false;
+
+	float AttackMontageStartPercent = .21f;
+	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+
+	CurrentAttackData = NextAttackData;
+	NextAttackData = DetermineNextAttackData();
+
+	//start timer for auto aim
+	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
+		&UCombatSystemComponent::GetEnemiesInViewportOnAttack,
+		1 / 120.f, true);
+}
+
 //void UCombatSystemComponent::WaitForTargets()
 //{
 //
@@ -632,7 +660,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 
 void UCombatSystemComponent::Attack()
 {
-	if (SA_State == SuperAbilityState::WAITING && SuperAbilityTarget)
+	/*if (SA_State == SuperAbilityState::WAITING && SuperAbilityTarget)
 	{
 		PRINTC("Super Ability attack", FColor::Red);
 		GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
@@ -645,33 +673,82 @@ void UCombatSystemComponent::Attack()
 		TeleportToClosestEnemy(SuperAbilityTarget);
 	}
 	else if (!CheckIfCanAttack())
-		return;
+		return;*/
 
-	PRINTC("Normal attack", FColor::Cyan);
+		/*if (SA_State == SuperAbilityState::WAITING)
+		{
+			if (SuperAbilityTarget)
+			{
+				PRINTC("Super Ability attack", FColor::Red);
+				GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
-	//reset this cock-sucking plugin that barely works
-	HitTracer->ClearHitArray();
+				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 
-	//quickly stop perfect parry montage
-	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
+				SuperAbilityTarget->SetEnableTargetWidget(false);
 
-	SpeedUpSlowMoTimeline();
+				SwingKatana();
 
-	bIsAttacking = true;
-	bInterputedByItself = false;
-	bShouldIgnoreTeleport = false;
+				SA_State = SuperAbilityState::TELEPORTING;
+				TeleportToClosestEnemy(SuperAbilityTarget);
+			}
+		}
+		else if(CheckIfCanAttack())
+		{
+			SwingKatana();
+		}*/
 
-	float AttackMontageStartPercent = .21f;
-	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+	switch (SA_State)
+	{
+		case SuperAbilityState::NONE:
+		{
+			if (CheckIfCanAttack())
+				SwingKatana();
+		} break;
+		case SuperAbilityState::WAITING:
+		{
+			if (SuperAbilityTarget)
+			{
+				PRINTC("Super Ability attack", FColor::Red);
+				GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
-	CurrentAttackData = NextAttackData;
-	NextAttackData = DetermineNextAttackData();
+				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 
-	//start timer for auto aim
-	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
-		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
-		1 / 120.f, true);
+				SuperAbilityTarget->SetEnableTargetWidget(false);
+
+				SwingKatana();
+
+				SA_State = SuperAbilityState::TELEPORTING;
+				TeleportToClosestEnemy(SuperAbilityTarget);
+			}
+		} break;
+	}
 }
+
+//	PRINTC("Normal attack", FColor::Cyan);
+//
+//	//reset this cock-sucking plugin that barely works
+//	HitTracer->ClearHitArray();
+//
+//	//quickly stop perfect parry montage
+//	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
+//
+//	SpeedUpSlowMoTimeline();
+//
+//	bIsAttacking = true;
+//	bInterputedByItself = false;
+//	bShouldIgnoreTeleport = false;
+//
+//	float AttackMontageStartPercent = .21f;
+//	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+//
+//	CurrentAttackData = NextAttackData;
+//	NextAttackData = DetermineNextAttackData();
+//
+//	//start timer for auto aim
+//	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
+//		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
+//		1 / 120.f, true);
+//}
 
 void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
 {
