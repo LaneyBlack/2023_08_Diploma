@@ -841,6 +841,13 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 		bInterputedByItself = true;
 		HandleAttackEnd();
 		OnIFramesChanged.Broadcast(false);
+
+		//moved here from TeleportTimelineFinish()
+		if (SA_State == SuperAbilityState::TELEPORTING)
+		{
+			SuperAbilityTarget = nullptr;
+			GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
+		}
 	}
 }
 
@@ -917,11 +924,11 @@ void UCombatSystemComponent::TeleportTimelineFinish()
 
 	bInTeleport = false;
 
-	if (SA_State == SuperAbilityState::TELEPORTING)
+	/*if (SA_State == SuperAbilityState::TELEPORTING)
 	{
 		SuperAbilityTarget = nullptr;
 		GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
-	}
+	}*/
 
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, TEXT("TELEPORT FINISHED"));
 }
