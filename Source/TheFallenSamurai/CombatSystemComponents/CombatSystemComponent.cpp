@@ -440,6 +440,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
+
 	for (auto HitResult : HitResults)
 	{
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
@@ -447,7 +448,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 			continue;
 
 		Enemy->SetDebugTextValue("-");
-		Enemy->SetEnableTargetWidget(false);
+		//Enemy->SetEnableTargetWidget(false);
 
 		FHitResult BlockHit;
 		FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
@@ -482,20 +483,34 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
-		if (dot >= .99f && dot > MaxDot)
+		if (dot >= .99f)
 		{
-			MaxDot = dot;
-			Target = Enemy;
+			if (dot > MaxDot)
+			{
+				MaxDot = dot;
+				Target = Enemy;
+			}
 		}
+		/*else
+			Enemy->SetEnableTargetWidget(false);*/
 	}
 
 	if (Target)
 	{
 		//Target->SetDebugTextValue("Current Target");
-		Target->SetEnableTargetWidget(true);
-		SuperAbilityTarget = Target;
 		//SA_State = SuperAbilityState::GOTTARGET;
+
+		if (SuperAbilityTarget != Target)
+		{
+			Target->SetEnableTargetWidget(true);
+			if (SuperAbilityTarget)
+				SuperAbilityTarget->SetEnableTargetWidget(false);
+		}
 	}
+	else if (SuperAbilityTarget)
+		SuperAbilityTarget->SetEnableTargetWidget(false);
+
+	SuperAbilityTarget = Target;
 }
 
 //void UCombatSystemComponent::WaitForTargets()
