@@ -409,7 +409,7 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 
 void UCombatSystemComponent::ExecuteSuperAbility()
 {
-	PRINT("execute ability in progress", 0);
+	//PRINT("execute ability in progress", 0);
 
 	FVector Start = playerCharacter->GetActorLocation();
 
@@ -428,8 +428,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		PRINT("No enemies nearby", 2);
 		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
 
-		GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
-
+		//GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
+		CancelSuperAbility();
 		//cancel superability?
 
 		return;
@@ -634,6 +634,7 @@ void UCombatSystemComponent::Attack()
 {
 	if (SA_State == SuperAbilityState::WAITING && SuperAbilityTarget)
 	{
+		PRINTC("Super Ability attack", FColor::Red);
 		GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
 		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
@@ -643,9 +644,10 @@ void UCombatSystemComponent::Attack()
 		SA_State = SuperAbilityState::TELEPORTING;
 		TeleportToClosestEnemy(SuperAbilityTarget);
 	}
-
-	if (!CheckIfCanAttack())
+	else if (!CheckIfCanAttack())
 		return;
+
+	PRINTC("Normal attack", FColor::Cyan);
 
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
@@ -741,7 +743,7 @@ void UCombatSystemComponent::SuperAbility()
 		return;
 	}
 
-	PRINT("called ability", 2);
+	//PRINT("called ability", 2);
 
 	if (StolenTokens < MaxStolenTokens)
 	{
@@ -767,7 +769,7 @@ void UCombatSystemComponent::SuperAbility()
 
 void UCombatSystemComponent::CancelSuperAbility()
 {
-	PRINT("canceled ability call", 2);
+	//PRINT("canceled ability call", 2);
 	GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
 	if (SuperAbilityTarget)
@@ -957,14 +959,14 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
 	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
-	if (SuperAbilityTarget)
-		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
+	/*if (SuperAbilityTarget)
+		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);*/
 
 	/*PRINT_B("Is Attacking %s", bIsAttacking);
 	PRINT_B("Interputed By Itself %s", bInterputedByItself);
 	PRINT_B("Can Rig Update %s", bCanRigUpdate);
 	PRINT_B("In Combat %s", bInCombat);
-	PRINT_B("In Parry %s", bInParry);
-	PRINT_B("In Teleport %s", bInTeleport);*/
+	PRINT_B("In Parry %s", bInParry);*/
+	PRINT_B("In Teleport %s", bInTeleport);
 
 }
