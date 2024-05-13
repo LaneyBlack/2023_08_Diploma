@@ -967,6 +967,6 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	PRINT_B("Can Rig Update %s", bCanRigUpdate);
 	PRINT_B("In Combat %s", bInCombat);
 	PRINT_B("In Parry %s", bInParry);*/
-	PRINT_B("In Teleport %s", bInTeleport);
+	//PRINT_B("In Teleport %s", bInTeleport);
 
 }
