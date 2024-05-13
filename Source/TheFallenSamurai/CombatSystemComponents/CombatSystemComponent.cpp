@@ -481,7 +481,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
 
-		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
+		//Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
 		if (dot >= .99f)
 		{
@@ -632,6 +632,18 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 
 void UCombatSystemComponent::Attack()
 {
+	if (SA_State == SuperAbilityState::WAITING && SuperAbilityTarget)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
+
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
+
+		SuperAbilityTarget->SetEnableTargetWidget(false);
+
+		SA_State = SuperAbilityState::TELEPORTING;
+		TeleportToClosestEnemy(SuperAbilityTarget);
+	}
+
 	if (!CheckIfCanAttack())
 		return;
 
@@ -903,6 +915,12 @@ void UCombatSystemComponent::TeleportTimelineFinish()
 
 	bInTeleport = false;
 
+	if (SA_State == SuperAbilityState::TELEPORTING)
+	{
+		SuperAbilityTarget = nullptr;
+		GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
+	}
+
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, TEXT("TELEPORT FINISHED"));
 }
 
@@ -939,6 +957,9 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
 	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
+	if (SuperAbilityTarget)
+		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
+
 	/*PRINT_B("Is Attacking %s", bIsAttacking);
 	PRINT_B("Interputed By Itself %s", bInterputedByItself);
 	PRINT_B("Can Rig Update %s", bCanRigUpdate);
