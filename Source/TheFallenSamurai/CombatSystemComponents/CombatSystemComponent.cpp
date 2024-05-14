@@ -266,7 +266,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeHit)
 	{
-		//PRINT("Got obstacle between enemy and player");
+		PRINT("Got obstacle between enemy and player", 2);
 		return;
 	}
 
@@ -282,7 +282,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::ForDuration, OutHit, true, FColor::Red, FColor::Green, 5.f);
+		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
 
 	if (bHasGround) 
 	{
@@ -441,6 +441,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
 
+	int BlockedCounter = HitResults.Num();
+
 	for (auto HitResult : HitResults)
 	{
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
@@ -467,6 +469,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		if (bIsBlocked)
 		{
 			Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(BlockHit.GetComponent()));
+			BlockedCounter--;
 			//DrawDebugBox(GetWorld(), BlockHit.ImpactPoint, FVector(5), FColor::Magenta, false, 5);
 			continue;
 		}
@@ -480,8 +483,9 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		//float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());
 
 		float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
+		//float dot = playerCharacter->GetControlRotation().Vector().Dot(ToEnemy.GetSafeNormal2D());
 
-		//Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
+		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
 		if (dot >= .99f)
 		{
@@ -494,6 +498,9 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		/*else
 			Enemy->SetEnableTargetWidget(false);*/
 	}
+
+	if (!BlockedCounter)
+		CancelSuperAbility();
 
 	if (Target)
 	{
@@ -508,7 +515,9 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		}
 	}
 	else if (SuperAbilityTarget)
+	{
 		SuperAbilityTarget->SetEnableTargetWidget(false);
+	}
 
 	SuperAbilityTarget = Target;
 }
@@ -540,11 +549,6 @@ void UCombatSystemComponent::SwingKatana()
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack,
 		1 / 120.f, true);
 }
-
-//void UCombatSystemComponent::WaitForTargets()
-//{
-//
-//}
 
 FVector UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
 {
@@ -723,32 +727,6 @@ void UCombatSystemComponent::Attack()
 		} break;
 	}
 }
-
-//	PRINTC("Normal attack", FColor::Cyan);
-//
-//	//reset this cock-sucking plugin that barely works
-//	HitTracer->ClearHitArray();
-//
-//	//quickly stop perfect parry montage
-//	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
-//
-//	SpeedUpSlowMoTimeline();
-//
-//	bIsAttacking = true;
-//	bInterputedByItself = false;
-//	bShouldIgnoreTeleport = false;
-//
-//	float AttackMontageStartPercent = .21f;
-//	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
-//
-//	CurrentAttackData = NextAttackData;
-//	NextAttackData = DetermineNextAttackData();
-//
-//	//start timer for auto aim
-//	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
-//		&UCombatSystemComponent::GetEnemiesInViewportOnAttack, 
-//		1 / 120.f, true);
-//}
 
 void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket)
 {

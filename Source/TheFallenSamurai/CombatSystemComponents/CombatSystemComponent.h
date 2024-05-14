@@ -192,11 +192,6 @@ private:
 	UFUNCTION()
 	void SwingKatana();
 
-	/*UFUNCTION()
-	void WaitForTargets();*/
-
-	/*UFUNCTION()
-	bool ScanSurroundingForSuperAbility();*/
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
