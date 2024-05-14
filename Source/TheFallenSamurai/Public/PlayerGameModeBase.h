@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 
 #include "GameFramework/GameModeBase.h"
+#include "Components/PostProcessComponent.h"
+#include "Engine/PostProcessVolume.h"
 
 #include "PlayerGameModeBase.generated.h"
 

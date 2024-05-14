@@ -44,6 +44,10 @@ class ATheFallenSamuraiCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* RewindAction;
 
+	/** Time Scrub Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleTimeScrubAction;
+
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
@@ -95,6 +99,9 @@ protected:
 
 	/** Called when toggling rewind participation */
 	void ToggleRewindParticipation(const FInputActionValue& Value);
+
+	/** Called for time scrub input */
+	void ToggleTimeScrub(const FInputActionValue& Value);
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);

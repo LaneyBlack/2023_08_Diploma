@@ -178,6 +178,9 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 
 		// Toggle Rewind Participation
 		EnhancedInputComponent->BindAction(ToggleRewindParticipationAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleRewindParticipation);
+
+		// Toggle Time Scrub
+		EnhancedInputComponent->BindAction(ToggleTimeScrubAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleTimeScrub);
 	}
 	else
 	{
@@ -236,4 +239,10 @@ void ATheFallenSamuraiCharacter::StopRewinding(const FInputActionValue& Value)
 void ATheFallenSamuraiCharacter::ToggleRewindParticipation(const FInputActionValue& Value)
 {
 	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
+}
+
+void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
+{
+	check(GameMode);
+	if (GameMode) { GameMode->ToggleTimeScrub(); }
 }
