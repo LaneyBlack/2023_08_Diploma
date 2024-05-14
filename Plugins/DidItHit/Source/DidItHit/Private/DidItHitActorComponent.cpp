@@ -176,6 +176,9 @@ void UDidItHitActorComponent::HitOtherSocketsAtSameTime()
 				const FVector End = MyPrimitive->GetSocketLocation(Socket2);
 				TArray<FHitResult> OutHits;
 
+				/*if (Socket1.IsEqual(Socket2))
+					continue;*/
+
 				if (TraceByChannelOrObjects)
 				{
 					switch (MyKismetTraceType)

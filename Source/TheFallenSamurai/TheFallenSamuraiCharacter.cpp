@@ -14,6 +14,9 @@
 #include "InputActionValue.h"
 #include "RewindComponent.h"
 #include "PlayerGameModeBase.h"
+#include "CombatSystemComponents\CombatSystemComponent.h"
+#include "AbilitySystemComponent.h"
+#include "GAS/PlayerAttributeSet.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -63,6 +66,12 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	bFirstJump = true;
 	bDoubleJumpingFromGround = false;
 
+	//setup combat system component
+	CombatSystemComponent = CreateDefaultSubobject<UCombatSystemComponent>(TEXT("CombatSystem_cpp"));
+	
+	//setup GAS
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -84,8 +93,14 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 		}
 	}
 
+	//Initialize AttributeSets
+	if(IsValid(AbilitySystemComponent))
+	{
+		PlayerAttributeSet = AbilitySystemComponent -> GetSet<UPlayerAttributeSet>();
+	}
+
+	//Reset combo on start
 	ResetCombo();
-	
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -94,6 +109,17 @@ void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 	bFirstJump = true;
 	bDoubleJumpingFromGround = false;
 	bIsWallrunJumping = false;
+}
+
+void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (GetCharacterMovement()->MovementMode == MOVE_None)
+	{
+		bFirstJump = true;
+		bDoubleJumpingFromGround = false;
+	}
 }
 
 void ATheFallenSamuraiCharacter::DoubleJump()
@@ -126,7 +152,7 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 		FVector LaunchDirection = GetLastMovementInputVector();
 		if (LaunchDirection.IsNearlyZero())
 		{
-			LaunchDirection = GetActorForwardVector();
+			LaunchDirection = FVector(0, 0, 1);;
 		}
 		else
 		{
@@ -171,6 +197,26 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
+
+		//Attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::Attack);
+
+		//Perfect Parry
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::PerfectParry);
+
+		//Perfect Parry Interrupt
+		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
+			&UCombatSystemComponent::InterruptPerfectParry);*/
+
+		//Super Ability
+		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::SuperAbility);*/
+
+		////Cancel Super Ability
+		//EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,
+		//	&UCombatSystemComponent::CancelSuperAbility);
 
 		// Rewind
 		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "AbilitySystemInterface.h"
 #include "TheFallenSamuraiCharacter.generated.h"
 
 class USpringArmComponent;
@@ -28,7 +29,7 @@ class UComboSystem;
 
 UCLASS(config=Game)
 
-class ATheFallenSamuraiCharacter : public ACharacter
+class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -72,6 +73,18 @@ class ATheFallenSamuraiCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* AttackAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* PerfectParryAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SuperAbilityAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CombatSystem, meta = (AllowPrivateAccess = "true"))
+	class UCombatSystemComponent* CombatSystemComponent;
+
 public:
 	ATheFallenSamuraiCharacter();
 
@@ -103,6 +116,17 @@ protected:
 	/** Called for time scrub input */
 	void ToggleTimeScrub(const FInputActionValue& Value);
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
+	class UAbilitySystemComponent* AbilitySystemComponent;
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override
+	{
+		return AbilitySystemComponent;
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
+	const class UPlayerAttributeSet* PlayerAttributeSet;
+
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
@@ -114,6 +138,8 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
+
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
 	// Reset Double Jump
 	virtual void Landed(const FHitResult& Hit) override;
