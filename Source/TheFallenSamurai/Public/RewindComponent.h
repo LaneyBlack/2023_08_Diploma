@@ -69,7 +69,7 @@ public:
 	bool bSnapshotMovementVelocityAndMode = false;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Rewind")
-	bool bPauseAnimationDuringTimeScrubbing = false;
+	bool bPauseAnimationDuringTimeScrubbing = true;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Rewind")
 	FOnTimeManipulationStarted OnTimeManipulationStarted;

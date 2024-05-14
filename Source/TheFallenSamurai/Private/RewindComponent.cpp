@@ -256,7 +256,10 @@ void URewindComponent::PauseTime(float DeltaTime, bool bRewinding)
 			{
 				ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], true /*bApplyTimeDilationToVelocity*/);
 			}
-			PauseAnimation();
+			if (OwnerSkeletalMesh)
+			{
+				PauseAnimation();
+			}
 			return;
 		}
 	}
