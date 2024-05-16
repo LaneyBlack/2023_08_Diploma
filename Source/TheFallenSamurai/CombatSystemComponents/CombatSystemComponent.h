@@ -330,9 +330,6 @@ public:
 	UFUNCTION()
 	void PerfectParry();
 
-	UFUNCTION()
-	void InterruptPerfectParry();
-
 	UFUNCTION(BlueprintCallable)
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
 

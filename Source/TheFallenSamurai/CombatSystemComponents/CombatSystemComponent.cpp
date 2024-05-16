@@ -34,8 +34,8 @@
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
-#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
-#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Magenta, FString::Printf(TEXT(prompt), mess));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
 
 // Sets default values for this component's properties
@@ -393,10 +393,10 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 		});*/
 
 	/*auto notifies = Montage->Notifies;
-	for (const auto& x : notifies)
+	for (const auto& NotifyEvent : notifies)
 	{
-		UAnimNotify_PlayMontageNotify* MontageNotify = Cast<UAnimNotify_PlayMontageNotify>(x.Notify);
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify name = %f"), *MontageNotify->NotifyName.ToString()));
+		PRINT_F("notify name = %s", *NotifyEvent.NotifyName.ToString(), 20);
+		PRINT_B("is blueprint notify %s", NotifyEvent.IsBlueprintNotify());
 	}*/
 
 	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
@@ -567,7 +567,7 @@ FVector UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector
 
 	//float MaxAbsoluteZOffset = 15.f;
 	//PRINT_F("dot value = %f", ToEnemy.Dot(playerCharacter->GetActorUpVector()));
-	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorUpVector()), -15, 5);
+	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorUpVector()), -17, 7);
 
 	return FVector(0.f, TargetPointYOffset, TargetPointZOffset);
 }
@@ -579,8 +579,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	auto PlayerMesh = playerCharacter->GetMesh();
 	CharacterArmsLength = FVector::Distance(PlayerMesh->GetBoneLocation("clavicle_r"), PlayerMesh->GetBoneLocation("hand_r"));
 	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
-
-	//PlayerCameraFOV = playerCharacter->get
 
 	FActorSpawnParameters KatanaSpawnParams;
 	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -608,7 +606,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
 	PlayerCameraManager->ViewPitchMin = MinViewPitchValue;
 
-	//TargetPointInitialPosition = PlayerCameraManager->camera;
 
 	AnimInstance = playerCharacter->GetMesh()->GetAnimInstance();
 
@@ -626,16 +623,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclas
 	}
 
 	NextAttackData = DetermineNextAttackData();
-
-
-	/*CounterAttackMontages = AttackMontages.FilterByPredicate([&](const FAttackAnimData& animdata) -> bool {
-		return animdata.PerfectForCounter;
-		});*/
-
-	/*for (auto x : CounterAttackMontages)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("counterattack name = %s"), *x.AttackMontage->GetName()));
-	}*/
 
 	//bind teleport curve data
 	FOnTimelineFloat TimelineProgressLocation;
@@ -746,7 +733,7 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
-	if (bInTeleport || bInParry)
+	if (bInTeleport || bInParry) //add check for super ability
 		return;
 
 	bInParry = true;
@@ -756,11 +743,6 @@ void UCombatSystemComponent::PerfectParry()
 	SpeedUpSlowMoTimeline();
 
 	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
-}
-
-void UCombatSystemComponent::InterruptPerfectParry()
-{
-	AnimInstance->Montage_Stop(0.1, PerfectParryMontage);
 }
 
 void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
@@ -949,14 +931,6 @@ void UCombatSystemComponent::TimelineProgessLocation(float Value)
 {
 	auto NewLocation = FMath::Lerp(PlayerStartForTeleport, PlayerDestinationForTeleport, Value);
 	playerCharacter->SetActorLocation(NewLocation);
-
-	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Timeline value = %f"), TeleportTimeline.GetPlaybackPosition()));
-
-	//if (TeleportTimeline.GetPlaybackPosition() >= 1)
-	//{
-	//	//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("playing again"));
-	//	AnimInstance->Montage_Resume(CurrentAttackData.AttackMontage);
-	//}
 }
 
 void UCombatSystemComponent::TimelineProgessRotation(float Value)
@@ -975,7 +949,6 @@ void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
 {
 	float SlowMoValue = FMath::Lerp(1.f, MinTimeDilation, Value);
 
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Slow-mo value = %f"), SlowMoValue));
 	if(!bShouldSpeedUpSlowMoTimeline)
 		ParrySlowMoTimeline.SetPlayRate(1.f / SlowMoValue);
 	
