@@ -279,6 +279,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float SuperAbilitySlowMo = 0.1f;
 
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	float LookRateScale = 0.5f;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnStolenTokensChanged OnStolenTokensChanged;
 
@@ -318,29 +321,31 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void Attack();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	void GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void PerfectParry();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void InterruptPerfectParry();
 
 	UFUNCTION(BlueprintCallable)
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void SuperAbility();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void CancelSuperAbility();
 
+	float GetLookRate();
+
 	UFUNCTION(BlueprintCallable)
-	void SpeedUpSlowMoTimeline(float SpeedUpValue = 60.f);
+	void SpeedUpSlowMoTimeline(float SpeedUpValue = 80.f);
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);

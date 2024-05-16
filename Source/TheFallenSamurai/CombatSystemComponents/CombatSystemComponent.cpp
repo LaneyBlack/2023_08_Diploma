@@ -312,8 +312,9 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		/*auto FakeDestination = PlayerDestinationForTeleport;
 		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
-
-		FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, PlayerDestinationForTeleport); //change to enemies location?
+		FVector LookAtEnemyLocation = Enemy->GetActorLocation();
+		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks bit down
+		//FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, LookAtEnemyLocation); //change to enemies location?
 
 		/*FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(playerCharacter->GetControlRotation().Vector(),
 			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
@@ -321,8 +322,14 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(), 
 			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).Rotation());*/
 
-		RotationToEnemy.Yaw = LookAt.Yaw;
-		//RotationToEnemy.Pitch = LookAt.Pitch;
+		FRotator PlayerRotation = playerCharacter->GetControlRotation();
+		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).Rotation();
+		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
+
+		RotationToEnemy += Delta;
+
+		/*RotationToEnemy.Yaw = LookAt.Yaw;
+		RotationToEnemy.Pitch = LookAt.Pitch;*/
 
 		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
 		auto CombatPoint = OutHit.Location + FeetToHead;
@@ -837,6 +844,11 @@ void UCombatSystemComponent::CancelSuperAbility()
 	OnSuperAbilityCancelled.Broadcast();
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+float UCombatSystemComponent::GetLookRate()
+{
+	return SA_State == SuperAbilityState::WAITING ? LookRateScale : 1.f;
 }
 
 void UCombatSystemComponent::SpeedUpSlowMoTimeline(float SpeedUpValue)

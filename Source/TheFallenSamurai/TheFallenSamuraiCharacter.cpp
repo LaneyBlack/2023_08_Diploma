@@ -239,7 +239,7 @@ void ATheFallenSamuraiCharacter::Move(const FInputActionValue& Value)
 void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	FVector2D LookAxisVector = Value.Get<FVector2D>() * LookRotationScale * CombatSystemComponent->GetLookRate();
 
 	if (Controller != nullptr)
 	{
