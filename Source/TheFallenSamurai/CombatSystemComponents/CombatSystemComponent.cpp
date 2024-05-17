@@ -318,7 +318,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		/*auto FakeDestination = PlayerDestinationForTeleport;
 		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
 		FVector LookAtEnemyLocation = Enemy->GetActorLocation();
-		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks bit down
+		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks a bit down
 		//FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, LookAtEnemyLocation); //change to enemies location?
 
 		/*FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(playerCharacter->GetControlRotation().Vector(),
@@ -339,6 +339,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
 		auto CombatPoint = OutHit.Location + FeetToHead;
 
+		TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, Enemy->GetActorLocation());
 		CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset; //which check is better?
 
 		//previous solution with calculating the target point 
@@ -356,7 +357,10 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 20);*/
 
 		if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
+		{
+			PRINT("Katana Blade wont cut the enemy", 4);
 			return;
+		}
 
 		/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
