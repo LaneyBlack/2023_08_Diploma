@@ -32,7 +32,7 @@ struct FAttackAnimData
 	UAnimMontage* AttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Chance;				//how often should this montage be player
+	float Chance;				//how often should this montage be played
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
@@ -181,7 +181,10 @@ private:
 	void TraceForEnemiesToTeleport();*/
 
 	UFUNCTION()
-	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
+	bool ValidateTeleportTarget(ABaseEnemy* Enemy);
+
+	UFUNCTION()
+	void TeleportToClosestEnemy();
 
 	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
