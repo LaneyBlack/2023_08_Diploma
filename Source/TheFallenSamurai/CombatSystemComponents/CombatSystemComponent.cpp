@@ -252,21 +252,26 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	//eye trace(move it out of the teleport function?)
 	FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
-	FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
-	//FVector End = Start + playerCharacter->GetActorForwardVector() * MinDistance; //use forward vector or camera rotation? 
+	//FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
+	FVector EyeEnd = Enemy->GetActorLocation(); //use forward vector or camera rotation? 
 	FHitResult EyeOutHit;
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 
-	bool bEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-		ObjToTrace, true, { playerCharacter, Katana },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Blue, FColor::Black, 5.f);
+	bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+		ObjToTrace, true, { playerCharacter, Katana, Enemy },
+		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
+
+	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+		ObjToTrace, true, { playerCharacter, Katana, Enemy },
+		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
 
 	//we hit a static object on the teleport path -> dont teleport
-	if (bEyeHit)
+	if (bEyeToCenterHit && bEyeToEyeHit)
 	{
-		PRINT("Got obstacle between enemy and player", 2);
+		PRINT("Got obstacle between players eyes and the middle of the enemy", 4);
 		return;
 	}
 
@@ -282,7 +287,7 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true, FColor::Red, FColor::Green, 5.f);
+		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true);
 
 	if (bHasGround) 
 	{
@@ -299,11 +304,11 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport, 
 			playerCapsule->GetScaledCapsuleRadius() * .8f, playerCapsule->GetScaledCapsuleHalfHeight() - 2.f,
-			ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::None, CapsuleSpaceHit, true);
+			ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::ForDuration, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
 
 		if (bTeleportBlock)
 		{
-			//PRINT("something blocks the spawn position");
+			PRINT("something blocks the teleport position", 4);
 			return;
 		}
 
@@ -384,6 +389,8 @@ void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
 
 		OnIFramesChanged.Broadcast(true);
 	}
+	else
+		PRINT("NO ground found", 4)
 }
 
 float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
