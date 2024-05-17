@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TheFallenSamuraiCharacter.h"
+
+#include "ComboSystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,6 +12,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "CombatSystemComponents\CombatSystemComponent.h"
+#include "AbilitySystemComponent.h"
+#include "GAS/PlayerAttributeSet.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -27,7 +32,7 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
@@ -46,9 +51,18 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
 	// Create a follow camera
-	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	ThirdPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	ThirdPersonCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	ThirdPersonCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	bFirstJump = true;
+	bDoubleJumpingFromGround = false;
+
+	//setup combat system component
+	CombatSystemComponent = CreateDefaultSubobject<UCombatSystemComponent>(TEXT("CombatSystem_cpp"));
+	
+	//setup GAS
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -67,6 +81,92 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+
+	//Initialize AttributeSets
+	if(IsValid(AbilitySystemComponent))
+	{
+		PlayerAttributeSet = AbilitySystemComponent -> GetSet<UPlayerAttributeSet>();
+	}
+
+	//Reset combo on start
+	ResetCombo();
+}
+
+void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	bFirstJump = true;
+	bDoubleJumpingFromGround = false;
+	bIsWallrunJumping = false;
+}
+
+void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (GetCharacterMovement()->MovementMode == MOVE_None)
+	{
+		bFirstJump = true;
+		bDoubleJumpingFromGround = false;
+	}
+}
+
+void ATheFallenSamuraiCharacter::DoubleJump()
+{
+	if (NoJumpState == ENoJumpState::None)
+	{
+		if (bFirstJump && !bDoubleJumpingFromGround)
+		{
+			bFirstJump = false;
+			bDoubleJumpingFromGround = true;
+			ACharacter::Jump();
+		}
+		else if (bIsWallrunJumping && !bDoubleJumpingFromGround && !bFirstJump)
+		{
+			DoubleJumpLogic();
+		}
+		else if (!bFirstJump && bDoubleJumpingFromGround)
+		{
+			DoubleJumpLogic();
+		}
+	}
+}
+
+void ATheFallenSamuraiCharacter::DoubleJumpLogic()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	if (PlayerController)
+	{
+		FVector LaunchDirection = GetLastMovementInputVector();
+		if (LaunchDirection.IsNearlyZero())
+		{
+			LaunchDirection = FVector(0, 0, 1);;
+		}
+		else
+		{
+			LaunchDirection = GetLastMovementInputVector();
+		}
+
+		LaunchDirection.Normalize();
+		FVector LaunchVelocity = LaunchDirection * 750.0f;
+		LaunchVelocity.Z = 750.0f;
+
+		LaunchCharacter(LaunchVelocity, false, true);
+			
+		bIsWallrunJumping = false;
+		bDoubleJumpingFromGround = false;
+	}
+}
+
+void ATheFallenSamuraiCharacter::ResetCombo()
+{
+	if (UComboSystem* ComboSystem = UComboSystem::GetInstance())
+	{
+		ComboSystem->ResetCombo();
+		ComboSystem->EndKillStreak();
+		ComboSystem->ResetComboState();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,7 +178,7 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::DoubleJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -86,6 +186,26 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
+
+		//Attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::Attack);
+
+		//Perfect Parry
+		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::PerfectParry);
+
+		//Perfect Parry Interrupt
+		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
+			&UCombatSystemComponent::InterruptPerfectParry);*/
+
+		//Super Ability
+		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::SuperAbility);*/
+
+		////Cancel Super Ability
+		//EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,
+		//	&UCombatSystemComponent::CancelSuperAbility);
 	}
 	else
 	{

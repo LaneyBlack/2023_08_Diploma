@@ -1,0 +1,26 @@
+{
+	"FileVersion": 3,
+	"Version": 0,
+	"VersionName": "1.4",
+	"FriendlyName": "DidItHit",
+	"Description": "An Actor Component that detects collisions through complex tracing.",
+	"Category": "Detection",
+	"CreatedBy": "Project Zero",
+	"CreatedByURL": "",
+	"DocsURL": "https://docs.google.com/document/d/11qllbL25E--GNrVZTFZzNHgfl2_0svmC/edit?usp=sharing&ouid=110347600781409880846&rtpof=true&sd=true",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EngineVersion": "5.3.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "DidItHit",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		}
+	]
+}
