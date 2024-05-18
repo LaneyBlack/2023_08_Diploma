@@ -199,8 +199,19 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
-			if(ValidateTeleportTarget(Closest))
-				TeleportToClosestEnemy();
+			const auto& [bIsTargetValid, Distance] = ValidateTeleportTarget(Closest);
+			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
+			if (bIsTargetValid)
+			{
+				/*FTeleportProperties TeleportPropeties;
+				TeleportPropeties.FOVChange = TeleportMinFovValue;
+				TeleportPropeties.MinTime = MinTotalTeleportTime;
+				TeleportPropeties.MaxTime = MaxTotalTeleportTime;
+				TeleportPropeties.TeleportDistance = Distance;
+				TeleportPropeties.Timeline = TeleportTimeline;*/
+
+				TeleportToClosestEnemy(Distance);
+			}
 			//GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
 	}
@@ -247,7 +258,7 @@ void UCombatSystemComponent::GetVelocityVariables()
 	LocationLagPosition = UKismetMathLibrary::VInterpTo(LocationLagPosition, TargetLagPosition, GetWorld()->GetDeltaSeconds(), 13.);
 }
 
-bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
+TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
 {
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 
@@ -271,7 +282,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
 	if (bEyeToCenterHit && bEyeToEyeHit)
 	{
 		PRINT("Got obstacle between player eyes and the middle of the enemy", 4);
-		return false;
+		return { false, 0.f };
 	}
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
@@ -292,7 +303,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
 		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true);
 	
 	if (!bHasGround)
-		return false;
+		return { false, 0.f };
 
 	//PRINT("has ground");
 	//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
@@ -311,7 +322,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
 	if (bTeleportBlock)
 	{
 		PRINT("something blocks the teleport position", 4);
-		return false;
+		return { false, 0.f };
 	}
 
 	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
@@ -346,10 +357,10 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
 	if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
 	{
 		PRINT("Katana Blade wont cut the enemy", 4);
-		return false;
+		return { false, 0.f };
 	}
 
-	return true;
+	return { true, ToPlayer.Length()};
 }
 
 // THE OG TELEPORT
@@ -628,24 +639,21 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
 
 
 //TELEPORT COPY: THIS IS THIS FUNCTION SHOULD LOOK LIKE
-void UCombatSystemComponent::TeleportToClosestEnemy()
+void UCombatSystemComponent::TeleportToClosestEnemy(float TeleportDistance)
 {
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
 
-	/*float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
-		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
+	float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(TeleportDistance, KatanaTriggerLenSquared,
+			TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
 
-	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);*/
+	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
 
-	//TEMP just to check if all works
-	TeleportTimeline.SetPlayRate(1.f / MaxTotalTeleportTime);
 
 	bInTeleport = true;
 
 	auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
 	float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-	float AcctualPlayRate = TimeToPerfectAttack / MaxTotalTeleportTime * AttackSpeedMultiplier;
-	//float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
+	float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
 
 	AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
 
@@ -1215,7 +1223,7 @@ void UCombatSystemComponent::TimelineProgessRotation(float Value)
 
 void UCombatSystemComponent::TimelineProgessFOV(float Value)
 {
-	float NewFOV = FMath::Lerp(PlayerCameraFOV, MinFOVValue, Value);
+	float NewFOV = FMath::Lerp(PlayerCameraFOV, TeleportFOVChange, Value);
 	PlayerCameraManager->SetFOV(NewFOV);
 }
 

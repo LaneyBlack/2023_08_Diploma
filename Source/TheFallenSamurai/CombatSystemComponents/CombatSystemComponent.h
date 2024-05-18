@@ -46,8 +46,26 @@ struct FAttackAnimData
 	//hand offset of crig
 };
 
+USTRUCT(BlueprintType)
+struct FTeleportProperties
+{
+	GENERATED_BODY()
+
+	float TeleportDistance;
+
+	FTimeline Timeline;
+
+	float FOVChange;
+
+	bool bPickTimeFromRange = true;
+
+	float MinTime;
+	float MaxTime;
+};
+
 class AKatana;
 class UCameraShakeBase;
+class ABaseEnemy;
 template<typename... Types>
 struct TTuple;
 
@@ -127,6 +145,8 @@ private:
 
 	float PlayerCameraFOV;
 
+	//float TeleportFOVChange;
+
 	int StolenTokens = 0;
 
 	FTimeline ParrySlowMoTimeline;
@@ -139,13 +159,14 @@ private:
 
 	//FVector TargetPointInitialPosition;
 
-	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
-
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
 
 	ABaseEnemy* SuperAbilityTarget = nullptr;
 
 	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
+
+	UFUNCTION()
+	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
@@ -180,11 +201,11 @@ private:
 	/*UFUNCTION()
 	void TraceForEnemiesToTeleport();*/
 
-	UFUNCTION()
-	bool ValidateTeleportTarget(ABaseEnemy* Enemy);
+	//UFUNCTION()
+	TTuple<bool, float> ValidateTeleportTarget(ABaseEnemy* Enemy);
 
 	UFUNCTION()
-	void TeleportToClosestEnemy();
+	void TeleportToClosestEnemy(float TeleportDistance);
 
 	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
@@ -259,7 +280,7 @@ public:
 	float MaxTotalTeleportTime = .3f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
-	float MinFOVValue = 70.f;
+	float TeleportFOVChange = 75.f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* LocationCurve;
