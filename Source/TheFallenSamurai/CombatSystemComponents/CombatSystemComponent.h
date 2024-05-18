@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "CombatSystemComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
@@ -61,6 +62,19 @@ struct FTeleportProperties
 
 	float MinTime;
 	float MaxTime;
+};
+
+USTRUCT(BlueprintType)
+struct FValidationRules
+{
+	GENERATED_BODY()
+
+	bool bUseDebugPrint = false;
+	EDrawDebugTrace::Type DrawDebugTrace = EDrawDebugTrace::None;
+
+	float GroundTraceDepth;
+	bool bUsePitch = true;
+	bool bUseLazyCheck = true;
 };
 
 class AKatana;
@@ -202,10 +216,10 @@ private:
 	void TraceForEnemiesToTeleport();*/
 
 	//UFUNCTION()
-	TTuple<bool, float> ValidateTeleportTarget(ABaseEnemy* Enemy);
+	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);
 
 	UFUNCTION()
-	void TeleportToClosestEnemy(float TeleportDistance);
+	void TeleportToEnemy(float TeleportDistance);
 
 	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);

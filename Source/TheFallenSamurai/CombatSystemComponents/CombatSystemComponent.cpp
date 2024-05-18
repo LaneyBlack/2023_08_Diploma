@@ -199,7 +199,11 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
-			const auto& [bIsTargetValid, Distance] = ValidateTeleportTarget(Closest);
+			FValidationRules ValidationRules{};
+			ValidationRules.bUseDebugPrint = true;
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+
+			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
 			if (bIsTargetValid)
 			{
@@ -210,7 +214,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 				TeleportPropeties.TeleportDistance = Distance;
 				TeleportPropeties.Timeline = TeleportTimeline;*/
 
-				TeleportToClosestEnemy(Distance);
+				TeleportToEnemy(Closest->GetDistanceTo(playerCharacter));
 			}
 			//GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
@@ -258,7 +262,7 @@ void UCombatSystemComponent::GetVelocityVariables()
 	LocationLagPosition = UKismetMathLibrary::VInterpTo(LocationLagPosition, TargetLagPosition, GetWorld()->GetDeltaSeconds(), 13.);
 }
 
-TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy)
+bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 
@@ -271,24 +275,26 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 
 	bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
+		ValidationRules.DrawDebugTrace, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
 
 	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
+		ValidationRules.DrawDebugTrace, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
 
 	//we hit a static object on the teleport path -> dont teleport
 	if (bEyeToCenterHit && bEyeToEyeHit)
 	{
-		PRINT("Got obstacle between player eyes and the middle of the enemy", 4);
-		return { false, 0.f };
+		if(ValidationRules.bUseDebugPrint)
+			PRINT("CANT TELEPORT: Got obstacle between player and the enemy", 4);
+		return false;
 	}
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 
 	//fix that shit: set destination only where it need to be set
-	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
+	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
+	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f; 
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
 	auto playerCapsule = playerCharacter->GetCapsuleComponent();
@@ -300,10 +306,14 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 
 	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true);
+		true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, OutHit, true);
 	
 	if (!bHasGround)
-		return { false, 0.f };
+	{
+		if (ValidationRules.bUseDebugPrint)
+			PRINT("CANT TELEPORT: No ground found", 4);
+		return false;
+	}
 
 	//PRINT("has ground");
 	//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
@@ -317,12 +327,13 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
 		playerCapsule->GetScaledCapsuleRadius() * .8f, playerCapsule->GetScaledCapsuleHalfHeight() - 2.f,
-		ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::ForDuration, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
 
 	if (bTeleportBlock)
 	{
-		PRINT("something blocks the teleport position", 4);
-		return { false, 0.f };
+		if (ValidationRules.bUseDebugPrint)
+			PRINT("CANT TELEPORT: Something blocks the teleport position", 4);
+		return false;
 	}
 
 	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
@@ -334,6 +345,9 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 	FRotator PlayerRotation = playerCharacter->GetControlRotation();
 	FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).Rotation();
 	FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
+
+	if (!ValidationRules.bUsePitch)
+		Delta.Pitch = 0;
 
 	RotationToEnemy += Delta;
 
@@ -356,16 +370,17 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 
 	if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
 	{
-		PRINT("Katana Blade wont cut the enemy", 4);
-		return { false, 0.f };
+		if (ValidationRules.bUseDebugPrint)
+			PRINT("CANT TELEPORT: Katana Blade wont cut the enemy", 4);
+		return false;
 	}
 
-	return { true, ToPlayer.Length()};
+	return true;
 }
 
 // THE OG TELEPORT
 
-//void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
+//void UCombatSystemComponent::TeleportToEnemy(ABaseEnemy* Enemy)
 //{
 //	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 //
@@ -517,7 +532,7 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 //}
 //
 ////copy with acctual teleport code removed
-//void UCombatSystemComponent::TeleportToClosestEnemy(ABaseEnemy* Enemy)
+//void UCombatSystemComponent::TeleportToEnemy(ABaseEnemy* Enemy)
 //{
 //	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 //
@@ -639,7 +654,7 @@ TTuple<bool, float> UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* E
 
 
 //TELEPORT COPY: THIS IS THIS FUNCTION SHOULD LOOK LIKE
-void UCombatSystemComponent::TeleportToClosestEnemy(float TeleportDistance)
+void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
 
@@ -647,7 +662,6 @@ void UCombatSystemComponent::TeleportToClosestEnemy(float TeleportDistance)
 			TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
 
 	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
-
 
 	bInTeleport = true;
 
@@ -665,7 +679,6 @@ void UCombatSystemComponent::TeleportToClosestEnemy(float TeleportDistance)
 
 	OnIFramesChanged.Broadcast(true);
 }
-
 
 float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
 {
@@ -731,6 +744,10 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	int BlockedCounter = HitResults.Num();
 
+	FValidationRules ValidationRules;
+	ValidationRules.bUseDebugPrint = true;
+	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+
 	for (auto HitResult : HitResults)
 	{
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
@@ -754,9 +771,10 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		//DrawDebugLine(GetWorld(), EyeStart, EyeEnd, FColor::Cyan, false, 5);
 
+		//const auto& [bCanTeleport, Distance] = ValidateTeleportTarget(Enemy, ValidationRules);
 		if (bIsBlocked)
 		{
-			Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(BlockHit.GetComponent()));
+			//Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(BlockHit.GetComponent()));
 			BlockedCounter--;
 			//DrawDebugBox(GetWorld(), BlockHit.ImpactPoint, FVector(5), FColor::Magenta, false, 5);
 			continue;
@@ -788,26 +806,38 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	}
 
 	if (!BlockedCounter)
+	{
 		CancelSuperAbility();
+		return;
+	}
 
 	if (Target)
 	{
 		//Target->SetDebugTextValue("Current Target");
 		//SA_State = SuperAbilityState::GOTTARGET;
 
-		if (SuperAbilityTarget != Target)
+		bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
+
+		if (bIsValidTarget)
 		{
-			Target->SetEnableTargetWidget(true);
-			if (SuperAbilityTarget)
-				SuperAbilityTarget->SetEnableTargetWidget(false);
+			if (SuperAbilityTarget != Target)
+			{
+				Target->SetEnableTargetWidget(true);
+				if (SuperAbilityTarget)
+					SuperAbilityTarget->SetEnableTargetWidget(false);
+			}
+			SuperAbilityTarget = Target;
 		}
+		else
+			SuperAbilityTarget = nullptr;
 	}
 	else if (SuperAbilityTarget)
 	{
 		SuperAbilityTarget->SetEnableTargetWidget(false);
+		SuperAbilityTarget = nullptr;
 	}
 
-	SuperAbilityTarget = Target;
+	//SuperAbilityTarget = Target;
 }
 
 void UCombatSystemComponent::SwingKatana()
@@ -949,7 +979,7 @@ void UCombatSystemComponent::Attack()
 		SuperAbilityTarget->SetEnableTargetWidget(false);
 
 		SA_State = SuperAbilityState::TELEPORTING;
-		TeleportToClosestEnemy(SuperAbilityTarget);
+		TeleportToEnemy(SuperAbilityTarget);
 	}
 	else if (!CheckIfCanAttack())
 		return;*/
@@ -968,7 +998,7 @@ void UCombatSystemComponent::Attack()
 				SwingKatana();
 
 				SA_State = SuperAbilityState::TELEPORTING;
-				TeleportToClosestEnemy(SuperAbilityTarget);
+				TeleportToEnemy(SuperAbilityTarget);
 			}
 		}
 		else if(CheckIfCanAttack())
@@ -998,7 +1028,7 @@ void UCombatSystemComponent::Attack()
 				SwingKatana();
 
 				SA_State = SuperAbilityState::TELEPORTING;
-				//TeleportToClosestEnemy(SuperAbilityTarget);
+				TeleportToEnemy(SuperAbilityTarget->GetDistanceTo(playerCharacter));
 			}
 		} break;
 	}
@@ -1288,8 +1318,14 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
 	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
-	/*if (SuperAbilityTarget)
-		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);*/
+
+	if (SuperAbilityTarget)
+	{
+		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
+	}
+	else
+		PRINT("Super Ability Target = NULLPTR", 0);
+
 
 	/*PRINT_B("Is Attacking %s", bIsAttacking);
 	PRINT_B("Interputed By Itself %s", bInterputedByItself);
