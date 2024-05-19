@@ -748,8 +748,9 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		return;
 	}
 
+	if(SA_State != SuperAbilityState::WAITING)
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
-	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
