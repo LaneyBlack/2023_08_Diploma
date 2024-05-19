@@ -306,12 +306,17 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	//fix that shit: set destination only where it need to be set
 	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
-	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f; 
-	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
 
+	FVector EvaluatedDestination;
 	auto playerCapsule = playerCharacter->GetCapsuleComponent();
+
+	EvaluatedDestination = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f;
+	EvaluatedDestination.Z = Enemy->GetActorLocation().Z;
+	/*PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f; 
+	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;*/
+
 	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.f;
-	FVector Start = PlayerDestinationForTeleport;
+	FVector Start = EvaluatedDestination;
 
 	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
 	FHitResult OutHit;
@@ -831,17 +836,18 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		if (SuperAbilityTarget != Target)
 		{
+			if (SuperAbilityTarget)
+				SuperAbilityTarget->SetEnableTargetWidget(false);
+
 			bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
 			if (bIsValidTarget)
 			{
 				Target->SetEnableTargetWidget(true);
-				if (SuperAbilityTarget)
-					SuperAbilityTarget->SetEnableTargetWidget(false);
+				SuperAbilityTarget = Target;
 			}
 			else
 				SuperAbilityTarget = nullptr;
 		}
-		SuperAbilityTarget = Target;
 	}
 	else if (SuperAbilityTarget)
 	{
