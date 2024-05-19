@@ -215,7 +215,10 @@ private:
 	/*UFUNCTION()
 	void TraceForEnemiesToTeleport();*/
 
-	//UFUNCTION()
+	UFUNCTION()
+	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
+
+	UFUNCTION()
 	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);
 
 	UFUNCTION()
