@@ -108,6 +108,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	bool IsTimeBeingManipulated() const { return bIsRewinding || bIsTimeScrubbing; };
 
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void RewindForDuration(float Duration);
+
+	void StopRewindForDuration();
+
 protected:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Rewind")
 	bool bIsVisualizingTimeline = false;
@@ -173,6 +178,10 @@ private:
 	
 	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
 	APlayerGameModeBase* GameMode;
+
+	bool bIsRewindingForDuration = false;
+	
+	float RemainingRewindDuration = 0.0f;
 	
 	UFUNCTION()
 	void OnGlobalRewindStarted();
@@ -225,4 +234,6 @@ private:
 	void ApplySnapshot(const FTransformAndVelocitySnapshot& Snapshot, bool bApplyPhysics);
 	
 	void ApplySnapshot(const FMovementVelocityAndModeSnapshot& Snapshot, bool bApplyTimeDilationToVelocity);
+
+	FTimerHandle RewindTimerHandle;
 };

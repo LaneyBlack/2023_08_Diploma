@@ -40,9 +40,10 @@ void URewindComponent::BeginPlay()
 		OwnerMovementComponent = Character ? Cast<UCharacterMovementComponent>(Character->GetMovementComponent()) : nullptr;
 	}
 
-	if (bPauseAnimationDuringTimeScrubbing && Character && Character->GetMesh()) 
+	if (bPauseAnimationDuringTimeScrubbing && Character)
 	{
 		OwnerSkeletalMesh = Character->GetMesh();
+		ensureMsgf(OwnerSkeletalMesh, TEXT("OwnerSkeletalMesh is null for %s"), *GetOwner()->GetName());
 	}
 
 	GameMode->OnGlobalRewindStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindStarted);
@@ -53,15 +54,38 @@ void URewindComponent::BeginPlay()
 	InitializeRingBuffers(GameMode->MaxRewindSeconds);
 }
 
+
 void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::TickComponent);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (bIsRewinding) { PlaySnapshots(DeltaTime, true /*bRewinding*/); }
-	else if (bIsTimeScrubbing) { PauseTime(DeltaTime, bLastTimeManipulationWasRewind); }
-	else { RecordSnapshot(DeltaTime); }
+	if (bIsRewindingForDuration)
+	{
+		RemainingRewindDuration -= DeltaTime;
+		if (RemainingRewindDuration <= 0.0f)
+		{
+			bIsRewindingForDuration = false;
+			OnGlobalRewindCompleted();
+		}
+		else
+		{
+			PlaySnapshots(DeltaTime, true);
+		}
+	}
+	else if (bIsRewinding)
+	{
+		PlaySnapshots(DeltaTime, true);
+	}
+	else if (bIsTimeScrubbing)
+	{
+		PauseTime(DeltaTime, bLastTimeManipulationWasRewind);
+	}
+	else
+	{
+		RecordSnapshot(DeltaTime);
+	}
 }
 
 void URewindComponent::SetIsRewindingEnabled(bool bEnabled)
@@ -98,7 +122,7 @@ void URewindComponent::OnGlobalRewindCompleted()
 	if (TryStopTimeManipulation(bIsRewinding, !bIsTimeScrubbing, false /*bResetMovementVelocity*/))
 	{
 		bLastTimeManipulationWasRewind = true;
-		
+
 		OnRewindCompleted.Broadcast();
 		if (!IsTimeBeingManipulated()) { OnTimeManipulationCompleted.Broadcast(); }
 	}
@@ -266,7 +290,7 @@ void URewindComponent::PauseTime(float DeltaTime, bool bRewinding)
 			return;
 		}
 	}
-	
+
 	float LatestSnapshotTime = TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
 	if (TimeSinceSnapshotsChanged < LatestSnapshotTime)
 	{
@@ -276,8 +300,12 @@ void URewindComponent::PauseTime(float DeltaTime, bool bRewinding)
 
 	InterpolateAndApplySnapshots(bRewinding);
 
-	if (FMath::IsNearlyEqual(TimeSinceSnapshotsChanged, LatestSnapshotTime)) { PauseAnimation(); }
+	if (FMath::IsNearlyEqual(TimeSinceSnapshotsChanged, LatestSnapshotTime) && OwnerSkeletalMesh) 
+	{
+		PauseAnimation();
+	}
 }
+
 
 bool URewindComponent::TryStartTimeManipulation(bool& bStateToSet, bool bResetTimeSinceSnapshotsChanged)
 {
@@ -346,21 +374,20 @@ void URewindComponent::UnpausePhysics()
 
 void URewindComponent::PauseAnimation()
 {
-	if (!bPauseAnimationDuringTimeScrubbing) { return; }
+	if (!bPauseAnimationDuringTimeScrubbing || !OwnerSkeletalMesh) { return; }
 
-	check(OwnerSkeletalMesh);
 	bPausedAnimation = true;
 	OwnerSkeletalMesh->bPauseAnims = true;
 }
 
 void URewindComponent::UnpauseAnimation()
 {
-	if (!bPausedAnimation) { return; }
+	if (!bPausedAnimation || !OwnerSkeletalMesh) { return; }
 
-	check(OwnerSkeletalMesh);
 	bPausedAnimation = false;
 	OwnerSkeletalMesh->bPauseAnims = false;
 }
+
 
 bool URewindComponent::HandleInsufficientSnapshots()
 {
@@ -463,4 +490,28 @@ void URewindComponent::OnGlobalTimeScrubCompleted()
 	{
 		if (!IsTimeBeingManipulated()) { OnTimeManipulationCompleted.Broadcast(); }
 	}
+}
+
+void URewindComponent::RewindForDuration(float Duration)
+{
+	if (!GameMode)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::RewindForDuration"));
+		return;
+	}
+
+	GameMode->StartGlobalRewind();
+
+	GetWorld()->GetTimerManager().SetTimer(RewindTimerHandle, this, &URewindComponent::StopRewindForDuration, Duration, false);
+}
+
+void URewindComponent::StopRewindForDuration()
+{
+	if (!GameMode)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::StopRewind"));
+		return;
+	}
+
+	GameMode->StopGlobalRewind();
 }

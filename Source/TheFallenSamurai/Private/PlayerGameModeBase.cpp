@@ -40,14 +40,6 @@ void APlayerGameModeBase::StopGlobalRewind()
 	OnGlobalRewindCompleted.Broadcast();
 }
 
-void APlayerGameModeBase::StartRewindForDuration(float Duration)
-{
-	StartGlobalRewind();
-	
-	FTimerHandle UnusedHandle;
-	GetWorldTimerManager().SetTimer(UnusedHandle, this, &APlayerGameModeBase::StopGlobalRewind, Duration, false);
-}
-
 void APlayerGameModeBase::SetRewindSpeedSlowest()
 {
 	GlobalRewindSpeed = SlowestRewindSpeed;
