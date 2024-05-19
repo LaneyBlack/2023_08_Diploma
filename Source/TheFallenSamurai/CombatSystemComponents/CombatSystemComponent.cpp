@@ -308,14 +308,19 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
 
 	FVector EvaluatedDestination;
-	auto playerCapsule = playerCharacter->GetCapsuleComponent();
 
-	EvaluatedDestination = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f;
+	auto playerCapsule = playerCharacter->GetCapsuleComponent();
+	float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius() * .8f;
+	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight() - 2.f;
+	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.f;
+
+	float TeleportOffset = KatanaTriggerLenSquared * 0.7f;
+
+	EvaluatedDestination = Enemy->GetActorLocation() + ToPlayerNormalized * TeleportOffset;
 	EvaluatedDestination.Z = Enemy->GetActorLocation().Z;
 	/*PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f; 
 	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;*/
 
-	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.f;
 	FVector Start = EvaluatedDestination;
 
 	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
@@ -345,7 +350,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	FHitResult CapsuleSpaceHit;
 
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
-		playerCapsule->GetScaledCapsuleRadius() * .8f, playerCapsule->GetScaledCapsuleHalfHeight() - 2.f,
+		BlockCapsuleRadius, BlockCapsuleHalfHeight,
 		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
 
 	if (bTeleportBlock)
