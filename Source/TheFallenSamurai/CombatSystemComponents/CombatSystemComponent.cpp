@@ -34,7 +34,8 @@
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
-#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Magenta, FString::Printf(TEXT(prompt), mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 #define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
 
@@ -140,7 +141,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
 	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from forward vector?
-	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().Rotation();
+	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().LeftRotation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
@@ -316,6 +317,43 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	float TeleportOffset = KatanaTriggerLenSquared * 0.7f;
 
+	int MaxChecks = 1;
+	float InnerAngle = 0.f;
+	if (!ValidationRules.bUseLazyCheck)
+	{
+		//DEBUG SETUP:
+		float Side = BlockCapsuleRadius * 2.f;
+		float TwoR = TeleportOffset * 2.f;
+
+		//float N = 180.f / FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR));
+		int N = FMath::DivideAndRoundNearest(180.f, FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)));
+		InnerAngle = 360.f / N;
+
+		MaxChecks = N;
+
+		//FColor DEBUG_COLOR = FColor::Cyan;
+		/*PRINTC_F("Side = %f", Side, 10, DEBUG_COLOR);
+		PRINTC_F("TwoR = %f", TwoR, 10, DEBUG_COLOR);
+		PRINTC_F("asin = %f", FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)), 10, DEBUG_COLOR);
+		PRINTC_F("N = %i", N, 10, DEBUG_COLOR);
+		PRINTC_F("InnerAngle = %f", InnerAngle, 10, DEBUG_COLOR);*/
+	}
+
+	//int iN = FMath::round
+	//FRotator LeftRotation;
+	float TotalRotation = 0.f;
+	bool bCanTeleport = true;
+	for (int Checks = 0; Checks < MaxChecks; ++Checks)
+	{
+		//PRINTC_F("Total Angle = %f", TotalRotation, 10, FColor::Magenta);
+		auto Direction = (ToPlayerNormalized * TeleportOffset).RotateAngleAxis(TotalRotation, FVector(0, 0, 1));
+
+		DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + Direction, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, false, 15.f, 0, 1);
+
+		TotalRotation += InnerAngle;
+	}
+
+
 	EvaluatedDestination = Enemy->GetActorLocation() + ToPlayerNormalized * TeleportOffset;
 	EvaluatedDestination.Z = Enemy->GetActorLocation().Z;
 	/*PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f; 
@@ -483,10 +521,10 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 //			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
 //
 //		/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(), 
-//			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).Rotation());*/
+//			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).LeftRotation());*/
 //
 //		FRotator PlayerRotation = playerCharacter->GetControlRotation();
-//		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).Rotation();
+//		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).LeftRotation();
 //		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
 //
 //		RotationToEnemy += Delta;
@@ -635,10 +673,10 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 //			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
 //
 //			/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(),
-//				(Enemy->GetActorLocation() - PlayerDestinationForTeleport).Rotation());*/
+//				(Enemy->GetActorLocation() - PlayerDestinationForTeleport).LeftRotation());*/
 //
 //		FRotator PlayerRotation = playerCharacter->GetControlRotation();
-//		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).Rotation();
+//		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).LeftRotation();
 //		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
 //
 //		RotationToEnemy += Delta;
