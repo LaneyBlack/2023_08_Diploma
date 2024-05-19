@@ -41,6 +41,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void StartGlobalRewind();
+
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void StartRewindForDuration(float Duration);
 	
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void StopGlobalRewind();

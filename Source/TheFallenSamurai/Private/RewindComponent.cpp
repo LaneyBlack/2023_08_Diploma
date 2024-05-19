@@ -31,22 +31,25 @@ void URewindComponent::BeginPlay()
 		SetComponentTickEnabled(false);
 		return;
 	}
-	
+
 	OwnerRootComponent = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
-	
+
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (bSnapshotMovementVelocityAndMode)
 	{
 		OwnerMovementComponent = Character ? Cast<UCharacterMovementComponent>(Character->GetMovementComponent()) : nullptr;
 	}
-	
-	if (bPauseAnimationDuringTimeScrubbing) { OwnerSkeletalMesh = Character ? Character->GetMesh() : nullptr; }
-	
+
+	if (bPauseAnimationDuringTimeScrubbing && Character && Character->GetMesh()) 
+	{
+		OwnerSkeletalMesh = Character->GetMesh();
+	}
+
 	GameMode->OnGlobalRewindStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindStarted);
 	GameMode->OnGlobalRewindCompleted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindCompleted);
 	GameMode->OnGlobalTimeScrubStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalTimeScrubStarted);
 	GameMode->OnGlobalTimeScrubCompleted.AddUniqueDynamic(this, &URewindComponent::OnGlobalTimeScrubCompleted);
-	
+
 	InitializeRingBuffers(GameMode->MaxRewindSeconds);
 }
 
