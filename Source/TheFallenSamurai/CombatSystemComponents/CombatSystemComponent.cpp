@@ -346,7 +346,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	FVector EnemyLocationOverTime = Enemy->GetActorLocation() + Enemy->GetVelocity() * TeleportTime;
 
-	PRINTC_F("teleport time = %f", TeleportTime, 5, FColor::Red);
+	//PRINTC_F("teleport time = %f", TeleportTime, 5, FColor::Red);
 
 	//FRotator LeftRotation;
 	float TotalRotation = 0.f;
@@ -359,20 +359,17 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 		//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + Direction, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, false, 15.f, 0, 1);
 
-
 		EvaluatedDestination = EnemyLocationOverTime + Direction;
 		EvaluatedDestination.Z = EnemyLocationOverTime.Z;
-		/*EvaluatedDestination = Enemy->GetActorLocation() + Direction;
-		EvaluatedDestination.Z = Enemy->GetActorLocation().Z;*/
 
 		FVector Start = EvaluatedDestination;
 
 		FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
-		FHitResult OutHit;
+		FHitResult GroundHit;
 
 		bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
 			TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-			true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, OutHit, true);
+			true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, GroundHit, true);
 
 		if (!bHasGround)
 		{
@@ -383,8 +380,9 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		}
 
 		//PRINT("has ground");
-		//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
-		PlayerDestinationForTeleport = OutHit.Location;
+		
+		//change Z so that player has perfect teleport position and collision enabling won't cause chaos
+		PlayerDestinationForTeleport = GroundHit.Location;
 		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
 		TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
@@ -421,11 +419,8 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 		RotationToEnemy += Delta;
 
-		/*RotationToEnemy.Yaw = LookAt.Yaw;
-		RotationToEnemy.Pitch = LookAt.Pitch;*/
-
 		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
-		auto CombatPoint = OutHit.Location + FeetToHead;
+		auto CombatPoint = GroundHit.Location + FeetToHead;
 
 		TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, EnemyLocationOverTime);
 		CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset;
@@ -455,14 +450,14 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 //TELEPORT COPY: THIS IS HOW THIS FUNCTION SHOULD LOOK LIKE
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
+	bInTeleport = true;
+
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
 
 	float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(TeleportDistance, KatanaTriggerLenSquared,
 			TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
 
 	TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
-
-	bInTeleport = true;
 
 	auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
 	float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
@@ -660,6 +655,7 @@ void UCombatSystemComponent::SwingKatana()
 	CurrentAttackData = NextAttackData;
 	NextAttackData = DetermineNextAttackData();
 
+	//move it to the attack function(and call only at the normal attack) ?
 	//start timer for auto aim
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack,
