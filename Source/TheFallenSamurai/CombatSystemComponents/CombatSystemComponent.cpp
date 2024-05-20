@@ -152,7 +152,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<FHitResult> HitResults;
 
 	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), Start, End, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::ForOneFrame, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
 	//float MinDot = -1;
@@ -341,6 +341,13 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		PRINTC_F("InnerAngle = %f", InnerAngle, 10, DEBUG_COLOR);*/
 	}
 
+	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
+		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
+
+	FVector EnemyLocationOverTime = Enemy->GetActorLocation() + Enemy->GetVelocity() * TeleportTime;
+
+	PRINTC_F("teleport time = %f", TeleportTime, 5, FColor::Red);
+
 	//FRotator LeftRotation;
 	float TotalRotation = 0.f;
 	bool bCanTeleport = false;
@@ -352,10 +359,11 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 		//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + Direction, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, false, 15.f, 0, 1);
 
-		EvaluatedDestination = Enemy->GetActorLocation() + Direction;
-		EvaluatedDestination.Z = Enemy->GetActorLocation().Z;
-		/*PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayerNormalized * KatanaTriggerLenSquared * 0.7f;
-		PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;*/
+
+		EvaluatedDestination = EnemyLocationOverTime + Direction;
+		EvaluatedDestination.Z = EnemyLocationOverTime.Z;
+		/*EvaluatedDestination = Enemy->GetActorLocation() + Direction;
+		EvaluatedDestination.Z = Enemy->GetActorLocation().Z;*/
 
 		FVector Start = EvaluatedDestination;
 
@@ -401,7 +409,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 		RotationToEnemy = playerCharacter->GetControlRotation();
 
-		FVector LookAtEnemyLocation = Enemy->GetActorLocation();
+		FVector LookAtEnemyLocation = EnemyLocationOverTime;
 		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks a bit down
 
 		//FRotator PlayerRotation = playerCharacter->GetControlRotation();
@@ -419,11 +427,11 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
 		auto CombatPoint = OutHit.Location + FeetToHead;
 
-		TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, Enemy->GetActorLocation());
+		TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, EnemyLocationOverTime);
 		CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset;
 
-		FVector EnemyBottom = Enemy->GetActorLocation() - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
-		FVector EnemyTop = Enemy->GetActorLocation() + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
+		FVector EnemyBottom = EnemyLocationOverTime - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
+		FVector EnemyTop = EnemyLocationOverTime + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 
 		/*DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 3);
 
