@@ -184,7 +184,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		float DotWeight = 600.f;
 		float distweight = .5f;
 
-		float a = DotWeight * FMath::Abs(Dot - 0.7071) / CurrentDistance;
+		float a = DotWeight * FMath::Abs(Dot - 0.8660) / CurrentDistance;
 		Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
 		//Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
@@ -201,8 +201,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+			/*ValidationRules.bUseDebugPrint = true;
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
@@ -444,282 +444,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	return bCanTeleport;
 }
 
-// THE OG TELEPORT
-
-//void UCombatSystemComponent::TeleportToEnemy(ABaseEnemy* Enemy)
-//{
-//	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-//
-//	//eye trace(move it out of the teleport function?)
-//	FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
-//	//FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
-//	FVector EyeEnd = Enemy->GetActorLocation(); //use forward vector or camera rotation? 
-//	FHitResult EyeOutHit;
-//
-//	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
-//	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-//
-//	bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-//		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-//		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
-//
-//	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-//	bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-//		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-//		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
-//
-//	//we hit a static object on the teleport path -> dont teleport
-//	if (bEyeToCenterHit && bEyeToEyeHit)
-//	{
-//		PRINT("Got obstacle between players eyes and the middle of the enemy", 4);
-//		return;
-//	}
-//
-//	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-//	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
-//	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
-//
-//	float TraceDepth = playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
-//	FVector Start = PlayerDestinationForTeleport;
-//
-//	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
-//	FHitResult OutHit;
-//
-//	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, 
-//		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-//		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true);
-//
-//	if (bHasGround) 
-//	{
-//		//PRINT("has ground");
-//		//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
-//		PlayerDestinationForTeleport = OutHit.Location;
-//		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-//
-//		ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-//		ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
-//
-//		auto playerCapsule = playerCharacter->GetCapsuleComponent();
-//		FHitResult CapsuleSpaceHit;
-//
-//		bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport, 
-//			playerCapsule->GetScaledCapsuleRadius() * .8f, playerCapsule->GetScaledCapsuleHalfHeight() - 2.f,
-//			ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::ForDuration, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
-//
-//		if (bTeleportBlock)
-//		{
-//			PRINT("something blocks the teleport position", 4);
-//			return;
-//		}
-//
-//		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
-//		RotationToEnemy = playerCharacter->GetControlRotation();
-//
-//		/*auto FakeDestination = PlayerDestinationForTeleport;
-//		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
-//		FVector LookAtEnemyLocation = Enemy->GetActorLocation();
-//		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks a bit down
-//		//FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, LookAtEnemyLocation); //change to enemies location?
-//
-//		/*FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(playerCharacter->GetControlRotation().Vector(),
-//			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
-//
-//		/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(), 
-//			(Enemy->GetActorLocation() - PlayerDestinationForTeleport).LeftRotation());*/
-//
-//		FRotator PlayerRotation = playerCharacter->GetControlRotation();
-//		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).LeftRotation();
-//		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
-//
-//		RotationToEnemy += Delta;
-//
-//		/*RotationToEnemy.Yaw = LookAt.Yaw;
-//		RotationToEnemy.Pitch = LookAt.Pitch;*/
-//
-//		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
-//		auto CombatPoint = OutHit.Location + FeetToHead;
-//
-//		TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, Enemy->GetActorLocation());
-//		CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset; //which check is better?
-//
-//		//previous solution with calculating the target point 
-//		/*auto Dest = PlayerDestinationForTeleport;
-//		Dest.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
-//		//TargetPointOffset = GetAutoAimOffset(Dest, Enemy->GetActorLocation());
-//		//CombatPoint += TargetPointOffset;
-//
-//		FVector EnemyBottom = Enemy->GetActorLocation() - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
-//		FVector EnemyTop = Enemy->GetActorLocation() + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
-//
-//		/*DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 3);
-//
-//		DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 20);
-//		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 20);*/
-//
-//		if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
-//		{
-//			PRINT("Katana Blade wont cut the enemy", 4);
-//			return;
-//		}
-//
-//		/*GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Length between = %f"), ToPlayer.Length()));
-//		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Katana Trigger  = %f"), KatanaTriggerLenSquared));
-//		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Teleport Trigger  = %f"), TeleportTriggerLength));*/
-//
-//		PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
-//
-//		float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared, 
-//			TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
-//
-//		TeleportTimeline.SetPlayRate(1.f / NormalizedTeleportTime);
-//
-//		bInTeleport = true;
-//
-//		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Teleport Started"));
-//
-//		auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
-//		float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-//		float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
-//
-//		//PRINT_F("Montage Speed up  = %f", AcctualPlayRate);
-//
-//		AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
-//
-//		playerCharacter->GetCharacterMovement()->DisableMovement();
-//		playerCharacter->GetController()->SetIgnoreLookInput(true);
-//		playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-//
-//		TeleportTimeline.PlayFromStart();
-//
-//		OnIFramesChanged.Broadcast(true);
-//	}
-//	else
-//		PRINT("NO ground found", 4)
-//}
-//
-////copy with acctual teleport code removed
-//void UCombatSystemComponent::TeleportToEnemy(ABaseEnemy* Enemy)
-//{
-//	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-//
-//	//eye trace(move it out of the teleport function?)
-//	FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
-//	//FVector EyeEnd = EyeStart + playerCharacter->GetControlRotation().Vector() * ToPlayer.Length();
-//	FVector EyeEnd = Enemy->GetActorLocation(); //use forward vector or camera rotation? 
-//	FHitResult EyeOutHit;
-//
-//	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
-//	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-//
-//	bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-//		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-//		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
-//
-//	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-//	bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-//		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-//		EDrawDebugTrace::ForDuration, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
-//
-//	//we hit a static object on the teleport path -> dont teleport
-//	if (bEyeToCenterHit && bEyeToEyeHit)
-//	{
-//		PRINT("Got obstacle between players eyes and the middle of the enemy", 4);
-//		return;
-//	}
-//
-//	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-//	PlayerDestinationForTeleport = Enemy->GetActorLocation() + ToPlayer.GetSafeNormal() * KatanaTriggerLenSquared * 0.7f; //change to unsafe normal for perfomance?
-//	PlayerDestinationForTeleport.Z = Enemy->GetActorLocation().Z;
-//
-//	float TraceDepth = playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f;
-//	FVector Start = PlayerDestinationForTeleport;
-//
-//	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
-//	FHitResult OutHit;
-//
-//	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
-//		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-//		true, TArray<AActor*>(), EDrawDebugTrace::None, OutHit, true);
-//
-//	if (bHasGround)
-//	{
-//		//PRINT("has ground");
-//		//change Z so that it player has perfect teleport position and collision enabling won't cause chaos
-//		PlayerDestinationForTeleport = OutHit.Location;
-//		PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-//
-//		ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-//		ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
-//
-//		auto playerCapsule = playerCharacter->GetCapsuleComponent();
-//		FHitResult CapsuleSpaceHit;
-//
-//		bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
-//			playerCapsule->GetScaledCapsuleRadius() * .8f, playerCapsule->GetScaledCapsuleHalfHeight() - 2.f,
-//			ObjToTrace, true, { playerCharacter }, EDrawDebugTrace::ForDuration, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
-//
-//		if (bTeleportBlock)
-//		{
-//			PRINT("something blocks the teleport position", 4);
-//			return;
-//		}
-//
-//		PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
-//		RotationToEnemy = playerCharacter->GetControlRotation();
-//
-//		/*auto FakeDestination = PlayerDestinationForTeleport;
-//		FakeDestination.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
-//		FVector LookAtEnemyLocation = Enemy->GetActorLocation();
-//		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks a bit down
-//		//FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(PlayerStartForTeleport, LookAtEnemyLocation); //change to enemies location?
-//
-//		/*FRotator LookAt = UKismetMathLibrary::FindLookAtRotation(playerCharacter->GetControlRotation().Vector(),
-//			(Enemy->GetActorLocation() - Start).GetUnsafeNormal());*/
-//
-//			/*FRotator LookAt = UKismetMathLibrary::NormalizedDeltaRotator(playerCharacter->GetControlRotation(),
-//				(Enemy->GetActorLocation() - PlayerDestinationForTeleport).LeftRotation());*/
-//
-//		FRotator PlayerRotation = playerCharacter->GetControlRotation();
-//		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).LeftRotation();
-//		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
-//
-//		RotationToEnemy += Delta;
-//
-//		/*RotationToEnemy.Yaw = LookAt.Yaw;
-//		RotationToEnemy.Pitch = LookAt.Pitch;*/
-//
-//		auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
-//		auto CombatPoint = OutHit.Location + FeetToHead;
-//
-//		TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, Enemy->GetActorLocation());
-//		CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset; //which check is better?
-//
-//		//previous solution with calculating the target point 
-//		/*auto Dest = PlayerDestinationForTeleport;
-//		Dest.Z = playerCharacter->GetMesh()->GetBoneLocation("head").Z;*/
-//		//TargetPointOffset = GetAutoAimOffset(Dest, Enemy->GetActorLocation());
-//		//CombatPoint += TargetPointOffset;
-//
-//		FVector EnemyBottom = Enemy->GetActorLocation() - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
-//		FVector EnemyTop = Enemy->GetActorLocation() + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
-//
-//		/*DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 3);
-//
-//		DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 20);
-//		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 20);*/
-//
-//		if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
-//		{
-//			PRINT("Katana Blade wont cut the enemy", 4);
-//			return;
-//		}
-//	}
-//	else
-//		PRINT("NO ground found", 4)
-//}
-
-
-//TELEPORT COPY: THIS IS THIS FUNCTION SHOULD LOOK LIKE
+//TELEPORT COPY: THIS IS HOW THIS FUNCTION SHOULD LOOK LIKE
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
@@ -813,6 +538,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	/*ValidationRules.bUseDebugPrint = true;
 	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 	ValidationRules.bUseLazyCheck = false;
+	ValidationRules.ChecksSampleScale = 2;
 
 	for (auto HitResult : HitResults)
 	{
