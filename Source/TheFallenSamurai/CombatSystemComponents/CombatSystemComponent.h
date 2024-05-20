@@ -223,6 +223,10 @@ private:
 	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);
 
 	UFUNCTION()
+	bool PerformTeleportCheck(ABaseEnemy* Enemy, const FVector& EvaluatedDestination, float TraceDepth,
+		const FVector& EnemyLocationOverTime, float BlockCapsuleRadius, float BlockCapsuleHalfHeight, const FValidationRules& ValidationRules);
+
+	UFUNCTION()
 	void TeleportToEnemy(float TeleportDistance);
 
 	UFUNCTION()
