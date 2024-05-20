@@ -32,6 +32,7 @@
 //DEBUG
 #include "DrawDebugHelpers.h"
 
+
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
 #define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
@@ -201,8 +202,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			/*ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
+			ValidationRules.bUseDebugPrint = true;
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
@@ -315,10 +316,18 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	float TeleportOffset = KatanaTriggerLenSquared * 0.7f;
 
-	int MaxChecks = 1;
-	float InnerAngle = 0.f;
+	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
+		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
 
-	if (!ValidationRules.bUseLazyCheck)
+	FVector EnemyLocationOverTime = Enemy->GetActorLocation() + Enemy->GetVelocity() * TeleportTime;
+	FVector TeleportOffsetVector = ToPlayerNormalized * TeleportOffset;
+
+	bool bCanTeleport = false;
+
+	bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, TeleportOffsetVector, TraceDepth,
+		BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
+
+	if (!ValidationRules.bUseLazyCheck && !bCanTeleport)
 	{
 		float Side = BlockCapsuleRadius * 2.f;
 		float TwoR = TeleportOffset * 2.f;
@@ -328,7 +337,9 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 		N *= ValidationRules.ChecksSampleScale;
 
-		InnerAngle = 360.f / N;
+		int MaxChecks = 1;
+
+		float InnerAngle = 360.f / N;
 
 		MaxChecks = N;
 
@@ -339,41 +350,32 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		PRINTC_F("asin = %f", FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)), 10, DEBUG_COLOR);
 		PRINTC_F("N = %i", N, 10, DEBUG_COLOR);
 		PRINTC_F("InnerAngle = %f", InnerAngle, 10, DEBUG_COLOR);*/
-	}
 
-	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
-		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
+		//FRotator LeftRotation;
+		float TotalRotation = InnerAngle;
+		for (int Checks = 1; (Checks < MaxChecks) && !bCanTeleport; ++Checks)
+		{
+			//PRINTC_F("Total Angle = %f", TotalRotation, 10, FColor::Magenta);
+			auto Direction = TeleportOffsetVector.RotateAngleAxis(TotalRotation, FVector(0, 0, 1));
+			TotalRotation += InnerAngle;
 
-	FVector EnemyLocationOverTime = Enemy->GetActorLocation() + Enemy->GetVelocity() * TeleportTime;
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + Direction, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, false, 15.f, 0, 1);
+			/*EvaluatedDestination = EnemyLocationOverTime + Direction;
+			EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
 
-	//PRINTC_F("teleport time = %f", TeleportTime, 5, FColor::Red);
-
-	//FRotator LeftRotation;
-	float TotalRotation = 0.f;
-	bool bCanTeleport = false;
-	for (int Checks = 0; (Checks < MaxChecks) && !bCanTeleport; ++Checks)
-	{
-		//PRINTC_F("Total Angle = %f", TotalRotation, 10, FColor::Magenta);
-		auto Direction = (ToPlayerNormalized * TeleportOffset).RotateAngleAxis(TotalRotation, FVector(0, 0, 1));
-		TotalRotation += InnerAngle;
-
-		//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + Direction, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, false, 15.f, 0, 1);
-		EvaluatedDestination = EnemyLocationOverTime + Direction;
-		EvaluatedDestination.Z = EnemyLocationOverTime.Z;
-		
-
-		bCanTeleport = PerformTeleportCheck(Enemy, EvaluatedDestination, TraceDepth, EnemyLocationOverTime, 
-			BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
+			bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, Direction, TraceDepth,
+				BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
+		}
 	}
 
 	return bCanTeleport;
 }
 
-bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVector& EvaluatedDestination, float TraceDepth,
-	const FVector& EnemyLocationOverTime, float BlockCapsuleRadius, float BlockCapsuleHalfHeight, const FValidationRules& ValidationRules)
+bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVector& EnemyLocationOverTime, const FVector& Direction, float TraceDepth,
+	float BlockCapsuleRadius, float BlockCapsuleHalfHeight, const FValidationRules& ValidationRules)
 {
-	/*EvaluatedDestination = EnemyLocationOverTime + Direction;
-	EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
+	FVector EvaluatedDestination = EnemyLocationOverTime + Direction;
+	EvaluatedDestination.Z = EnemyLocationOverTime.Z;
 
 	FVector Start = EvaluatedDestination;
 
@@ -548,8 +550,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	int ObscuredCounter = HitResults.Num();
 
 	FValidationRules ValidationRules;
-	/*ValidationRules.bUseDebugPrint = true;
-	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
+	ValidationRules.bUseDebugPrint = true;
+	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 	ValidationRules.bUseLazyCheck = false;
 	ValidationRules.ChecksSampleScale = 2;
 
