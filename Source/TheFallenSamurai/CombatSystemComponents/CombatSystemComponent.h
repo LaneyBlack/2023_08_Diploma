@@ -75,6 +75,7 @@ struct FValidationRules
 	float GroundTraceDepth;
 	bool bUsePitch = true;
 	bool bUseLazyCheck = true;
+	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
 };
 
 class AKatana;

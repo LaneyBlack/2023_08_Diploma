@@ -201,8 +201,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			/*ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
+			ValidationRules.bUseDebugPrint = true;
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
@@ -304,8 +304,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
 
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-
-	//fix that shit: set destination only where it need to be set
 	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
 
 	FVector EvaluatedDestination;
@@ -319,18 +317,22 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	int MaxChecks = 1;
 	float InnerAngle = 0.f;
+
 	if (!ValidationRules.bUseLazyCheck)
 	{
-		//DEBUG SETUP:
 		float Side = BlockCapsuleRadius * 2.f;
 		float TwoR = TeleportOffset * 2.f;
 
 		//float N = 180.f / FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR));
 		int N = FMath::DivideAndRoundNearest(180.f, FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)));
+
+		N *= ValidationRules.ChecksSampleScale;
+
 		InnerAngle = 360.f / N;
 
 		MaxChecks = N;
 
+		//DEBUG SETUP:
 		//FColor DEBUG_COLOR = FColor::Cyan;
 		/*PRINTC_F("Side = %f", Side, 10, DEBUG_COLOR);
 		PRINTC_F("TwoR = %f", TwoR, 10, DEBUG_COLOR);
@@ -339,7 +341,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		PRINTC_F("InnerAngle = %f", InnerAngle, 10, DEBUG_COLOR);*/
 	}
 
-	//int iN = FMath::round
 	//FRotator LeftRotation;
 	float TotalRotation = 0.f;
 	bool bCanTeleport = false;
@@ -403,9 +404,9 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		FVector LookAtEnemyLocation = Enemy->GetActorLocation();
 		LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks a bit down
 
-		FRotator PlayerRotation = playerCharacter->GetControlRotation();
+		//FRotator PlayerRotation = playerCharacter->GetControlRotation();
 		FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).Rotation();
-		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerRotation);
+		FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerOnTeleportRotation);
 
 		if (!ValidationRules.bUsePitch)
 			Delta.Pitch = 0;
@@ -809,8 +810,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	int ObscuredCounter = HitResults.Num();
 
 	FValidationRules ValidationRules;
-	ValidationRules.bUseDebugPrint = true;
-	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+	/*ValidationRules.bUseDebugPrint = true;
+	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 	ValidationRules.bUseLazyCheck = false;
 
 	for (auto HitResult : HitResults)
