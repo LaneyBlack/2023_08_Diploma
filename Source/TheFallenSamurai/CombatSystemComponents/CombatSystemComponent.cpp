@@ -362,13 +362,13 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		for (int Checks = 1; (Checks < MaxChecks) && !bCanTeleport; ++Checks)
 		{
 			//PRINTC_F("Total Angle = %f", RightRotation, 10, FColor::Magenta);
-			auto LeftDirection = TeleportOffsetVector.RotateAngleAxis(RightRotation, FVector(0, 0, 1));
-			auto RightDirection = TeleportOffsetVector.RotateAngleAxis(LeftRotation, FVector(0, 0, 1));
+			auto LeftDirection = TeleportOffsetVector.RotateAngleAxis(LeftRotation, FVector(0, 0, 1));
+			auto RightDirection = TeleportOffsetVector.RotateAngleAxis(RightRotation, FVector(0, 0, 1));
 			LeftRotation += InnerAngle;
 			RightRotation -= InnerAngle;
 
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + LeftDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Blue, false, 15.f, 0, 1);
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + RightDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Cyan, false, 15.f, 0, 1);
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + LeftDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Red, false, 15.f, 0, 1);
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + RightDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Green, false, 15.f, 0, 1);
 			/*EvaluatedDestination = EnemyLocationOverTime + LeftDirection;
 			EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
 
