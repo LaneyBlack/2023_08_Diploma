@@ -6,19 +6,22 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "CombatSystemComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityTargetAcquired, bool, bFoundNewTarget); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
 
 UENUM(BlueprintType)
-enum class SuperAbilityState : uint8 {
+enum class SuperAbilityState : uint8 
+{
 	NONE = 0 UMETA(DisplayName = "NONE"),
 	WAITING = 1  UMETA(DisplayName = "WAITING"),
-	//CALLED = 2  UMETA(DisplayName = "CALLED"),
-	DURING = 2  UMETA(DisplayName = "DURING")
+	GOTTARGET = 2  UMETA(DisplayName = "GOTTARGET"),
+	TELEPORTING = 3  UMETA(DisplayName = "TELEPORTING")
 };
 
 
@@ -31,7 +34,7 @@ struct FAttackAnimData
 	UAnimMontage* AttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Chance;				//how often should this montage be player
+	float Chance;				//how often should this montage be played
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
@@ -45,8 +48,40 @@ struct FAttackAnimData
 	//hand offset of crig
 };
 
+USTRUCT(BlueprintType)
+struct FTeleportProperties
+{
+	GENERATED_BODY()
+
+	float TeleportDistance;
+
+	FTimeline Timeline;
+
+	float FOVChange;
+
+	bool bPickTimeFromRange = true;
+
+	float MinTime;
+	float MaxTime;
+};
+
+USTRUCT(BlueprintType)
+struct FValidationRules
+{
+	GENERATED_BODY()
+
+	bool bUseDebugPrint = false;
+	EDrawDebugTrace::Type DrawDebugTrace = EDrawDebugTrace::None;
+
+	float GroundTraceDepth;
+	bool bUsePitch = true;
+	bool bUseLazyCheck = true;
+	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
+};
+
 class AKatana;
 class UCameraShakeBase;
+class ABaseEnemy;
 template<typename... Types>
 struct TTuple;
 
@@ -114,8 +149,6 @@ private:
 
 	bool bShouldIgnoreTeleport = false;
 
-	//FTimerHandle TeleportTimerHandle = FTimerHandle();
-
 	FTimeline TeleportTimeline;
 
 	FVector PlayerStartForTeleport;
@@ -127,6 +160,8 @@ private:
 	FRotator RotationToEnemy;
 
 	float PlayerCameraFOV;
+
+	//float TeleportFOVChange;
 
 	int StolenTokens = 0;
 
@@ -140,9 +175,14 @@ private:
 
 	//FVector TargetPointInitialPosition;
 
-	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
-
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
+
+	ABaseEnemy* SuperAbilityTarget = nullptr;
+
+	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
+
+	UFUNCTION()
+	FVector GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector);
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
@@ -178,13 +218,27 @@ private:
 	void TraceForEnemiesToTeleport();*/
 
 	UFUNCTION()
-	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
+	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
+
+	UFUNCTION()
+	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);
+
+	UFUNCTION()
+	bool PerformTeleportCheck(ABaseEnemy* Enemy, const FVector& EnemyLocationOverTime, const FVector& Direction, float TraceDepth,
+		 float BlockCapsuleRadius, float BlockCapsuleHalfHeight, const FValidationRules& ValidationRules);
+
+	UFUNCTION()
+	void TeleportToEnemy(float TeleportDistance);
 
 	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
 
 	UFUNCTION()
-	bool ExecuteSuperAbility();
+	void ExecuteSuperAbility();
+
+	UFUNCTION()
+	void SwingKatana();
+
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
@@ -249,7 +303,7 @@ public:
 	float MaxTotalTeleportTime = .3f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
-	float MinFOVValue = 70.f;
+	float TeleportFOVChange = 75.f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* LocationCurve;
@@ -272,6 +326,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float SuperAbilitySlowMo = 0.1f;
 
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	float LookRateScale = 0.5f;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnStolenTokensChanged OnStolenTokensChanged;
 
@@ -283,6 +340,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSuperAbilityCancelled OnSuperAbilityCancelled;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnSuperAbilityTargetAcquired OnSuperAbilityTargetAcquired;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
@@ -311,29 +371,28 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void Attack();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	void GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void PerfectParry();
-
-	UFUNCTION(BlueprintCallable)
-	void InterruptPerfectParry();
 
 	UFUNCTION(BlueprintCallable)
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void SuperAbility();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void CancelSuperAbility();
 
+	float GetLookRate();
+
 	UFUNCTION(BlueprintCallable)
-	void SpeedUpSlowMoTimeline(float SpeedUpValue = 60.f);
+	void SpeedUpSlowMoTimeline(float SpeedUpValue = 80.f);
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);

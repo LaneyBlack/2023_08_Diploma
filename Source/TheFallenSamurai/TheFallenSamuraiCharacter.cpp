@@ -206,17 +206,9 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
 			&UCombatSystemComponent::PerfectParry);
 
-		//Perfect Parry Interrupt
-		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Completed, CombatSystemComponent,
-			&UCombatSystemComponent::InterruptPerfectParry);*/
-
 		//Super Ability
-		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
-			&UCombatSystemComponent::SuperAbility);*/
-
-		////Cancel Super Ability
-		//EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,
-		//	&UCombatSystemComponent::CancelSuperAbility);
+		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::SuperAbility);
 
 		// Rewind
 		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);
@@ -260,7 +252,7 @@ void ATheFallenSamuraiCharacter::Move(const FInputActionValue& Value)
 void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	FVector2D LookAxisVector = Value.Get<FVector2D>() * LookRotationScale * CombatSystemComponent->GetLookRate();
 
 	if (Controller != nullptr)
 	{
