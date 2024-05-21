@@ -666,7 +666,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		if (SuperAbilityTarget != Target)
 		{
-			PRINTC("found new target", FColor::Cyan);
+			//PRINTC("found new target", FColor::Cyan);
 			if (SuperAbilityTarget)
 				SuperAbilityTarget->SetEnableTargetWidget(false);
 
@@ -691,7 +691,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 void UCombatSystemComponent::SwingKatana()
 {
-	PRINTC("Normal attack", FColor::Cyan);
+	//PRINTC("Normal attack", FColor::Cyan);
 
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
@@ -834,7 +834,7 @@ void UCombatSystemComponent::Attack()
 		{
 			if (SuperAbilityTarget)
 			{
-				PRINTC("Super Ability attack", FColor::Orange);
+				//PRINTC("Super Ability attack", FColor::Orange);
 				GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
 				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
