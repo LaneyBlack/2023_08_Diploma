@@ -142,7 +142,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
 	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from forward vector?
-	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().LeftRotation();
+	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().RightRotation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
@@ -202,8 +202,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+			/*ValidationRules.bUseDebugPrint = true;
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
@@ -295,6 +295,7 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 
 bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
+	//PRINTC("validating", FColor::Red);
 	if (CheckIsTeleportTargetObscured(Enemy))
 	{
 		if (ValidationRules.bUseDebugPrint)
@@ -351,20 +352,30 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		PRINTC_F("N = %i", N, 10, DEBUG_COLOR);
 		PRINTC_F("InnerAngle = %f", InnerAngle, 10, DEBUG_COLOR);*/
 
-		//FRotator LeftRotation;
-		float TotalRotation = InnerAngle;
+		//FRotator RightRotation;
+		float LeftRotation = InnerAngle;
+		float RightRotation = -InnerAngle;
+
+		//for (int Checks = 1; Checks < MaxChecks; ++Checks)
 		for (int Checks = 1; (Checks < MaxChecks) && !bCanTeleport; ++Checks)
 		{
-			//PRINTC_F("Total Angle = %f", TotalRotation, 10, FColor::Magenta);
-			auto Direction = TeleportOffsetVector.RotateAngleAxis(TotalRotation, FVector(0, 0, 1));
-			TotalRotation += InnerAngle;
+			//PRINTC_F("Total Angle = %f", RightRotation, 10, FColor::Magenta);
+			auto LeftDirection = TeleportOffsetVector.RotateAngleAxis(RightRotation, FVector(0, 0, 1));
+			auto RightDirection = TeleportOffsetVector.RotateAngleAxis(LeftRotation, FVector(0, 0, 1));
+			LeftRotation += InnerAngle;
+			RightRotation -= InnerAngle;
 
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + Direction, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, false, 15.f, 0, 1);
-			/*EvaluatedDestination = EnemyLocationOverTime + Direction;
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + LeftDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Red, false, 15.f, 0, 1);
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + RightDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Green, false, 15.f, 0, 1);
+			/*EvaluatedDestination = EnemyLocationOverTime + LeftDirection;
 			EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
 
-			bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, Direction, TraceDepth,
+			bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, LeftDirection, TraceDepth,
 				BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
+			
+			if(!bCanTeleport)
+				bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, RightDirection, TraceDepth,
+					BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 		}
 	}
 
@@ -550,7 +561,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	int ObscuredCounter = HitResults.Num();
 
 	FValidationRules ValidationRules;
-	ValidationRules.bUseDebugPrint = true;
+	//ValidationRules.bUseDebugPrint = true;
 	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 	ValidationRules.bUseLazyCheck = false;
 	ValidationRules.ChecksSampleScale = 2;
@@ -625,6 +636,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		if (SuperAbilityTarget != Target)
 		{
+			PRINTC("found new target", FColor::Cyan);
 			if (SuperAbilityTarget)
 				SuperAbilityTarget->SetEnableTargetWidget(false);
 
@@ -634,8 +646,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 				Target->SetEnableTargetWidget(true);
 				SuperAbilityTarget = Target;
 			}
-			else
-				SuperAbilityTarget = nullptr;
+			/*else
+				SuperAbilityTarget = nullptr;*/
 		}
 	}
 	else if (SuperAbilityTarget)
