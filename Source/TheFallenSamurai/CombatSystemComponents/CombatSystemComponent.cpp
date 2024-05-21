@@ -153,7 +153,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	TArray<FHitResult> HitResults;
 
 	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), Start, End, HalfSize, BoxRotation,
-		ObjToTrace, true, Ignore, EDrawDebugTrace::ForOneFrame, HitResults, true, FColor::Red, FColor::Green, 1.5f);
+		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
 	//float MinDot = -1;
@@ -326,7 +326,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	bool bCanTeleport = false;
 
-	PRINTC("----------------------------INITIAL CHECK----------------------", FColor::Red);
+	//PRINTC("----------------------------INITIAL CHECK----------------------", FColor::Red);
 	bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, TeleportOffsetVector, TraceDepth,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 
@@ -372,11 +372,11 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 			/*EvaluatedDestination = EnemyLocationOverTime + LeftDirection;
 			EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
 
-			PRINTC("----------------------------LEFT CHECK----------------------", FColor::Red);
+			//PRINTC("----------------------------LEFT CHECK----------------------", FColor::Red);
 			bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, LeftDirection, TraceDepth,
 				BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 			
-			PRINTC("----------------------------RIGHT CHECK----------------------", FColor::Red);
+			//PRINTC("----------------------------RIGHT CHECK----------------------", FColor::Red);
 			if(!bCanTeleport)
 				bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, RightDirection, TraceDepth,
 					BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
@@ -455,10 +455,10 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, EnemyLocationOverTime,
 		RotationToEnemy.Vector(), playerCharacter->GetActorUpVector());
 	CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset;
-	//CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset;
 
 	FVector KatanaStart = CombatPoint;
 	FVector KatanaEnd = KatanaStart + RotationToEnemy.Vector() * KatanaTriggerLenSquared;
+
 	/*FHitResult KatanaOutHit;
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace2;
@@ -471,11 +471,14 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector EnemyBottom = EnemyLocationOverTime - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 	FVector EnemyTop = EnemyLocationOverTime + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 
-	DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 5);
-	DrawDebugLine(GetWorld(), CombatPoint, KatanaEnd, FColor::Blue, true, 1, 0, 2);
+	if (ValidationRules.DrawDebugTrace != EDrawDebugTrace::None)
+	{
+		DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 5);
+		DrawDebugLine(GetWorld(), CombatPoint, KatanaEnd, FColor::Blue, true, 1, 0, 2);
 
-	DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 10);
-	DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 10);
+		DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 10);
+		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 10);
+	}
 
 	//if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
 	//{
@@ -485,6 +488,7 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	//	//continue;
 	//}
 
+	//this should be reworked to be more robust
 	if (!UKismetMathLibrary::InRange_FloatFloat(KatanaStart.Z, EnemyBottom.Z, EnemyTop.Z) && !UKismetMathLibrary::InRange_FloatFloat(KatanaEnd.Z, EnemyBottom.Z, EnemyTop.Z))
 	{
 		if (ValidationRules.bUseDebugPrint)
@@ -587,8 +591,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	int ObscuredCounter = HitResults.Num();
 
 	FValidationRules ValidationRules;
-	ValidationRules.bUseDebugPrint = true;
-	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+	/*ValidationRules.bUseDebugPrint = true;
+	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 	ValidationRules.bUseLazyCheck = false;
 	ValidationRules.ChecksSampleScale = 2;
 
