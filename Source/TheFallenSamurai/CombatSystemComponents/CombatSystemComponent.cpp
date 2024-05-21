@@ -340,11 +340,11 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 		N *= ValidationRules.ChecksSampleScale;
 
-		int MaxChecks = 1;
 
 		float InnerAngle = 360.f / N;
 
-		MaxChecks = N;
+		//int MaxChecks = 1;
+		//MaxChecks = N;
 
 		//DEBUG SETUP:
 		//FColor DEBUG_COLOR = FColor::Cyan;
@@ -359,7 +359,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		float RightRotation = -InnerAngle;
 
 		//for (int Checks = 1; Checks < MaxChecks; ++Checks)
-		for (int Checks = 1; (Checks < MaxChecks) && !bCanTeleport; ++Checks)
+		for (int Checks = 1; (Checks < N) && !bCanTeleport; ++Checks)
 		{
 			//PRINTC_F("Total Angle = %f", RightRotation, 10, FColor::Magenta);
 			auto LeftDirection = TeleportOffsetVector.RotateAngleAxis(LeftRotation, FVector(0, 0, 1));
@@ -843,6 +843,9 @@ void UCombatSystemComponent::Attack()
 
 				SA_State = SuperAbilityState::TELEPORTING;
 				TeleportToEnemy(SuperAbilityTarget->GetDistanceTo(playerCharacter));
+
+				StolenTokens = 0;
+				OnStolenTokensChanged.Broadcast(StolenTokens);
 			}
 		} break;
 	}
@@ -933,8 +936,8 @@ void UCombatSystemComponent::SuperAbility()
 	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 60.f, true);
 
 	OnSuperAbilityCalled.Broadcast(true, "");
-	StolenTokens = 0;
-	OnStolenTokensChanged.Broadcast(StolenTokens);
+	/*StolenTokens = 0;
+	OnStolenTokensChanged.Broadcast(StolenTokens);*/
 }
 
 void UCombatSystemComponent::CancelSuperAbility()
