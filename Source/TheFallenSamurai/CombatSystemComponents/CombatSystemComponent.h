@@ -181,7 +181,7 @@ private:
 	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
 
 	UFUNCTION()
-	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
+	FVector GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector);
 
 	UFUNCTION()
 	bool CheckIfCanAttack();

@@ -193,7 +193,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	if (Closest)
 	{
 		//bool bVerticalOverflow = false;
-		FVector NextTargetPointOffset = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation());
+		FVector NextTargetPointOffset = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation(), 
+			playerCharacter->GetActorForwardVector(), playerCharacter->GetActorUpVector());
 		//const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetActorLocation(), Closest->GetActorLocation());
 
 		//TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset, NextTargetPointOffset, GetWorld()->GetDeltaSeconds(), .f);
@@ -299,7 +300,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	if (CheckIsTeleportTargetObscured(Enemy))
 	{
 		if (ValidationRules.bUseDebugPrint)
-			PRINT("CANT TELEPORT: Got obstacle between player and the enemy", 4);
+			PRINT("CANT TELEPORT: [EYE TRACE]", 4);
 		return false;
 	}
 
@@ -325,6 +326,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	bool bCanTeleport = false;
 
+	PRINTC("----------------------------INITIAL CHECK----------------------", FColor::Red);
 	bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, TeleportOffsetVector, TraceDepth,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 
@@ -365,14 +367,16 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 			LeftRotation += InnerAngle;
 			RightRotation -= InnerAngle;
 
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + LeftDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Red, false, 15.f, 0, 1);
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + RightDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Green, false, 15.f, 0, 1);
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + LeftDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Blue, false, 15.f, 0, 1);
+			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + RightDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Cyan, false, 15.f, 0, 1);
 			/*EvaluatedDestination = EnemyLocationOverTime + LeftDirection;
 			EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
 
+			PRINTC("----------------------------LEFT CHECK----------------------", FColor::Red);
 			bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, LeftDirection, TraceDepth,
 				BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 			
+			PRINTC("----------------------------RIGHT CHECK----------------------", FColor::Red);
 			if(!bCanTeleport)
 				bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, RightDirection, TraceDepth,
 					BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
@@ -400,7 +404,7 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	if (!bHasGround)
 	{
 		if (ValidationRules.bUseDebugPrint)
-			PRINT("CANT TELEPORT: No ground found", 4);
+			PRINT("CANT TELEPORT: [GROUND CHECK]", 4);
 		return false;
 		//continue;
 	}
@@ -420,12 +424,12 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight,
-		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
 
 	if (bTeleportBlock)
 	{
 		if (ValidationRules.bUseDebugPrint)
-			PRINT("CANT TELEPORT: Something blocks the teleport position", 4);
+			PRINT("CANT TELEPORT: [CAPSULE CHECK]", 4);
 		return false;
 		//continue;
 	}
@@ -448,18 +452,40 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	auto FeetToHead = playerCharacter->GetMesh()->GetBoneLocation("head") - playerCharacter->GetMesh()->GetBoneLocation("root");
 	auto CombatPoint = GroundHit.Location + FeetToHead;
 
-	TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, EnemyLocationOverTime);
+	TargetPointOffset = GetAutoAimOffset(PlayerDestinationForTeleport, EnemyLocationOverTime,
+		RotationToEnemy.Vector(), playerCharacter->GetActorUpVector());
 	CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset;
+	//CombatPoint += RotationToEnemy.Vector() * CharacterArmsLength + TargetPointOffset;
+
+	FVector KatanaStart = CombatPoint;
+	FVector KatanaEnd = KatanaStart + RotationToEnemy.Vector() * KatanaTriggerLenSquared;
+	/*FHitResult KatanaOutHit;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace2;
+	ObjToTrace2.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+	bool bCanKatanaCut = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), KatanaStart, KatanaEnd,
+		ObjToTrace2, true, { playerCharacter, Katana },
+		EDrawDebugTrace::ForDuration, KatanaOutHit, true, FColor::Blue, FColor::Cyan, 10.f);*/
 
 	FVector EnemyBottom = EnemyLocationOverTime - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 	FVector EnemyTop = EnemyLocationOverTime + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 
-	/*DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 3);
+	DrawDebugLine(GetWorld(), CombatPoint, CombatPoint, FColor::Cyan, true, 1, 0, 5);
+	DrawDebugLine(GetWorld(), CombatPoint, KatanaEnd, FColor::Blue, true, 1, 0, 2);
 
-	DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 20);
-	DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 20);*/
+	DrawDebugLine(GetWorld(), EnemyBottom, EnemyBottom, FColor::Orange, true, 1, 0, 10);
+	DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 10);
 
-	if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
+	//if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
+	//{
+	//	if (ValidationRules.bUseDebugPrint)
+	//		PRINT("CANT TELEPORT: Katana Blade wont cut the enemy", 4);
+	//	return false;
+	//	//continue;
+	//}
+
+	if (!UKismetMathLibrary::InRange_FloatFloat(KatanaStart.Z, EnemyBottom.Z, EnemyTop.Z) && !UKismetMathLibrary::InRange_FloatFloat(KatanaEnd.Z, EnemyBottom.Z, EnemyTop.Z))
 	{
 		if (ValidationRules.bUseDebugPrint)
 			PRINT("CANT TELEPORT: Katana Blade wont cut the enemy", 4);
@@ -561,7 +587,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	int ObscuredCounter = HitResults.Num();
 
 	FValidationRules ValidationRules;
-	//ValidationRules.bUseDebugPrint = true;
+	ValidationRules.bUseDebugPrint = true;
 	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 	ValidationRules.bUseLazyCheck = false;
 	ValidationRules.ChecksSampleScale = 2;
@@ -686,17 +712,21 @@ void UCombatSystemComponent::SwingKatana()
 		1 / 60.f, true);
 }
 
-FVector UCombatSystemComponent::GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation)
+FVector UCombatSystemComponent::GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector)
 {
 	auto ToEnemy = EnemyLocation - PlayerLocation;
 
+	FVector PlayerRightVector = PlayerUpVector.Cross(PlayerForwardVector);
+
+	//DrawDebugLine(GetWorld(), playerCharacter->GetActorLocation(), playerCharacter->GetActorLocation() + PlayerRightVector * 100, FColor::Red, true);
+
 	float MaxAbsoluteYOffset = 45.f;
-	float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorRightVector()),
+	float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(PlayerRightVector),
 		-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
 	//float MaxAbsoluteZOffset = 15.f;
 	//PRINT_F("dot value = %f", ToEnemy.Dot(playerCharacter->GetActorUpVector()));
-	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(playerCharacter->GetActorUpVector()), -17, 7);
+	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(PlayerUpVector), -17, 7);
 
 	return FVector(0.f, TargetPointYOffset, TargetPointZOffset);
 }
