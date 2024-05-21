@@ -13,6 +13,8 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class URewindComponent;
+class APlayerGameModeBase;
 
 UENUM(BlueprintType)
 enum class ENoJumpState : uint8
@@ -30,6 +32,25 @@ UCLASS(config=Game)
 class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
+
+	/** Rewind component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rewind", meta = (AllowPrivateAccess = "true"))
+	URewindComponent* RewindComponent;
+
+	/** Toggle Rewind Participation Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleRewindParticipationAction;
+
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void ToggleRewindParticipationBP();
+
+	/** Rewind Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* RewindAction;
+
+	/** Time Scrub Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleTimeScrubAction;
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -86,6 +107,17 @@ public:
 	}
 
 protected:
+	/** Called for rewind input */
+	void Rewind(const FInputActionValue& Value);
+
+	/** Called for rewind input */
+	void StopRewinding(const FInputActionValue& Value);
+
+	/** Called when toggling rewind participation */
+	void ToggleRewindParticipation(const FInputActionValue& Value);
+
+	/** Called for time scrub input */
+	void ToggleTimeScrub(const FInputActionValue& Value);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
 	class UAbilitySystemComponent* AbilitySystemComponent;
@@ -128,6 +160,10 @@ public:
 	void DoubleJump();
 
 private:
+	// Game mode for driving global time manipulation operations
+	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
+	APlayerGameModeBase* GameMode;
+	
 	void DoubleJumpLogic();
 	
 	void ResetCombo();

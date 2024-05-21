@@ -12,6 +12,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "RewindComponent.h"
+#include "PlayerGameModeBase.h"
 #include "CombatSystemComponents\CombatSystemComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GAS/PlayerAttributeSet.h"
@@ -23,6 +25,12 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 {
+	// Setup a rewind component that snapshots 30 times per second
+	RewindComponent = CreateDefaultSubobject<URewindComponent>(TEXT("RewindComponent"));
+	RewindComponent->SnapshotFrequencySeconds = 1.0f / 30.0f;
+	RewindComponent->bSnapshotMovementVelocityAndMode = true;
+	RewindComponent->bPauseAnimationDuringTimeScrubbing = true;
+	
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -72,6 +80,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// Capture game mode for driving global rewind
+	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -206,6 +217,16 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		////Cancel Super Ability
 		//EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Completed, CombatSystemComponent,
 		//	&UCombatSystemComponent::CancelSuperAbility);
+
+		// Rewind
+		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);
+		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Completed, this, &ATheFallenSamuraiCharacter::StopRewinding);
+
+		// Toggle Rewind Participation
+		EnhancedInputComponent->BindAction(ToggleRewindParticipationAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleRewindParticipation);
+
+		// Toggle Time Scrub
+		EnhancedInputComponent->BindAction(ToggleTimeScrubAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleTimeScrub);
 	}
 	else
 	{
@@ -247,4 +268,31 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void ATheFallenSamuraiCharacter::Rewind(const FInputActionValue& Value)
+{
+	check(GameMode);
+	if (GameMode) { GameMode->StartGlobalRewind(); }
+}
+
+void ATheFallenSamuraiCharacter::StopRewinding(const FInputActionValue& Value)
+{
+	check(GameMode);
+	if (GameMode) { GameMode->StopGlobalRewind(); }
+}
+
+void ATheFallenSamuraiCharacter::ToggleRewindParticipation(const FInputActionValue& Value)
+{
+	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
+}
+
+void ATheFallenSamuraiCharacter::ToggleRewindParticipationBP()
+{
+	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
+}
+
+void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
+{
+	RewindComponent->TimeScrubForDuration(10);
 }
