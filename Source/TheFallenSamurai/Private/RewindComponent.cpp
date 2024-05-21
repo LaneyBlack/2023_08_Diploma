@@ -499,7 +499,8 @@ void URewindComponent::RewindForDuration(float Duration)
 		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::RewindForDuration"));
 		return;
 	}
-
+	
+	GameMode->SetRewindSpeedFastest();
 	GameMode->StartGlobalRewind();
 
 	GetWorld()->GetTimerManager().SetTimer(RewindTimerHandle, this, &URewindComponent::StopRewindForDuration, Duration, false);
@@ -513,5 +514,34 @@ void URewindComponent::StopRewindForDuration()
 		return;
 	}
 
+	GameMode->SetRewindSpeedNormal();
 	GameMode->StopGlobalRewind();
+}
+
+void URewindComponent::TimeScrubForDuration(float Duration)
+{
+	if (!GameMode)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::TimeScrubForDuration"));
+		return;
+	}
+
+	bIsTimeScrubbingForDuration = true;
+
+	GameMode->ToggleTimeScrub();
+
+	GetWorld()->GetTimerManager().SetTimer(RewindTimerHandle, this, &URewindComponent::StopTimeScrubForDuration, Duration, false);
+}
+
+void URewindComponent::StopTimeScrubForDuration()
+{
+	if (!GameMode)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::StopTimeScrub"));
+		return;
+	}
+
+	GameMode->ToggleTimeScrub();
+
+	bIsTimeScrubbingForDuration = false;
 }

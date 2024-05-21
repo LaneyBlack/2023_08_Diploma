@@ -70,6 +70,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Rewind")
 	bool bPauseAnimationDuringTimeScrubbing = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Rewind")
+	bool bIsTimeScrubbingForDuration = false;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Rewind")
 	FOnTimeManipulationStarted OnTimeManipulationStarted;
@@ -110,6 +113,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void RewindForDuration(float Duration);
+
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void TimeScrubForDuration(float Duration);
+
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void StopTimeScrubForDuration();
 
 	void StopRewindForDuration();
 

@@ -287,8 +287,12 @@ void ATheFallenSamuraiCharacter::ToggleRewindParticipation(const FInputActionVal
 	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
 }
 
+void ATheFallenSamuraiCharacter::ToggleRewindParticipationBP()
+{
+	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
+}
+
 void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 {
-	check(GameMode);
-	if (GameMode) { GameMode->ToggleTimeScrub(); }
+	RewindComponent->TimeScrubForDuration(10);
 }

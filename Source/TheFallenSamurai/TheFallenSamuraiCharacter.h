@@ -41,6 +41,9 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* ToggleRewindParticipationAction;
 
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void ToggleRewindParticipationBP();
+
 	/** Rewind Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* RewindAction;
