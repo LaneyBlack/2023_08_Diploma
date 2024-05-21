@@ -951,7 +951,7 @@ void UCombatSystemComponent::CancelSuperAbility()
 	if (SuperAbilityTarget)
 	{
 		SuperAbilityTarget->SetEnableTargetWidget(false);
-		OnSuperAbilityTargetAcquired.Broadcast(false);
+		//OnSuperAbilityTargetAcquired.Broadcast(false);
 		SuperAbilityTarget = nullptr;
 	}
 
