@@ -675,6 +675,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 			{
 				Target->SetEnableTargetWidget(true);
 				SuperAbilityTarget = Target;
+				OnSuperAbilityTargetAcquired.Broadcast(true);
 			}
 			/*else
 				SuperAbilityTarget = nullptr;*/
@@ -683,6 +684,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	else if (SuperAbilityTarget)
 	{
 		SuperAbilityTarget->SetEnableTargetWidget(false);
+		OnSuperAbilityTargetAcquired.Broadcast(false);
 		SuperAbilityTarget = nullptr;
 	}
 }
@@ -838,6 +840,7 @@ void UCombatSystemComponent::Attack()
 				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 
 				SuperAbilityTarget->SetEnableTargetWidget(false);
+				OnSuperAbilityTargetAcquired.Broadcast(false);
 
 				SwingKatana();
 
@@ -948,6 +951,7 @@ void UCombatSystemComponent::CancelSuperAbility()
 	if (SuperAbilityTarget)
 	{
 		SuperAbilityTarget->SetEnableTargetWidget(false);
+		OnSuperAbilityTargetAcquired.Broadcast(false);
 		SuperAbilityTarget = nullptr;
 	}
 

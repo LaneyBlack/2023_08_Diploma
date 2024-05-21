@@ -11,6 +11,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityTargetAcquired, bool, bFoundNewTarget); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
 
@@ -339,6 +340,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSuperAbilityCancelled OnSuperAbilityCancelled;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnSuperAbilityTargetAcquired OnSuperAbilityTargetAcquired;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
