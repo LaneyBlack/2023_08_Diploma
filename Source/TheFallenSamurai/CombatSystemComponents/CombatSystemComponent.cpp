@@ -27,6 +27,8 @@
 //#include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "TheFallenSamurai/TheFallenSamuraiCharacter.h"
+
 #include "UObject/Class.h"
 
 //DEBUG
@@ -737,7 +739,7 @@ FVector UCombatSystemComponent::GetAutoAimOffset(const FVector& PlayerLocation, 
 	return FVector(0.f, TargetPointYOffset, TargetPointZOffset);
 }
 
-void UCombatSystemComponent::InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor)
+void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* player, TSubclassOf<AKatana> KatanaActor)
 {
 	playerCharacter = player;
 
@@ -911,6 +913,18 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		0, 500, 1);
 }
 
+bool UCombatSystemComponent::CheckAndUseTokens(int SubstractTokes)
+{
+	if (StolenTokens >= SubstractTokes)
+	{
+		StolenTokens -= SubstractTokes;
+		OnStolenTokensChanged.Broadcast(StolenTokens);
+		return true;
+	}
+	
+	return false;
+}
+
 void UCombatSystemComponent::SuperAbility()
 {
 	if (SA_State == SuperAbilityState::WAITING)
@@ -959,6 +973,11 @@ void UCombatSystemComponent::CancelSuperAbility()
 	OnSuperAbilityCancelled.Broadcast();
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+bool UCombatSystemComponent::IsSuperAbilityActive()
+{
+	return SA_State != SuperAbilityState::NONE;
 }
 
 float UCombatSystemComponent::GetLookRate()
@@ -1128,6 +1147,8 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 	TeleportTimeline.TickTimeline(DeltaTime);
 	ParrySlowMoTimeline.TickTimeline(DeltaTime);
+
+	PRINTC_F("Tokens = %i", StolenTokens, 0, FColor::Orange);
 	
 	if (!bInCombat) //change to not attacking??
 	{
@@ -1154,5 +1175,4 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	PRINT_B("In Combat %s", bInCombat);
 	PRINT_B("In Parry %s", bInParry);*/
 	//PRINT_B("In Teleport %s", bInTeleport);
-
 }

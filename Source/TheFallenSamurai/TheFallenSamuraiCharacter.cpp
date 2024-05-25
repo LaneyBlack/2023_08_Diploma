@@ -23,6 +23,14 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 //////////////////////////////////////////////////////////////////////////
 // ATheFallenSamuraiCharacter
 
+
+#define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
+#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+
+
 ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 {
 	// Setup a rewind component that snapshots 30 times per second
@@ -207,8 +215,11 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 			&UCombatSystemComponent::PerfectParry);
 
 		//Super Ability
-		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
-			&UCombatSystemComponent::SuperAbility);
+		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
+			&UCombatSystemComponent::SuperAbility);*/
+
+		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, this,
+			&ATheFallenSamuraiCharacter::ToggleSuperAbility);
 
 		// Rewind
 		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);
@@ -286,5 +297,17 @@ void ATheFallenSamuraiCharacter::ToggleRewindParticipationBP()
 
 void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 {
-	RewindComponent->TimeScrubForDuration(10);
+	//PRINT_F("rewind before %i", RewindComponent->IsTimeScrubbing(), 5);
+	if (!CombatSystemComponent->IsSuperAbilityActive())
+	{
+		if(CombatSystemComponent->CheckAndUseTokens(2))
+			RewindComponent->TimeScrubForDuration(10);
+	}
+	//PRINT_F("rewind after %i", RewindComponent->IsTimeScrubbing(), 5);
+}
+
+void ATheFallenSamuraiCharacter::ToggleSuperAbility(const FInputActionValue& Value)
+{
+	if (!RewindComponent->bIsTimeScrubbingForDuration)
+		CombatSystemComponent->SuperAbility();
 }

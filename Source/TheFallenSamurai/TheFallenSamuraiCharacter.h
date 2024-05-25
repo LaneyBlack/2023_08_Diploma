@@ -123,6 +123,9 @@ protected:
 	/** Called for time scrub input */
 	void ToggleTimeScrub(const FInputActionValue& Value);
 
+	/** Called for Super Ability Execution */
+	void ToggleSuperAbility(const FInputActionValue& Value);
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
 	class UAbilitySystemComponent* AbilitySystemComponent;
 

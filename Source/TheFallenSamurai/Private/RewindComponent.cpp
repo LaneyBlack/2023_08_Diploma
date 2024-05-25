@@ -12,6 +12,14 @@
 #include "GameFramework/MovementComponent.h"
 #include "PlayerGameModeBase.h"
 
+
+#define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
+#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+
+
 URewindComponent::URewindComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -86,6 +94,8 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	{
 		RecordSnapshot(DeltaTime);
 	}
+
+	//PRINT_B("is time scrubbing %s", bIsTimeScrubbing);
 }
 
 void URewindComponent::SetIsRewindingEnabled(bool bEnabled)
