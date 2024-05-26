@@ -573,16 +573,6 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, Start, MaxJumpRadius, ObjToTrace,
 		true, Ignore, EDrawDebugTrace::None, HitResults, true);
 
-	if (HitResults.Num() == 0)
-	{
-		PRINT("No enemies nearby", 2);
-		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
-
-		CancelSuperAbility();
-
-		return;
-	}
-
 	if(SA_State != SuperAbilityState::WAITING)
 		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
@@ -658,6 +648,9 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (!ObscuredCounter)
 	{
+		PRINT("No enemies nearby", 2);
+		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
+
 		CancelSuperAbility();
 		return;
 	}
@@ -937,8 +930,8 @@ void UCombatSystemComponent::SuperAbility()
 
 	if (StolenTokens < MaxStolenTokens)
 	{
-		PRINT("Not enough tokens", 2);
-		OnSuperAbilityCalled.Broadcast(false, "Not enough tokens");
+		//PRINT("Not enough tokens", 2);
+		OnSuperAbilityCalled.Broadcast(false, "Not enough Parry Points");
 		return;
 	}
 	/*else if (!ExecuteSuperAbility())
