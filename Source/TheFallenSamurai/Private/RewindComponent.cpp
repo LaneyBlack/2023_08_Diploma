@@ -551,6 +551,11 @@ void URewindComponent::StopTimeScrubForDuration()
 		return;
 	}
 
+	if (bIsTimeScrubbingForDuration)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(RewindTimerHandle);
+	}
+
 	GameMode->ToggleTimeScrub();
 
 	bIsTimeScrubbingForDuration = false;

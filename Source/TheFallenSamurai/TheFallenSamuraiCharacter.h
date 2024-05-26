@@ -42,7 +42,7 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UInputAction* ToggleRewindParticipationAction;
 
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
-	void ToggleRewindParticipationBP();
+	void ToggleRewindParticipationNoInput();
 
 	/** Rewind Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))

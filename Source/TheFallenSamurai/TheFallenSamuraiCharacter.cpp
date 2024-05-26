@@ -290,20 +290,25 @@ void ATheFallenSamuraiCharacter::ToggleRewindParticipation(const FInputActionVal
 	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
 }
 
-void ATheFallenSamuraiCharacter::ToggleRewindParticipationBP()
+void ATheFallenSamuraiCharacter::ToggleRewindParticipationNoInput()
 {
 	RewindComponent->SetIsRewindingEnabled(!RewindComponent->IsRewindingEnabled());
 }
 
 void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 {
-	//PRINT_F("rewind before %i", RewindComponent->IsTimeScrubbing(), 5);
 	if (!CombatSystemComponent->IsSuperAbilityActive())
 	{
-		if(CombatSystemComponent->CheckAndUseTokens(2))
+		if(RewindComponent->bIsTimeScrubbingForDuration)
+		{
+			RewindComponent->StopTimeScrubForDuration();
+		}
+		else if(CombatSystemComponent->CheckAndUseTokens(2))
+		{
+			ToggleRewindParticipationNoInput();
 			RewindComponent->TimeScrubForDuration(10);
+		}
 	}
-	//PRINT_F("rewind after %i", RewindComponent->IsTimeScrubbing(), 5);
 }
 
 void ATheFallenSamuraiCharacter::ToggleSuperAbility(const FInputActionValue& Value)
