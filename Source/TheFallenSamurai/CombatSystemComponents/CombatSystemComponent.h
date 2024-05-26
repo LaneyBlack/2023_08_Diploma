@@ -11,6 +11,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemiesLeftChanged, int, EnemiesLeft);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityTargetAcquired, bool, bFoundNewTarget); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
@@ -295,7 +296,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
-	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perfect Parry Data")
 	int MaxParryTokens = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
@@ -325,7 +326,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
 
-	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Super Ability")
 	int SuperAbilityTargetLimit = 4;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
@@ -348,6 +349,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSuperAbilityTargetAcquired OnSuperAbilityTargetAcquired;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnEnemiesLeftChanged OnEnemiesLeftChanged;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;

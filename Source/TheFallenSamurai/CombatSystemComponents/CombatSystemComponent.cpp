@@ -848,6 +848,7 @@ void UCombatSystemComponent::Attack()
 				StolenTokens = 0;
 				OnStolenTokensChanged.Broadcast(StolenTokens);
 
+				OnEnemiesLeftChanged.Broadcast(SuperAbilityTargetsLeft);
 				SuperAbilityTargetsLeft--;
 			}
 		} break;
@@ -948,6 +949,8 @@ void UCombatSystemComponent::SuperAbility()
 
 	//ExecuteSuperAbility();
 	SuperAbilityTargetsLeft = SuperAbilityTargetLimit;
+	//OnEnemiesLeftChanged.Broadcast(SuperAbilityTargetsLeft);
+
 	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 60.f, true);
 
 	/*OnSuperAbilityCalled.Broadcast(true, "");*/
