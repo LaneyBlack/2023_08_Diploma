@@ -180,6 +180,8 @@ private:
 	ABaseEnemy* SuperAbilityTarget = nullptr;
 
 	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
+	
+	int SuperAbilityTargetsLeft;
 
 	UFUNCTION()
 	FVector GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector);
@@ -324,7 +326,7 @@ public:
 	float MaxJumpRadius = 200.f;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int EnemyTargetLimit = 4;
+	int SuperAbilityTargetLimit = 4;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float SuperAbilitySlowMo = 0.1f;

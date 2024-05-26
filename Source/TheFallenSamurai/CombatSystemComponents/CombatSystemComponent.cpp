@@ -847,6 +847,8 @@ void UCombatSystemComponent::Attack()
 
 				StolenTokens = 0;
 				OnStolenTokensChanged.Broadcast(StolenTokens);
+
+				SuperAbilityTargetsLeft--;
 			}
 		} break;
 	}
@@ -945,7 +947,7 @@ void UCombatSystemComponent::SuperAbility()
 	}*/
 
 	//ExecuteSuperAbility();
-
+	SuperAbilityTargetsLeft = SuperAbilityTargetLimit;
 	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 60.f, true);
 
 	/*OnSuperAbilityCalled.Broadcast(true, "");*/
@@ -1042,6 +1044,12 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 		//moved here from TeleportTimelineFinish()
 		if (SA_State == SuperAbilityState::TELEPORTING)
 		{
+			if (SuperAbilityTargetsLeft <= 0)
+			{
+				CancelSuperAbility();
+				return;
+			}
+
 			SuperAbilityTarget = nullptr;
 			GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
 		}
