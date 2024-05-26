@@ -573,10 +573,6 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, Start, MaxJumpRadius, ObjToTrace,
 		true, Ignore, EDrawDebugTrace::None, HitResults, true);
 
-	if(SA_State != SuperAbilityState::WAITING)
-		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
-	SA_State = SuperAbilityState::WAITING;
-
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
 
@@ -654,6 +650,13 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		CancelSuperAbility();
 		return;
 	}
+
+	if (SA_State != SuperAbilityState::WAITING)
+	{
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
+		OnSuperAbilityCalled.Broadcast(true, "");
+	}
+	SA_State = SuperAbilityState::WAITING;
 
 	if (Target)
 	{
@@ -874,7 +877,7 @@ void UCombatSystemComponent::PerfectParry()
 
 void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
 {
-	if (InTokens != 0 && StolenTokens < MaxStolenTokens)
+	if (InTokens != 0 && StolenTokens < MaxParryTokens)
 	{
 		StolenTokens += InTokens;
 		OnStolenTokensChanged.Broadcast(StolenTokens); //should be called when slow-mo timeline finishes?
@@ -928,7 +931,7 @@ void UCombatSystemComponent::SuperAbility()
 
 	//PRINT("called ability", 2);
 
-	if (StolenTokens < MaxStolenTokens)
+	if (StolenTokens < SuperAbilityCost)
 	{
 		//PRINT("Not enough tokens", 2);
 		OnSuperAbilityCalled.Broadcast(false, "Not enough Parry Points");
@@ -945,7 +948,7 @@ void UCombatSystemComponent::SuperAbility()
 
 	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 60.f, true);
 
-	OnSuperAbilityCalled.Broadcast(true, "");
+	/*OnSuperAbilityCalled.Broadcast(true, "");*/
 	/*StolenTokens = 0;
 	OnStolenTokensChanged.Broadcast(StolenTokens);*/
 }

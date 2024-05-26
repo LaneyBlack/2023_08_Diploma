@@ -293,6 +293,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
+	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data")
+	int MaxParryTokens = 3;
+
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
 
@@ -315,7 +318,7 @@ public:
 	UCurveFloat* FOVCurve;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int MaxStolenTokens = 3;
+	int SuperAbilityCost = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
