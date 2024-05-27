@@ -110,7 +110,7 @@ private:
 	UPROPERTY()
 	class UDidItHitActorComponent* HitTracer;
 
-	float MaxViewPitchValue = 35.f;
+	float MaxViewPitchValue = 70.f;
 
 	float MinViewPitchValue = -70.f;
 
