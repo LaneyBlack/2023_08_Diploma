@@ -925,6 +925,12 @@ bool UCombatSystemComponent::CheckAndUseTokens(int SubstractTokes)
 	return false;
 }
 
+void UCombatSystemComponent::OverrideTokens(int NewTokens)
+{
+	StolenTokens = NewTokens;
+	OnStolenTokensChanged.Broadcast(NewTokens);
+}
+
 void UCombatSystemComponent::SuperAbility()
 {
 	if (SA_State == SuperAbilityState::WAITING)

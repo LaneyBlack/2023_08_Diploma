@@ -395,6 +395,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool CheckAndUseTokens(int SubstractTokes);
 
+	UFUNCTION(BlueprintCallable)
+	void OverrideTokens(int NewTokens);
+
 	UFUNCTION()
 	void SuperAbility();
 
