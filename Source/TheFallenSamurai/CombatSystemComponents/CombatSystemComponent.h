@@ -101,7 +101,7 @@ protected:
 private:	
 
 	UPROPERTY()
-	class ACharacter* playerCharacter;
+	class ATheFallenSamuraiCharacter* playerCharacter;
 
 	UPROPERTY()
 	AKatana* Katana;
@@ -369,7 +369,7 @@ public:
 	bool bInTeleport;
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
+	void InitializeCombatSystem(ATheFallenSamuraiCharacter* player, TSubclassOf<AKatana> KatanaActor);
 
 	UFUNCTION()
 	void Attack();
@@ -383,11 +383,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
 
+	UFUNCTION(BlueprintCallable)
+	bool CheckAndUseTokens(int SubstractTokes);
+
 	UFUNCTION()
 	void SuperAbility();
 
 	UFUNCTION()
 	void CancelSuperAbility();
+
+	UFUNCTION(BlueprintCallable)
+	bool IsSuperAbilityActive();
 
 	float GetLookRate();
 

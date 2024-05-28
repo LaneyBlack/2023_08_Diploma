@@ -42,7 +42,7 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UInputAction* ToggleRewindParticipationAction;
 
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
-	void ToggleRewindParticipationBP();
+	void ToggleRewindParticipationNoInput();
 
 	/** Rewind Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -122,6 +122,9 @@ protected:
 
 	/** Called for time scrub input */
 	void ToggleTimeScrub(const FInputActionValue& Value);
+
+	/** Called for Super Ability Execution */
+	void ToggleSuperAbility(const FInputActionValue& Value);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
 	class UAbilitySystemComponent* AbilitySystemComponent;
