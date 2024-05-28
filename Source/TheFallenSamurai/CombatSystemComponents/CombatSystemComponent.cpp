@@ -625,12 +625,13 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		////ForwardVector2D.Normalize(); // is normalization needed?
 		//float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());
 
-		float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
-		//float dot = playerCharacter->GetControlRotation().Vector().Dot(ToEnemy.GetSafeNormal2D());
+		//float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+		//float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
+		float dot = playerCharacter->GetControlRotation().Vector().Dot(ToEnemy.GetSafeNormal());
 
 		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
-		if (dot >= .99f)
+		if (dot >= .97f)
 		{
 			if (dot > MaxDot)
 			{
@@ -866,7 +867,7 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
-	if (bInTeleport || bInParry) //add check for super ability
+	if (bInTeleport || bInParry || IsSuperAbilityActive())
 		return;
 
 	bInParry = true;
@@ -931,6 +932,8 @@ void UCombatSystemComponent::SuperAbility()
 		CancelSuperAbility();
 		return;
 	}
+	else if (SA_State != SuperAbilityState::NONE)
+		return;
 
 	//PRINT("called ability", 2);
 
