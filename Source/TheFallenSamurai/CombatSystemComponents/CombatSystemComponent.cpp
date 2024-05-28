@@ -542,17 +542,17 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 		PRINT_B("is blueprint notify %s", NotifyEvent.IsBlueprintNotify());
 	}*/
 
-	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
-		return CurrentTrack.TrackName.IsEqual(TrackName);
-		});
+	//auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
+	//	return CurrentTrack.TrackName.IsEqual(TrackName);
+	//	});
 
-	if (track)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+	//if (track)
+	//{
+	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
+	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
 
-		return track->Notifies[0]->GetTriggerTime();
-	}
+	//	return track->Notifies[0]->GetTriggerTime();
+	//}
 	
 	return 0;
 }
@@ -778,7 +778,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 
 	for (auto& AttackMontageData : AttackMontages)
 	{
-		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
+		//AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
 		//AttackMontageData.NormalizedChance = AttackMontageData.Chance / AttackMontages.Num();
 
 		if (AttackMontageData.PerfectForCounter)

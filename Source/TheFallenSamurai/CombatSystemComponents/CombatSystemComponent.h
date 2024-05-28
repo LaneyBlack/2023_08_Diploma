@@ -42,7 +42,7 @@ struct FAttackAnimData
 
 	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
-	//float PlayRate;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PerfectAttackTime;
 
 	//for later 
