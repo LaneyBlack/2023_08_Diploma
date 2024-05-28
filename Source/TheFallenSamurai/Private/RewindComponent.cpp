@@ -30,37 +30,38 @@ URewindComponent::URewindComponent()
 void URewindComponent::BeginPlay()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::BeginPlay);
-
+	
 	Super::BeginPlay();
-
+	
 	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
 	if (!GameMode)
 	{
 		SetComponentTickEnabled(false);
 		return;
 	}
-
+	
 	OwnerRootComponent = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
-
-	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	
 	if (bSnapshotMovementVelocityAndMode)
 	{
+		ACharacter* Character = Cast<ACharacter>(GetOwner());
 		OwnerMovementComponent = Character ? Cast<UCharacterMovementComponent>(Character->GetMovementComponent()) : nullptr;
 	}
-
-	if (bPauseAnimationDuringTimeScrubbing && Character)
+	
+	if (bPauseAnimationDuringTimeScrubbing && GetOwner()->IsA<ACharacter>())
 	{
-		OwnerSkeletalMesh = Character->GetMesh();
+		OwnerSkeletalMesh = Cast<ACharacter>(GetOwner())->GetMesh();
 		ensureMsgf(OwnerSkeletalMesh, TEXT("OwnerSkeletalMesh is null for %s"), *GetOwner()->GetName());
 	}
-
+	
 	GameMode->OnGlobalRewindStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindStarted);
 	GameMode->OnGlobalRewindCompleted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindCompleted);
 	GameMode->OnGlobalTimeScrubStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalTimeScrubStarted);
 	GameMode->OnGlobalTimeScrubCompleted.AddUniqueDynamic(this, &URewindComponent::OnGlobalTimeScrubCompleted);
-
+	
 	InitializeRingBuffers(GameMode->MaxRewindSeconds);
 }
+
 
 
 void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -68,7 +69,7 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::TickComponent);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	
 	if (bIsRewindingForDuration)
 	{
 		RemainingRewindDuration -= DeltaTime;
@@ -94,9 +95,9 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	{
 		RecordSnapshot(DeltaTime);
 	}
-
-	//PRINT_B("is time scrubbing %s", bIsTimeScrubbing);
+	
 }
+
 
 void URewindComponent::SetIsRewindingEnabled(bool bEnabled)
 {
@@ -104,15 +105,12 @@ void URewindComponent::SetIsRewindingEnabled(bool bEnabled)
 	if (!bIsRewindingEnabled)
 	{
 		if (bIsRewinding) { OnGlobalRewindCompleted(); }
-
 		if (bIsTimeScrubbing) { OnGlobalTimeScrubCompleted(); }
 	}
 	else
 	{
 		check(GameMode);
-		
 		if (!bIsRewinding && GameMode->IsGlobalRewinding()) { OnGlobalRewindStarted(); }
-
 		if (!bIsTimeScrubbing && GameMode->IsGlobalTimeScrubbing()) { OnGlobalTimeScrubStarted(); }
 	}
 }
@@ -120,9 +118,11 @@ void URewindComponent::SetIsRewindingEnabled(bool bEnabled)
 void URewindComponent::OnGlobalRewindStarted()
 {
 	bool bAlreadyManipulatingTime = IsTimeBeingManipulated();
+	
 	if (TryStartTimeManipulation(bIsRewinding, !bIsTimeScrubbing))
 	{
 		OnRewindStarted.Broadcast();
+		
 		if (!bAlreadyManipulatingTime) { OnTimeManipulationStarted.Broadcast(); }
 	}
 }
@@ -132,42 +132,34 @@ void URewindComponent::OnGlobalRewindCompleted()
 	if (TryStopTimeManipulation(bIsRewinding, !bIsTimeScrubbing, false /*bResetMovementVelocity*/))
 	{
 		bLastTimeManipulationWasRewind = true;
-
+		
 		OnRewindCompleted.Broadcast();
+		
 		if (!IsTimeBeingManipulated()) { OnTimeManipulationCompleted.Broadcast(); }
 	}
 }
 
+
 void URewindComponent::InitializeRingBuffers(float MaxRewindSeconds)
 {
+	constexpr uint32 OneMB = 1024 * 1024;
+	
 	MaxSnapshots = FMath::CeilToInt32(MaxRewindSeconds / SnapshotFrequencySeconds);
 	
-	constexpr uint32 OneMB = 1024 * 1024;
-	constexpr uint32 ThreeMB = 3 * OneMB;
-	if (!bSnapshotMovementVelocityAndMode)
-	{
-		uint32 SnapshotBytes = sizeof(FTransformAndVelocitySnapshot);
-		uint32 TotalSnapshotBytes = MaxSnapshots * SnapshotBytes;
-		ensureMsgf(
-			TotalSnapshotBytes < OneMB,
-			TEXT("Actor %s has rewind component that requested %d bytes of snapshots. Check snapshot frequency!"),
-			*GetOwner()->GetName(),
-			TotalSnapshotBytes);
-
-		MaxSnapshots = FMath::Min(MaxSnapshots, static_cast<uint32>(OneMB / SnapshotBytes));
-	}
-	else
-	{
-		uint32 SnapshotBytes = sizeof(FTransformAndVelocitySnapshot) + sizeof(FMovementVelocityAndModeSnapshot);
-		uint32 TotalSnapshotBytes = MaxSnapshots * SnapshotBytes;
-		ensureMsgf(
-			TotalSnapshotBytes < ThreeMB,
-			TEXT("Actor %s has rewind component that requested %d bytes of snapshots. Check snapshot frequency!"),
-			*GetOwner()->GetName(),
-			TotalSnapshotBytes);
-
-		MaxSnapshots = FMath::Min(MaxSnapshots, static_cast<uint32>(ThreeMB / SnapshotBytes));
-	}
+	uint32 SnapshotBytes = bSnapshotMovementVelocityAndMode ?
+		sizeof(FTransformAndVelocitySnapshot) + sizeof(FMovementVelocityAndModeSnapshot) :
+		sizeof(FTransformAndVelocitySnapshot);
+	
+	uint32 MaxTotalSnapshotBytes = bSnapshotMovementVelocityAndMode ? 3 * OneMB : OneMB;
+	
+	uint32 TotalSnapshotBytes = MaxSnapshots * SnapshotBytes;
+	ensureMsgf(
+		TotalSnapshotBytes < MaxTotalSnapshotBytes,
+		TEXT("Actor %s has a rewind component that requested %d bytes of snapshots. Check snapshot frequency!"),
+		*GetOwner()->GetName(),
+		TotalSnapshotBytes);
+	
+	MaxSnapshots = FMath::Min(MaxSnapshots, MaxTotalSnapshotBytes / SnapshotBytes);
 	
 	TransformAndVelocitySnapshots.Reserve(MaxSnapshots);
 	
@@ -179,33 +171,43 @@ void URewindComponent::InitializeRingBuffers(float MaxRewindSeconds)
 
 void URewindComponent::RecordSnapshot(float DeltaTime)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::RecordSnapshot);
+    TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::RecordSnapshot);
 
-	TimeSinceSnapshotsChanged += DeltaTime;
+    TimeSinceSnapshotsChanged += DeltaTime;
 	
-	if (TimeSinceSnapshotsChanged < SnapshotFrequencySeconds && TransformAndVelocitySnapshots.Num() != 0) { return; }
+    if (TimeSinceSnapshotsChanged < SnapshotFrequencySeconds && TransformAndVelocitySnapshots.Num() != 0)
+    {
+        return;
+    }
 	
-	if (TransformAndVelocitySnapshots.Num() == MaxSnapshots) { TransformAndVelocitySnapshots.PopFront(); }
+    if (TransformAndVelocitySnapshots.Num() == MaxSnapshots)
+    {
+        TransformAndVelocitySnapshots.PopFront();
+    }
 	
-	FTransform Transform = GetOwner()->GetActorTransform();
-	FVector LinearVelocity = OwnerRootComponent ? OwnerRootComponent->GetPhysicsLinearVelocity() : FVector::Zero();
-	FVector AngularVelocityInRadians = OwnerRootComponent ? OwnerRootComponent->GetPhysicsAngularVelocityInRadians() : FVector::Zero();
-	LatestSnapshotIndex =
-		TransformAndVelocitySnapshots.Emplace(TimeSinceSnapshotsChanged, Transform, LinearVelocity, AngularVelocityInRadians);
-
-	if (bSnapshotMovementVelocityAndMode && OwnerMovementComponent)
-	{
-		if (MovementVelocityAndModeSnapshots.Num() == MaxSnapshots) { MovementVelocityAndModeSnapshots.PopFront(); }
-		
-		FVector MovementVelocity = OwnerMovementComponent->Velocity;
-		TEnumAsByte<EMovementMode> MovementMode = OwnerMovementComponent->MovementMode;
-		int32 LatestMovementSnapshotIndex =
-			MovementVelocityAndModeSnapshots.Emplace(TimeSinceSnapshotsChanged, MovementVelocity, MovementMode);
-		check(LatestSnapshotIndex == LatestMovementSnapshotIndex);
-	}
-
-	TimeSinceSnapshotsChanged = 0.0f;
+    FTransform Transform = GetOwner()->GetActorTransform();
+    FVector LinearVelocity = OwnerRootComponent ? OwnerRootComponent->GetPhysicsLinearVelocity() : FVector::Zero();
+    FVector AngularVelocityInRadians = OwnerRootComponent ? OwnerRootComponent->GetPhysicsAngularVelocityInRadians() : FVector::Zero();
+	
+    LatestSnapshotIndex = TransformAndVelocitySnapshots.Emplace(TimeSinceSnapshotsChanged, Transform, LinearVelocity, AngularVelocityInRadians);
+	
+    if (bSnapshotMovementVelocityAndMode && OwnerMovementComponent)
+    {
+        if (MovementVelocityAndModeSnapshots.Num() == MaxSnapshots)
+        {
+            MovementVelocityAndModeSnapshots.PopFront();
+        }
+    	
+        FVector MovementVelocity = OwnerMovementComponent->Velocity;
+        TEnumAsByte<EMovementMode> MovementMode = OwnerMovementComponent->MovementMode;
+    	
+        int32 LatestMovementSnapshotIndex = MovementVelocityAndModeSnapshots.Emplace(TimeSinceSnapshotsChanged, MovementVelocity, MovementMode);
+        check(LatestSnapshotIndex == LatestMovementSnapshotIndex);
+    }
+	
+    TimeSinceSnapshotsChanged = 0.0f;
 }
+
 
 void URewindComponent::EraseFutureSnapshots()
 {
@@ -225,104 +227,98 @@ void URewindComponent::EraseFutureSnapshots()
 
 void URewindComponent::PlaySnapshots(float DeltaTime, bool bRewinding)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::PlaySnapshots);
-
-	UnpauseAnimation();
-
-	if (HandleInsufficientSnapshots()) { return; }
+    TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::PlaySnapshots);
 	
-	DeltaTime *= GameMode->GetGlobalRewindSpeed();
-	TimeSinceSnapshotsChanged += DeltaTime;
-
-	bool bReachedEndOfTrack = false;
-	float LatestSnapshotTime = TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
-	if (bRewinding)
-	{
-		while (LatestSnapshotIndex > 0 && TimeSinceSnapshotsChanged > LatestSnapshotTime)
-		{
-			TimeSinceSnapshotsChanged -= LatestSnapshotTime;
-			LatestSnapshotTime = TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
-			--LatestSnapshotIndex;
-		}
-		
-		if (LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1)
-		{
-			ApplySnapshot(TransformAndVelocitySnapshots[LatestSnapshotIndex], false /*bApplyPhysics*/);
-			if (bSnapshotMovementVelocityAndMode)
-			{
-				ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], true /*bApplyTimeDilationToVelocity*/);
-			}
-			return;
-		}
-
-		bReachedEndOfTrack = LatestSnapshotIndex == 0;
-	}
-	else
-	{
-		while (LatestSnapshotIndex < TransformAndVelocitySnapshots.Num() - 1 && TimeSinceSnapshotsChanged > LatestSnapshotTime)
-		{
-			TimeSinceSnapshotsChanged -= LatestSnapshotTime;
-			LatestSnapshotTime = TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
-			++LatestSnapshotIndex;
-		}
-
-		bReachedEndOfTrack = LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1;
-	}
+    UnpauseAnimation();
 	
-	if (bReachedEndOfTrack)
-	{
-		TimeSinceSnapshotsChanged = FMath::Min(TimeSinceSnapshotsChanged, LatestSnapshotTime);
-		if (bAnimationsPausedAtStartOfTimeManipulation) { PauseAnimation(); }
-	}
-
-	InterpolateAndApplySnapshots(bRewinding);
+    if (HandleInsufficientSnapshots()) { return; }
+	
+    DeltaTime *= GameMode->GetGlobalRewindSpeed();
+    TimeSinceSnapshotsChanged += DeltaTime;
+	
+    float LatestSnapshotTime = TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
+	
+    if (bRewinding)
+    {
+        while (LatestSnapshotIndex > 0 && TimeSinceSnapshotsChanged > LatestSnapshotTime)
+        {
+            TimeSinceSnapshotsChanged -= LatestSnapshotTime;
+            LatestSnapshotTime = TransformAndVelocitySnapshots[--LatestSnapshotIndex].TimeSinceLastSnapshot;
+        }
+    	
+        if (LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1)
+        {
+            ApplySnapshot(TransformAndVelocitySnapshots[LatestSnapshotIndex], false);
+            if (bSnapshotMovementVelocityAndMode)
+            {
+                ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], true);
+            }
+            return;
+        }
+    }
+    else
+    {
+        while (LatestSnapshotIndex < TransformAndVelocitySnapshots.Num() - 1 && TimeSinceSnapshotsChanged > LatestSnapshotTime)
+        {
+            TimeSinceSnapshotsChanged -= LatestSnapshotTime;
+            LatestSnapshotTime = TransformAndVelocitySnapshots[++LatestSnapshotIndex].TimeSinceLastSnapshot;
+        }
+    }
+	
+    bool bReachedEndOfTrack = (bRewinding && LatestSnapshotIndex == 0) || (!bRewinding && LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1);
+	
+    if (bReachedEndOfTrack)
+    {
+        TimeSinceSnapshotsChanged = FMath::Min(TimeSinceSnapshotsChanged, LatestSnapshotTime);
+        if (bAnimationsPausedAtStartOfTimeManipulation) { PauseAnimation(); }
+    }
+	
+    InterpolateAndApplySnapshots(bRewinding);
 }
+
 
 void URewindComponent::PauseTime(float DeltaTime, bool bRewinding)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::PauseTime);
-
+	
 	if (HandleInsufficientSnapshots()) { return; }
-
-	if (bRewinding)
+	
+	if (bRewinding && LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1)
 	{
-		if (LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1)
+		ApplySnapshot(TransformAndVelocitySnapshots[LatestSnapshotIndex], false);
+		if (bSnapshotMovementVelocityAndMode)
 		{
-			ApplySnapshot(TransformAndVelocitySnapshots[LatestSnapshotIndex], false /*bApplyPhysics*/);
-			if (bSnapshotMovementVelocityAndMode)
-			{
-				ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], true /*bApplyTimeDilationToVelocity*/);
-			}
-			if (OwnerSkeletalMesh)
-			{
-				PauseAnimation();
-			}
-			return;
+			ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], true);
 		}
+		if (OwnerSkeletalMesh)
+		{
+			PauseAnimation();
+		}
+		return;
 	}
-
+	
 	float LatestSnapshotTime = TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
+	
 	if (TimeSinceSnapshotsChanged < LatestSnapshotTime)
 	{
 		DeltaTime *= GameMode->GetGlobalRewindSpeed();
 		TimeSinceSnapshotsChanged = FMath::Min(TimeSinceSnapshotsChanged + DeltaTime, LatestSnapshotTime);
 	}
-
+	
 	InterpolateAndApplySnapshots(bRewinding);
-
-	if (FMath::IsNearlyEqual(TimeSinceSnapshotsChanged, LatestSnapshotTime) && OwnerSkeletalMesh) 
+	
+	if (FMath::IsNearlyEqual(TimeSinceSnapshotsChanged, LatestSnapshotTime) && OwnerSkeletalMesh)
 	{
 		PauseAnimation();
 	}
 }
 
-
 bool URewindComponent::TryStartTimeManipulation(bool& bStateToSet, bool bResetTimeSinceSnapshotsChanged)
 {
 	if (!bIsRewindingEnabled || bStateToSet) { return false; }
-
+	
 	bStateToSet = true;
-
+	
 	if (bResetTimeSinceSnapshotsChanged) { TimeSinceSnapshotsChanged = 0.0f; }
 	
 	PausePhysics();
@@ -341,17 +337,15 @@ bool URewindComponent::TryStopTimeManipulation(bool& bStateToSet, bool bResetTim
 	if (!bIsTimeScrubbing)
 	{
 		if (bResetTimeSinceSnapshotsChanged) { TimeSinceSnapshotsChanged = 0.0f; }
-		
 		UnpausePhysics();
-		
 		UnpauseAnimation();
 		
 		if (LatestSnapshotIndex >= 0)
 		{
-			ApplySnapshot(TransformAndVelocitySnapshots[LatestSnapshotIndex], true /*bApplyPhysics*/);
+			ApplySnapshot(TransformAndVelocitySnapshots[LatestSnapshotIndex], true);
 			if (bSnapshotMovementVelocityAndMode)
 			{
-				ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], false /*bApplyTimeDilationToVelocity*/);
+				ApplySnapshot(MovementVelocityAndModeSnapshots[LatestSnapshotIndex], false);
 				
 				if (bResetMovementVelocity && OwnerMovementComponent) { OwnerMovementComponent->Velocity = FVector::ZeroVector; }
 			}
@@ -365,7 +359,7 @@ bool URewindComponent::TryStopTimeManipulation(bool& bStateToSet, bool bResetTim
 
 void URewindComponent::PausePhysics()
 {
-	if (OwnerRootComponent && OwnerRootComponent->BodyInstance.bSimulatePhysics)
+	if (OwnerRootComponent && OwnerRootComponent->IsSimulatingPhysics())
 	{
 		bPausedPhysics = true;
 		OwnerRootComponent->SetSimulatePhysics(false);
@@ -374,9 +368,8 @@ void URewindComponent::PausePhysics()
 
 void URewindComponent::UnpausePhysics()
 {
-	if (!bPausedPhysics) { return; }
+	if (!bPausedPhysics || !OwnerRootComponent) { return; }
 
-	check(OwnerRootComponent);
 	bPausedPhysics = false;
 	OwnerRootComponent->SetSimulatePhysics(true);
 	OwnerRootComponent->RecreatePhysicsState();
@@ -384,10 +377,11 @@ void URewindComponent::UnpausePhysics()
 
 void URewindComponent::PauseAnimation()
 {
-	if (!bPauseAnimationDuringTimeScrubbing || !OwnerSkeletalMesh) { return; }
-
-	bPausedAnimation = true;
-	OwnerSkeletalMesh->bPauseAnims = true;
+	if (bPauseAnimationDuringTimeScrubbing && OwnerSkeletalMesh)
+	{
+		bPausedAnimation = true;
+		OwnerSkeletalMesh->bPauseAnims = true;
+	}
 }
 
 void URewindComponent::UnpauseAnimation()
@@ -398,18 +392,25 @@ void URewindComponent::UnpauseAnimation()
 	OwnerSkeletalMesh->bPauseAnims = false;
 }
 
-
 bool URewindComponent::HandleInsufficientSnapshots()
 {
 	check(!bSnapshotMovementVelocityAndMode || TransformAndVelocitySnapshots.Num() == MovementVelocityAndModeSnapshots.Num());
-	if (LatestSnapshotIndex < 0 || TransformAndVelocitySnapshots.Num() == 0) { return true; }
-	
-	if (TransformAndVelocitySnapshots.Num() == 1)
+
+	if (LatestSnapshotIndex < 0 || TransformAndVelocitySnapshots.Num() == 0)
 	{
-		ApplySnapshot(TransformAndVelocitySnapshots[0], false /*bApplyPhysics*/);
-		if (bSnapshotMovementVelocityAndMode) { ApplySnapshot(MovementVelocityAndModeSnapshots[0], true /*bApplyTimeDilationToVelocity*/); }
 		return true;
 	}
+
+	if (TransformAndVelocitySnapshots.Num() == 1)
+	{
+		ApplySnapshot(TransformAndVelocitySnapshots[0], false);
+		if (bSnapshotMovementVelocityAndMode)
+		{
+			ApplySnapshot(MovementVelocityAndModeSnapshots[0], true);
+		}
+		return true;
+	}
+
 	check(LatestSnapshotIndex >= 0 && LatestSnapshotIndex < TransformAndVelocitySnapshots.Num());
 	return false;
 }
@@ -418,24 +419,21 @@ void URewindComponent::InterpolateAndApplySnapshots(bool bRewinding)
 {
 	constexpr int MinSnapshotsForInterpolation = 2;
 	check(TransformAndVelocitySnapshots.Num() >= MinSnapshotsForInterpolation);
-	check(bRewinding && LatestSnapshotIndex < TransformAndVelocitySnapshots.Num() - 1 || !bRewinding && LatestSnapshotIndex > 0);
+	check((bRewinding && LatestSnapshotIndex < TransformAndVelocitySnapshots.Num() - 1) ||
+		  (!bRewinding && LatestSnapshotIndex > 0));
+
 	int PreviousIndex = bRewinding ? LatestSnapshotIndex + 1 : LatestSnapshotIndex - 1;
-	
-	{
-		const FTransformAndVelocitySnapshot& PreviousSnapshot = TransformAndVelocitySnapshots[PreviousIndex];
-		const FTransformAndVelocitySnapshot& NextSnapshot = TransformAndVelocitySnapshots[LatestSnapshotIndex];
-		ApplySnapshot(
-			BlendSnapshots(PreviousSnapshot, NextSnapshot, TimeSinceSnapshotsChanged / NextSnapshot.TimeSinceLastSnapshot),
-			false /*bApplyPhysics*/);
-	}
-	
+	float InterpolationFactor = TimeSinceSnapshotsChanged / TransformAndVelocitySnapshots[LatestSnapshotIndex].TimeSinceLastSnapshot;
+
+	const FTransformAndVelocitySnapshot& PreviousSnapshot = TransformAndVelocitySnapshots[PreviousIndex];
+	const FTransformAndVelocitySnapshot& NextSnapshot = TransformAndVelocitySnapshots[LatestSnapshotIndex];
+	ApplySnapshot(BlendSnapshots(PreviousSnapshot, NextSnapshot, InterpolationFactor), false);
+
 	if (bSnapshotMovementVelocityAndMode)
 	{
-		const FMovementVelocityAndModeSnapshot& PreviousSnapshot = MovementVelocityAndModeSnapshots[PreviousIndex];
-		const FMovementVelocityAndModeSnapshot& NextSnapshot = MovementVelocityAndModeSnapshots[LatestSnapshotIndex];
-		ApplySnapshot(
-			BlendSnapshots(PreviousSnapshot, NextSnapshot, TimeSinceSnapshotsChanged / NextSnapshot.TimeSinceLastSnapshot),
-			true /*bApplyTimeDilationToVelocity*/);
+		const FMovementVelocityAndModeSnapshot& PreviousMovementSnapshot = MovementVelocityAndModeSnapshots[PreviousIndex];
+		const FMovementVelocityAndModeSnapshot& NextMovementSnapshot = MovementVelocityAndModeSnapshots[LatestSnapshotIndex];
+		ApplySnapshot(BlendSnapshots(PreviousMovementSnapshot, NextMovementSnapshot, InterpolationFactor), true);
 	}
 }
 
@@ -536,6 +534,9 @@ void URewindComponent::TimeScrubForDuration(float Duration)
 		return;
 	}
 
+	TotalTimeScrub = Duration;
+	TimeScrubStartedAt = GetWorld()->GetTimeSeconds();
+
 	bIsTimeScrubbingForDuration = true;
 
 	GameMode->ToggleTimeScrub();
@@ -559,4 +560,21 @@ void URewindComponent::StopTimeScrubForDuration()
 	GameMode->ToggleTimeScrub();
 
 	bIsTimeScrubbingForDuration = false;
+}
+
+float URewindComponent::GetRemainingTimeScrub() const
+{
+	if (bIsTimeScrubbingForDuration)
+	{
+		return TotalTimeScrub - (GetWorld()->GetTimeSeconds() - TimeScrubStartedAt);
+	}
+	else
+	{
+		return 0.0f;
+	}
+}
+
+float URewindComponent::GetTotalTimeScrub() const
+{
+	return TotalTimeScrub;
 }

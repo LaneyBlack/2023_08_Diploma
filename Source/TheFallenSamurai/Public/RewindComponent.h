@@ -10,7 +10,6 @@
 #include "RewindComponent.generated.h"
 
 class UCharacterMovementComponent;
-class URewindVisualizationComponent;
 class USkeletalMeshComponent;
 class APlayerGameModeBase;
 
@@ -92,6 +91,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rewind")
 	FOnTimeScrubCompleted OnTimeScrubCompleted;
 
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	float GetRemainingTimeScrub() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	float GetTotalTimeScrub() const;
+
 protected:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Rewind")
 	bool bIsRewinding = false;
@@ -121,14 +126,6 @@ public:
 	void StopTimeScrubForDuration();
 
 	void StopRewindForDuration();
-
-protected:
-	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Rewind")
-	bool bIsVisualizingTimeline = false;
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Rewind")
-	bool IsVisualizingTimeline() const { return bIsVisualizingTimeline; };
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Rewind")
@@ -191,6 +188,10 @@ private:
 	bool bIsRewindingForDuration = false;
 	
 	float RemainingRewindDuration = 0.0f;
+
+	float TotalTimeScrub = 0.0f;
+
+	float TimeScrubStartedAt = 0.0f;
 	
 	UFUNCTION()
 	void OnGlobalRewindStarted();
