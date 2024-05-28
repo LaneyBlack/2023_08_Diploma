@@ -291,11 +291,11 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
 		EDrawDebugTrace::None, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);*/
 
-	if (bEyeToCenterHit)
+	/*if (bEyeToCenterHit)
 	{
 		PRINT_F("(center)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
 		Enemy->SetDebugTextValue("(center)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
-	}
+	}*/
 
 	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
@@ -306,11 +306,11 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 		EDrawDebugTrace::None, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);*/
 
 	//we hit a anohter object on the teleport path -> dont teleport
-	if (bEyeToEyeHit)
+	/*if (bEyeToEyeHit)
 	{
 		PRINT_F("(eye)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
 		Enemy->SetDebugTextValue("(eye)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
-	}
+	}*/
 
 	return bEyeToCenterHit && bEyeToEyeHit;
 }
