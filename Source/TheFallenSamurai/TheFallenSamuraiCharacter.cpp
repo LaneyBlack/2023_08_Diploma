@@ -287,8 +287,8 @@ void ATheFallenSamuraiCharacter::Attack(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::PerfectParry(const FInputActionValue& Value)
 {
-	if(!LockPlayerPerfectParry)
-		CombatSystemComponent->PerfectParry();
+	//if(!LockPlayerPerfectParry)
+	CombatSystemComponent->PerfectParry();
 }
 
 void ATheFallenSamuraiCharacter::Rewind(const FInputActionValue& Value)
