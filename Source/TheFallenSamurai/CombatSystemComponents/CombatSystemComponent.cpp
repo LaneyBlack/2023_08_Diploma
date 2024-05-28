@@ -645,7 +645,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (!ObscuredCounter)
 	{
-		PRINT("No enemies nearby", 2);
+		//PRINT("No enemies nearby", 2);
 		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
 
 		CancelSuperAbility();
@@ -1169,14 +1169,16 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
-	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
+
+	//SUPER ABILITY DEBUG PRINT
+	/*PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
 
 	if (SuperAbilityTarget)
 	{
 		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
 	}
 	else
-		PRINT("Super Ability Target = NULLPTR", 0);
+		PRINT("Super Ability Target = NULLPTR", 0);*/
 
 
 	/*PRINT_B("Is Attacking %s", bIsAttacking);
