@@ -278,20 +278,39 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
-	bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+	CollisionParams.AddIgnoredActor(playerCharacter);
+	CollisionParams.AddIgnoredActor(Katana);
+	CollisionParams.AddIgnoredActor(Enemy);
+
+	bool bEyeToCenterHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
+	
+	/*bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);*/
+
+	if (bEyeToCenterHit)
+	{
+		PRINT_F("(center)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
+		Enemy->SetDebugTextValue("(center)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
+	}
 
 	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+
+	bool bEyeToEyeHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+	/*bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);*/
 
 	//we hit a anohter object on the teleport path -> dont teleport
-	/*if (bEyeToCenterHit && bEyeToEyeHit)
+	if (bEyeToEyeHit)
 	{
-		Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()));
-	}*/
+		PRINT_F("(eye)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
+		Enemy->SetDebugTextValue("(eye)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
+	}
 
 	return bEyeToCenterHit && bEyeToEyeHit;
 }
@@ -399,9 +418,14 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
 	FHitResult GroundHit;
 
-	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+
+	bool bHasGround = GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+	/*bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, GroundHit, true);
+		true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, GroundHit, true);*/
 
 	if (!bHasGround)
 	{
@@ -419,7 +443,7 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
 	FHitResult CapsuleSpaceHit;
