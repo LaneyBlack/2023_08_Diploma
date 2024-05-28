@@ -116,6 +116,9 @@ public:
 		NoJumpState = ENoJumpState::None;
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "Jump")
+	void ResetDoubleJump();
+
 protected:
 	/** Called for player attack action */
 	void Attack(const FInputActionValue& Value);
