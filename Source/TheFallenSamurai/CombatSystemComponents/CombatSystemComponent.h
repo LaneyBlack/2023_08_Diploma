@@ -11,6 +11,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemiesLeftChanged, int, EnemiesLeft);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityTargetAcquired, bool, bFoundNewTarget); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
@@ -41,7 +42,7 @@ struct FAttackAnimData
 
 	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
-	//float PlayRate;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PerfectAttackTime;
 
 	//for later 
@@ -109,7 +110,7 @@ private:
 	UPROPERTY()
 	class UDidItHitActorComponent* HitTracer;
 
-	float MaxViewPitchValue = 35.f;
+	float MaxViewPitchValue = 70.f;
 
 	float MinViewPitchValue = -70.f;
 
@@ -180,6 +181,8 @@ private:
 	ABaseEnemy* SuperAbilityTarget = nullptr;
 
 	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
+	
+	int SuperAbilityTargetsLeft;
 
 	UFUNCTION()
 	FVector GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector);
@@ -293,6 +296,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perfect Parry Data")
+	int MaxParryTokens = 3;
+
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
 
@@ -315,13 +321,13 @@ public:
 	UCurveFloat* FOVCurve;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int MaxStolenTokens = 3;
+	int SuperAbilityCost = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
 
-	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int EnemyTargetLimit = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Super Ability")
+	int SuperAbilityTargetLimit = 4;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float SuperAbilitySlowMo = 0.1f;
@@ -343,6 +349,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSuperAbilityTargetAcquired OnSuperAbilityTargetAcquired;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnEnemiesLeftChanged OnEnemiesLeftChanged;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
@@ -385,6 +394,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool CheckAndUseTokens(int SubstractTokes);
+
+	UFUNCTION(BlueprintCallable)
+	void OverrideTokens(int NewTokens);
 
 	UFUNCTION()
 	void SuperAbility();

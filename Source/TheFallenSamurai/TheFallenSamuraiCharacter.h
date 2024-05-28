@@ -93,6 +93,12 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 
 
 public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	bool LockPlayerAttack = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	bool LockPlayerPerfectParry = false;
+
 	ATheFallenSamuraiCharacter();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
@@ -111,6 +117,13 @@ public:
 	}
 
 protected:
+	/** Called for player attack action */
+	void Attack(const FInputActionValue& Value);
+
+	/** Called for player parry action */
+	void PerfectParry(const FInputActionValue& Value);
+
+
 	/** Called for rewind input */
 	void Rewind(const FInputActionValue& Value);
 

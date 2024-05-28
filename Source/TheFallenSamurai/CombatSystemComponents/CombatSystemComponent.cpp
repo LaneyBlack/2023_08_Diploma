@@ -278,19 +278,38 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
-	bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+	CollisionParams.AddIgnoredActor(playerCharacter);
+	CollisionParams.AddIgnoredActor(Katana);
+	CollisionParams.AddIgnoredActor(Enemy);
+
+	bool bEyeToCenterHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
+	
+	/*bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);*/
+
+	/*if (bEyeToCenterHit)
+	{
+		PRINT_F("(center)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
+		Enemy->SetDebugTextValue("(center)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
+	}*/
 
 	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
+
+	bool bEyeToEyeHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+	/*bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
 		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);
+		EDrawDebugTrace::None, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);*/
 
 	//we hit a anohter object on the teleport path -> dont teleport
-	/*if (bEyeToCenterHit && bEyeToEyeHit)
+	/*if (bEyeToEyeHit)
 	{
-		Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()));
+		PRINT_F("(eye)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
+		Enemy->SetDebugTextValue("(eye)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
 	}*/
 
 	return bEyeToCenterHit && bEyeToEyeHit;
@@ -399,9 +418,14 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
 	FHitResult GroundHit;
 
-	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
+
+	bool bHasGround = GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+	/*bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
 		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, GroundHit, true);
+		true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, GroundHit, true);*/
 
 	if (!bHasGround)
 	{
@@ -419,7 +443,7 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
 	FHitResult CapsuleSpaceHit;
@@ -542,17 +566,17 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 		PRINT_B("is blueprint notify %s", NotifyEvent.IsBlueprintNotify());
 	}*/
 
-	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
-		return CurrentTrack.TrackName.IsEqual(TrackName);
-		});
+	//auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
+	//	return CurrentTrack.TrackName.IsEqual(TrackName);
+	//	});
 
-	if (track)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+	//if (track)
+	//{
+	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
+	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
 
-		return track->Notifies[0]->GetTriggerTime();
-	}
+	//	return track->Notifies[0]->GetTriggerTime();
+	//}
 	
 	return 0;
 }
@@ -572,20 +596,6 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	TArray<FHitResult> HitResults;
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, Start, MaxJumpRadius, ObjToTrace,
 		true, Ignore, EDrawDebugTrace::None, HitResults, true);
-
-	if (HitResults.Num() == 0)
-	{
-		PRINT("No enemies nearby", 2);
-		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
-
-		CancelSuperAbility();
-
-		return;
-	}
-
-	if(SA_State != SuperAbilityState::WAITING)
-		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
-	SA_State = SuperAbilityState::WAITING;
 
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
@@ -639,12 +649,13 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		////ForwardVector2D.Normalize(); // is normalization needed?
 		//float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());
 
-		float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
-		//float dot = playerCharacter->GetControlRotation().Vector().Dot(ToEnemy.GetSafeNormal2D());
+		//float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+		//float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
+		float dot = playerCharacter->GetControlRotation().Vector().Dot(ToEnemy.GetSafeNormal());
 
 		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
-		if (dot >= .99f)
+		if (dot >= .97f)
 		{
 			if (dot > MaxDot)
 			{
@@ -658,9 +669,19 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (!ObscuredCounter)
 	{
+		//PRINT("No enemies nearby", 2);
+		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
+
 		CancelSuperAbility();
 		return;
 	}
+
+	if (SA_State != SuperAbilityState::WAITING)
+	{
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
+		OnSuperAbilityCalled.Broadcast(true, "");
+	}
+	SA_State = SuperAbilityState::WAITING;
 
 	if (Target)
 	{
@@ -782,7 +803,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 
 	for (auto& AttackMontageData : AttackMontages)
 	{
-		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
+		//AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
 		//AttackMontageData.NormalizedChance = AttackMontageData.Chance / AttackMontages.Num();
 
 		if (AttackMontageData.PerfectForCounter)
@@ -851,6 +872,9 @@ void UCombatSystemComponent::Attack()
 
 				StolenTokens = 0;
 				OnStolenTokensChanged.Broadcast(StolenTokens);
+
+				OnEnemiesLeftChanged.Broadcast(SuperAbilityTargetsLeft);
+				SuperAbilityTargetsLeft--;
 			}
 		} break;
 	}
@@ -867,7 +891,7 @@ void UCombatSystemComponent::GetLeftTransforms(FTransform& KatanaGripWorldTransf
 
 void UCombatSystemComponent::PerfectParry()
 {
-	if (bInTeleport || bInParry) //add check for super ability
+	if (bInTeleport || bInParry || IsSuperAbilityActive())
 		return;
 
 	bInParry = true;
@@ -881,7 +905,7 @@ void UCombatSystemComponent::PerfectParry()
 
 void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
 {
-	if (InTokens != 0 && StolenTokens < MaxStolenTokens)
+	if (InTokens != 0 && StolenTokens < MaxParryTokens)
 	{
 		StolenTokens += InTokens;
 		OnStolenTokensChanged.Broadcast(StolenTokens); //should be called when slow-mo timeline finishes?
@@ -925,6 +949,12 @@ bool UCombatSystemComponent::CheckAndUseTokens(int SubstractTokes)
 	return false;
 }
 
+void UCombatSystemComponent::OverrideTokens(int NewTokens)
+{
+	StolenTokens = NewTokens;
+	OnStolenTokensChanged.Broadcast(NewTokens);
+}
+
 void UCombatSystemComponent::SuperAbility()
 {
 	if (SA_State == SuperAbilityState::WAITING)
@@ -932,13 +962,15 @@ void UCombatSystemComponent::SuperAbility()
 		CancelSuperAbility();
 		return;
 	}
+	else if (SA_State != SuperAbilityState::NONE)
+		return;
 
 	//PRINT("called ability", 2);
 
-	if (StolenTokens < MaxStolenTokens)
+	if (StolenTokens < SuperAbilityCost)
 	{
-		PRINT("Not enough tokens", 2);
-		OnSuperAbilityCalled.Broadcast(false, "Not enough tokens");
+		//PRINT("Not enough tokens", 2);
+		OnSuperAbilityCalled.Broadcast(false, "Not enough Parry Points");
 		return;
 	}
 	/*else if (!ExecuteSuperAbility())
@@ -949,10 +981,12 @@ void UCombatSystemComponent::SuperAbility()
 	}*/
 
 	//ExecuteSuperAbility();
+	SuperAbilityTargetsLeft = SuperAbilityTargetLimit;
+	//OnEnemiesLeftChanged.Broadcast(SuperAbilityTargetsLeft);
 
 	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 60.f, true);
 
-	OnSuperAbilityCalled.Broadcast(true, "");
+	/*OnSuperAbilityCalled.Broadcast(true, "");*/
 	/*StolenTokens = 0;
 	OnStolenTokensChanged.Broadcast(StolenTokens);*/
 }
@@ -1046,6 +1080,12 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 		//moved here from TeleportTimelineFinish()
 		if (SA_State == SuperAbilityState::TELEPORTING)
 		{
+			if (SuperAbilityTargetsLeft <= 0)
+			{
+				CancelSuperAbility();
+				return;
+			}
+
 			SuperAbilityTarget = nullptr;
 			GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
 		}
@@ -1148,7 +1188,7 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	TeleportTimeline.TickTimeline(DeltaTime);
 	ParrySlowMoTimeline.TickTimeline(DeltaTime);
 
-	PRINTC_F("Tokens = %i", StolenTokens, 0, FColor::Orange);
+	//PRINTC_F("Tokens = %i", StolenTokens, 0, FColor::Orange);
 	
 	if (!bInCombat) //change to not attacking??
 	{
@@ -1159,14 +1199,16 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 
 	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
-	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
+
+	//SUPER ABILITY DEBUG PRINT
+	/*PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
 
 	if (SuperAbilityTarget)
 	{
 		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
 	}
 	else
-		PRINT("Super Ability Target = NULLPTR", 0);
+		PRINT("Super Ability Target = NULLPTR", 0);*/
 
 
 	/*PRINT_B("Is Attacking %s", bIsAttacking);
