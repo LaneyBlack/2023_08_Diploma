@@ -114,9 +114,7 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	bFirstJump = true;
-	bDoubleJumpingFromGround = false;
-	bIsWallrunJumping = false;
+	ResetDoubleJump();
 }
 
 void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
@@ -177,6 +175,14 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 		bDoubleJumpingFromGround = false;
 	}
 }
+
+void ATheFallenSamuraiCharacter::ResetDoubleJump()
+{
+	bFirstJump = true;
+	bDoubleJumpingFromGround = false;
+	bIsWallrunJumping = false;
+}
+
 
 void ATheFallenSamuraiCharacter::ResetCombo()
 {
