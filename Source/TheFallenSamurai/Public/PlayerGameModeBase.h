@@ -74,7 +74,7 @@ public:
 
 	// Desired length of longest rewind; used to compute the rewind buffer size
 	UPROPERTY(EditDefaultsOnly, Category = "Rewind")
-	float MaxRewindSeconds = 120.0f;
+	float MaxRewindSeconds = 20.0f;
 
 private:
 	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind")
