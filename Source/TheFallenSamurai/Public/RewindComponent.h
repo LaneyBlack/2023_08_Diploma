@@ -38,6 +38,9 @@ struct FTransformAndVelocitySnapshot
 	
 	UPROPERTY(Transient)
 	FVector AngularVelocityInRadians = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bIsLocationSafe;
 };
 
 USTRUCT()
@@ -151,6 +154,8 @@ private:
 	TRingBuffer<FTransformAndVelocitySnapshot> TransformAndVelocitySnapshots;
 	
 	TRingBuffer<FMovementVelocityAndModeSnapshot> MovementVelocityAndModeSnapshots;
+
+	bool PerformSafetyTrace(const FVector& Location) const;
 	
 	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
 	uint32 MaxSnapshots = 1;
@@ -192,6 +197,14 @@ private:
 	float TotalTimeScrub = 0.0f;
 
 	float TimeScrubStartedAt = 0.0f;
+
+	bool bContinueRewindUntilSafe = false;
+	
+	bool IsLatestSnapshotLocationSafe() const;
+	
+	void CheckSafeLocationAfterRewind();
+	
+	void CompleteRewind();
 	
 	UFUNCTION()
 	void OnGlobalRewindStarted();
