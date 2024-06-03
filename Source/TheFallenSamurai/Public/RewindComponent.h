@@ -73,7 +73,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Rewind")
 	bool bPauseAnimationDuringTimeScrubbing = true;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Rewind")
+	UPROPERTY(BlueprintReadWrite, Category = "Rewind")
 	bool bIsTimeScrubbingForDuration = false;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Rewind")
@@ -128,6 +128,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void StopTimeScrubForDuration();
 
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void TimeScrubForDurationDeath();
+
 	void StopRewindForDuration();
 
 private:
@@ -140,6 +143,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void SetIsRewindingEnabled(bool bEnabled);
+
+	UPROPERTY(BlueprintReadWrite, Category = "Rewind")
+	bool bIsRewindingForDuration = false;
 
 public:
 	URewindComponent();
@@ -189,8 +195,6 @@ private:
 	
 	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
 	APlayerGameModeBase* GameMode;
-
-	bool bIsRewindingForDuration = false;
 	
 	float RemainingRewindDuration = 0.0f;
 

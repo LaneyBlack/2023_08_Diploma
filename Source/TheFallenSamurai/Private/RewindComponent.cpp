@@ -644,6 +644,16 @@ void URewindComponent::StopTimeScrubForDuration()
 	bIsTimeScrubbingForDuration = false;
 }
 
+void URewindComponent::TimeScrubForDurationDeath()
+{
+	if (bIsTimeScrubbingForDuration)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(RewindTimerHandle);
+	}
+
+	bIsTimeScrubbingForDuration = false;
+}
+
 float URewindComponent::GetRemainingTimeScrub() const
 {
 	if (bIsTimeScrubbingForDuration)
