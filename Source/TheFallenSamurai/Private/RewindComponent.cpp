@@ -70,11 +70,11 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
     
 	if (bIsRewindingForDuration)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Remaining rewind time: %f"), RemainingRewindDuration));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Remaining rewind time: %f"), RemainingRewindDuration));
 		
 		if (LatestSnapshotIndex == 1)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("No more snapshots to rewind")));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("No more snapshots to rewind")));
 			bIsRewindingForDuration = false;
 			StopRewindForDuration();
 			return;
@@ -92,13 +92,13 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 				if (bIsLocationSafe)
 				{
-					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
+					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
 					bIsRewindingForDuration = false;
 					StopRewindForDuration();
 				}
 				else
 				{
-					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
+					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
 					PlaySnapshots(DeltaTime, true);
 				}
 			}
@@ -251,7 +251,7 @@ bool URewindComponent::PerformSafetyTrace(const FVector& Location) const
 	// Perform the trace
 	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 	
-	if (bHit)
+	/*if (bHit)
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1, 0, 5);
 		DrawDebugPoint(GetWorld(), HitResult.ImpactPoint, 10, FColor::Red, false, 1);
@@ -259,7 +259,7 @@ bool URewindComponent::PerformSafetyTrace(const FVector& Location) const
 	else
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1, 0, 5);
-	}
+	}*/
 	
 	return bHit;
 }
