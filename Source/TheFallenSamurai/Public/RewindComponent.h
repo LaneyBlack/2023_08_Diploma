@@ -38,6 +38,9 @@ struct FTransformAndVelocitySnapshot
 	
 	UPROPERTY(Transient)
 	FVector AngularVelocityInRadians = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	bool bIsLocationSafe;
 };
 
 USTRUCT()
@@ -70,7 +73,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Rewind")
 	bool bPauseAnimationDuringTimeScrubbing = true;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Rewind")
+	UPROPERTY(BlueprintReadWrite, Category = "Rewind")
 	bool bIsTimeScrubbingForDuration = false;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Rewind")
@@ -125,6 +128,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void StopTimeScrubForDuration();
 
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void TimeScrubForDurationDeath();
+
 	void StopRewindForDuration();
 
 private:
@@ -137,6 +143,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Rewind")
 	void SetIsRewindingEnabled(bool bEnabled);
+
+	UPROPERTY(BlueprintReadWrite, Category = "Rewind")
+	bool bIsRewindingForDuration = false;
 
 public:
 	URewindComponent();
@@ -151,6 +160,8 @@ private:
 	TRingBuffer<FTransformAndVelocitySnapshot> TransformAndVelocitySnapshots;
 	
 	TRingBuffer<FMovementVelocityAndModeSnapshot> MovementVelocityAndModeSnapshots;
+
+	bool PerformSafetyTrace(const FVector& Location) const;
 	
 	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
 	uint32 MaxSnapshots = 1;
@@ -184,14 +195,20 @@ private:
 	
 	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
 	APlayerGameModeBase* GameMode;
-
-	bool bIsRewindingForDuration = false;
 	
 	float RemainingRewindDuration = 0.0f;
 
 	float TotalTimeScrub = 0.0f;
 
 	float TimeScrubStartedAt = 0.0f;
+
+	bool bContinueRewindUntilSafe = false;
+	
+	bool IsLatestSnapshotLocationSafe() const;
+	
+	void CheckSafeLocationAfterRewind();
+	
+	void CompleteRewind();
 	
 	UFUNCTION()
 	void OnGlobalRewindStarted();

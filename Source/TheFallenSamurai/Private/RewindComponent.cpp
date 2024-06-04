@@ -11,6 +11,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/MovementComponent.h"
 #include "PlayerGameModeBase.h"
+#include "TheFallenSamurai/TheFallenSamuraiCharacter.h"
 
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
@@ -23,60 +24,88 @@
 URewindComponent::URewindComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 }
 
 void URewindComponent::BeginPlay()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::BeginPlay);
-	
+
 	Super::BeginPlay();
-	
+
 	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
 	if (!GameMode)
 	{
 		SetComponentTickEnabled(false);
 		return;
 	}
-	
+
 	OwnerRootComponent = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
-	
+
 	if (bSnapshotMovementVelocityAndMode)
 	{
 		ACharacter* Character = Cast<ACharacter>(GetOwner());
 		OwnerMovementComponent = Character ? Cast<UCharacterMovementComponent>(Character->GetMovementComponent()) : nullptr;
 	}
-	
+
 	if (bPauseAnimationDuringTimeScrubbing && GetOwner()->IsA<ACharacter>())
 	{
 		OwnerSkeletalMesh = Cast<ACharacter>(GetOwner())->GetMesh();
 		ensureMsgf(OwnerSkeletalMesh, TEXT("OwnerSkeletalMesh is null for %s"), *GetOwner()->GetName());
 	}
-	
+
 	GameMode->OnGlobalRewindStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindStarted);
 	GameMode->OnGlobalRewindCompleted.AddUniqueDynamic(this, &URewindComponent::OnGlobalRewindCompleted);
 	GameMode->OnGlobalTimeScrubStarted.AddUniqueDynamic(this, &URewindComponent::OnGlobalTimeScrubStarted);
 	GameMode->OnGlobalTimeScrubCompleted.AddUniqueDynamic(this, &URewindComponent::OnGlobalTimeScrubCompleted);
-	
+
 	InitializeRingBuffers(GameMode->MaxRewindSeconds);
 }
-
-
 
 void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::TickComponent);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	
+    
 	if (bIsRewindingForDuration)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Remaining rewind time: %f"), RemainingRewindDuration));
+		
+		if (LatestSnapshotIndex == 1)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("No more snapshots to rewind")));
+			bIsRewindingForDuration = false;
+			StopRewindForDuration();
+			return;
+		}
+		
 		RemainingRewindDuration -= DeltaTime;
+		
 		if (RemainingRewindDuration <= 0.0f)
 		{
-			bIsRewindingForDuration = false;
-			OnGlobalRewindCompleted();
+			ATheFallenSamuraiCharacter* Player = Cast<ATheFallenSamuraiCharacter>(GetOwner());
+
+			if (Player)
+			{
+				bool bIsLocationSafe = PerformSafetyTrace(Player->GetActorLocation());
+
+				if (bIsLocationSafe)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
+					bIsRewindingForDuration = false;
+					StopRewindForDuration();
+				}
+				else
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
+					PlaySnapshots(DeltaTime, true);
+				}
+			}
+			else
+			{
+				PlaySnapshots(DeltaTime, true);
+			}
 		}
 		else
 		{
@@ -95,7 +124,6 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	{
 		RecordSnapshot(DeltaTime);
 	}
-	
 }
 
 
@@ -171,41 +199,69 @@ void URewindComponent::InitializeRingBuffers(float MaxRewindSeconds)
 
 void URewindComponent::RecordSnapshot(float DeltaTime)
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::RecordSnapshot);
+	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::RecordSnapshot);
 
-    TimeSinceSnapshotsChanged += DeltaTime;
+	TimeSinceSnapshotsChanged += DeltaTime;
+
+	if (TimeSinceSnapshotsChanged < SnapshotFrequencySeconds && TransformAndVelocitySnapshots.Num() != 0)
+	{
+		return;
+	}
+
+	if (TransformAndVelocitySnapshots.Num() == MaxSnapshots)
+	{
+		TransformAndVelocitySnapshots.PopFront();
+	}
+
+	FTransform Transform = GetOwner()->GetActorTransform();
+	FVector LinearVelocity = OwnerRootComponent ? OwnerRootComponent->GetPhysicsLinearVelocity() : FVector::Zero();
+	FVector AngularVelocityInRadians = OwnerRootComponent ? OwnerRootComponent->GetPhysicsAngularVelocityInRadians() : FVector::Zero();
+
+	//bool bIsLocationSafe = PerformSafetyTrace(Transform.GetLocation());
+
+	LatestSnapshotIndex = TransformAndVelocitySnapshots.Emplace(TimeSinceSnapshotsChanged, Transform, LinearVelocity, AngularVelocityInRadians);
+
+	if (bSnapshotMovementVelocityAndMode && OwnerMovementComponent)
+	{
+		if (MovementVelocityAndModeSnapshots.Num() == MaxSnapshots)
+		{
+			MovementVelocityAndModeSnapshots.PopFront();
+		}
+
+		FVector MovementVelocity = OwnerMovementComponent->Velocity;
+		TEnumAsByte<EMovementMode> MovementMode = OwnerMovementComponent->MovementMode;
+
+		int32 LatestMovementSnapshotIndex = MovementVelocityAndModeSnapshots.Emplace(TimeSinceSnapshotsChanged, MovementVelocity, MovementMode);
+		check(LatestSnapshotIndex == LatestMovementSnapshotIndex);
+	}
+
+	TimeSinceSnapshotsChanged = 0.0f;
+}
+
+bool URewindComponent::PerformSafetyTrace(const FVector& Location) const
+{
+	FVector Start = Location;
+	FVector End = Location - FVector(0, 0, 150.0f);
+
+	// Set up the trace parameters
+	FHitResult HitResult;
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(GetOwner());
+
+	// Perform the trace
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 	
-    if (TimeSinceSnapshotsChanged < SnapshotFrequencySeconds && TransformAndVelocitySnapshots.Num() != 0)
-    {
-        return;
-    }
+	if (bHit)
+	{
+		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1, 0, 5);
+		DrawDebugPoint(GetWorld(), HitResult.ImpactPoint, 10, FColor::Red, false, 1);
+	}
+	else
+	{
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1, 0, 5);
+	}
 	
-    if (TransformAndVelocitySnapshots.Num() == MaxSnapshots)
-    {
-        TransformAndVelocitySnapshots.PopFront();
-    }
-	
-    FTransform Transform = GetOwner()->GetActorTransform();
-    FVector LinearVelocity = OwnerRootComponent ? OwnerRootComponent->GetPhysicsLinearVelocity() : FVector::Zero();
-    FVector AngularVelocityInRadians = OwnerRootComponent ? OwnerRootComponent->GetPhysicsAngularVelocityInRadians() : FVector::Zero();
-	
-    LatestSnapshotIndex = TransformAndVelocitySnapshots.Emplace(TimeSinceSnapshotsChanged, Transform, LinearVelocity, AngularVelocityInRadians);
-	
-    if (bSnapshotMovementVelocityAndMode && OwnerMovementComponent)
-    {
-        if (MovementVelocityAndModeSnapshots.Num() == MaxSnapshots)
-        {
-            MovementVelocityAndModeSnapshots.PopFront();
-        }
-    	
-        FVector MovementVelocity = OwnerMovementComponent->Velocity;
-        TEnumAsByte<EMovementMode> MovementMode = OwnerMovementComponent->MovementMode;
-    	
-        int32 LatestMovementSnapshotIndex = MovementVelocityAndModeSnapshots.Emplace(TimeSinceSnapshotsChanged, MovementVelocity, MovementMode);
-        check(LatestSnapshotIndex == LatestMovementSnapshotIndex);
-    }
-	
-    TimeSinceSnapshotsChanged = 0.0f;
+	return bHit;
 }
 
 
@@ -276,6 +332,15 @@ void URewindComponent::PlaySnapshots(float DeltaTime, bool bRewinding)
     InterpolateAndApplySnapshots(bRewinding);
 }
 
+//probably not needed
+bool URewindComponent::IsLatestSnapshotLocationSafe() const
+{
+	if (LatestSnapshotIndex >= 0 && LatestSnapshotIndex < TransformAndVelocitySnapshots.Num())
+	{
+		return TransformAndVelocitySnapshots[LatestSnapshotIndex].bIsLocationSafe;
+	}
+	return false;
+}
 
 void URewindComponent::PauseTime(float DeltaTime, bool bRewinding)
 {
@@ -507,23 +572,40 @@ void URewindComponent::RewindForDuration(float Duration)
 		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::RewindForDuration"));
 		return;
 	}
-	
-	GameMode->SetRewindSpeedFastest();
-	GameMode->StartGlobalRewind();
 
-	GetWorld()->GetTimerManager().SetTimer(RewindTimerHandle, this, &URewindComponent::StopRewindForDuration, Duration, false);
+	GameMode->SetRewindSpeedFastest();
+	RemainingRewindDuration = Duration;
+	bIsRewindingForDuration = true;
+	OnGlobalRewindStarted();
+}
+
+// probably not needed
+void URewindComponent::CheckSafeLocationAfterRewind()
+{
+	if (IsLatestSnapshotLocationSafe())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Latest Snapshot Location is Safe"));
+		StopRewindForDuration();
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Latest Snapshot Location is Not Safe"));
+		bContinueRewindUntilSafe = true;
+	}
 }
 
 void URewindComponent::StopRewindForDuration()
 {
 	if (!GameMode)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::StopRewind"));
+		UE_LOG(LogTemp, Warning, TEXT("GameMode is not set in URewindComponent::StopRewindForDuration"));
 		return;
 	}
 
+	bIsRewindingForDuration = false;
 	GameMode->SetRewindSpeedNormal();
 	GameMode->StopGlobalRewind();
+	OnGlobalRewindCompleted();
 }
 
 void URewindComponent::TimeScrubForDuration(float Duration)
@@ -558,6 +640,16 @@ void URewindComponent::StopTimeScrubForDuration()
 	}
 
 	GameMode->ToggleTimeScrub();
+
+	bIsTimeScrubbingForDuration = false;
+}
+
+void URewindComponent::TimeScrubForDurationDeath()
+{
+	if (bIsTimeScrubbingForDuration)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(RewindTimerHandle);
+	}
 
 	bIsTimeScrubbingForDuration = false;
 }
