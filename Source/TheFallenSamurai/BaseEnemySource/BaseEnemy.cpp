@@ -37,7 +37,7 @@ bool ABaseEnemy::HandleHitReaction()
 		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
 		SpawnedHead->SetMobility(EComponentMobility::Movable);
 		SpawnedHead->SetActorTransform(GetMesh()->GetBoneTransform(HeadBoneName));
-		SpawnedHead->SetActorScale3D(FVector(2.f));
+		SpawnedHead->SetActorScale3D(FVector(1.3f));
 
 		UStaticMeshComponent* MeshComponent = SpawnedHead->GetStaticMeshComponent();
 		if (MeshComponent)
