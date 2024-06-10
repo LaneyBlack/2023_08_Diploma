@@ -67,7 +67,8 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 
 	static int index = 0;
 	//CurrentAttackData = AttackMontages[index++ % AttackMontages.Num()];
-	return AttackMontages[index++ % AttackMontages.Num()];
+	return AttackMontages[0];
+	//return AttackMontages[index++ % AttackMontages.Num()];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -526,7 +527,6 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	return true;
 }
 
-//TELEPORT COPY: THIS IS HOW THIS FUNCTION SHOULD LOOK LIKE
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
 	bInTeleport = true;
@@ -548,9 +548,9 @@ void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 	playerCharacter->GetController()->SetIgnoreLookInput(true);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	TeleportTimeline.PlayFromStart();
-
 	OnIFramesChanged.Broadcast(true);
+
+	TeleportTimeline.PlayFromStart();
 }
 
 float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
@@ -1033,7 +1033,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		HitTracer->ToggleTraceCheck(true);
 		
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
-			AttackCameraShake,
+			CurrentAttackData.AttackShake,
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
 

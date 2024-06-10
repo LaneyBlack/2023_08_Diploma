@@ -45,6 +45,9 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PerfectAttackTime;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UCameraShakeBase> AttackShake;
+
 	//for later 
 	//hand offset of crig
 };
@@ -252,7 +255,7 @@ public:
 	float AttackSpeedMultiplier = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shakes")
-	TSubclassOf<UCameraShakeBase> AttackCameraShake;
+	TSubclassOf<UCameraShakeBase> HitCameraShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	class UParticleSystem* BloodParticles;
