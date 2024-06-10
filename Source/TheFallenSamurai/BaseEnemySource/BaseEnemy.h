@@ -34,7 +34,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	bool HandleHitReaction();
+	bool HandleHitReaction(const FVector& Impulse);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void ApplyDamage();

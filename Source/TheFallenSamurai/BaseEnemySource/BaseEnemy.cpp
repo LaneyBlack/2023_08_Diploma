@@ -26,7 +26,7 @@ void ABaseEnemy::Tick(float DeltaTime)
 
 }
 
-bool ABaseEnemy::HandleHitReaction()
+bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 {
 	if (!bIsGettingHit)
 	{
@@ -52,7 +52,8 @@ bool ABaseEnemy::HandleHitReaction()
 			MeshComponent->SetSimulatePhysics(true);
 			MeshComponent->SetEnableGravity(true);
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-			MeshComponent->SetAllMassScale(5);
+			MeshComponent->SetAllMassScale(7);
+			MeshComponent->AddImpulse(Impulse);
 		}
 		bIsGettingHit = true;
 		return false;

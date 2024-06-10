@@ -67,8 +67,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 
 	static int index = 0;
 	//CurrentAttackData = AttackMontages[index++ % AttackMontages.Num()];
-	return AttackMontages[0];
-	//return AttackMontages[index++ % AttackMontages.Num()];
+	return AttackMontages[index++ % AttackMontages.Num()];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -103,8 +102,15 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
 			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
-		if (!Enemy->HandleHitReaction())
+		FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
+		//DismembermentImpulse.Z += 2.f;
+		DismembermentImpulse.Normalize();
+		DismembermentImpulse *= 60'000.f;
+
+		if (!Enemy->HandleHitReaction(DismembermentImpulse))
 		{
+			PlayerCameraManager->StopAllCameraShakes();
+
 			PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
 				HitCameraShake,
 				playerCharacter->GetActorLocation(),
