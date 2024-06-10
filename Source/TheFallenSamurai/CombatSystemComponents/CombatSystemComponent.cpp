@@ -101,7 +101,7 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 		auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
 
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
-			BloodParticles, ImpactPoint, ParticleRotation, BloodScale);
+			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
 		if(Enemy->HandleHitReaction())
 			PlayerCameraManager->PlayWorldCameraShake(GetWorld(),

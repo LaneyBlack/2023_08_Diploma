@@ -45,6 +45,8 @@ bool ABaseEnemy::HandleHitReaction()
 			MeshComponent->SetStaticMesh(HeadMesh);
 			MeshComponent->SetSimulatePhysics(true);
 			MeshComponent->SetEnableGravity(true);
+			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+			MeshComponent->SetAllMassScale(20);
 		}
 	}
 
