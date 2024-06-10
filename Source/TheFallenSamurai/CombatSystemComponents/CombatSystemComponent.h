@@ -9,6 +9,14 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "CombatSystemComponent.generated.h"
 
+
+class AKatana;
+class UCameraShakeBase;
+class ABaseEnemy;
+template<typename... Types>
+struct TTuple;
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemiesLeftChanged, int, EnemiesLeft);
@@ -82,12 +90,6 @@ struct FValidationRules
 	bool bUseLazyCheck = true;
 	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
 };
-
-class AKatana;
-class UCameraShakeBase;
-class ABaseEnemy;
-template<typename... Types>
-struct TTuple;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent

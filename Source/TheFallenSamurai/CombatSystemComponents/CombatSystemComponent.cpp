@@ -1041,12 +1041,12 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
-		PRINT("NO camera shake", 3);
+		//PRINT("NO camera shake", 3);
 
-		/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
+		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
 			CurrentAttackData.AttackShake,
 			playerCharacter->GetActorLocation(), 
-			0, 500, 1);*/
+			0, 500, 1);
 
 		/*auto current = playerCharacter->GetCurrentMontage();
 		GetNotifyTimeInMontage(current, "TraceWindow", "PerfectAttackTrack");*/
