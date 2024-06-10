@@ -34,11 +34,12 @@ bool ABaseEnemy::HandleHitReaction()
 
 		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
 
-		AStaticMeshActor* MyNewActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
-		MyNewActor->SetMobility(EComponentMobility::Movable);
-		MyNewActor->SetActorTransform(GetMesh()->GetBoneTransform(HeadBoneName));
+		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
+		SpawnedHead->SetMobility(EComponentMobility::Movable);
+		SpawnedHead->SetActorTransform(GetMesh()->GetBoneTransform(HeadBoneName));
+		SpawnedHead->SetActorScale3D(FVector(2.f));
 
-		UStaticMeshComponent* MeshComponent = MyNewActor->GetStaticMeshComponent();
+		UStaticMeshComponent* MeshComponent = SpawnedHead->GetStaticMeshComponent();
 		if (MeshComponent)
 		{
 			MeshComponent->SetStaticMesh(HeadMesh);
