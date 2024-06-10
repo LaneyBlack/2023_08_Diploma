@@ -36,8 +36,14 @@ bool ABaseEnemy::HandleHitReaction()
 
 		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
 		SpawnedHead->SetMobility(EComponentMobility::Movable);
+
 		SpawnedHead->SetActorTransform(GetMesh()->GetBoneTransform(HeadBoneName));
-		SpawnedHead->SetActorScale3D(FVector(1.3f));
+
+		auto Location = SpawnedHead->GetActorLocation();
+		Location.Z += 20.f;
+		SpawnedHead->SetActorLocation(Location);
+
+		SpawnedHead->SetActorScale3D(FVector(1.4f));
 
 		UStaticMeshComponent* MeshComponent = SpawnedHead->GetStaticMeshComponent();
 		if (MeshComponent)
@@ -46,13 +52,13 @@ bool ABaseEnemy::HandleHitReaction()
 			MeshComponent->SetSimulatePhysics(true);
 			MeshComponent->SetEnableGravity(true);
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-			MeshComponent->SetAllMassScale(20);
+			MeshComponent->SetAllMassScale(5);
 		}
+		bIsGettingHit = true;
+		return false;
 	}
 
-	bIsGettingHit = true;
-
-	return bIsGettingHit;
+	return true;
 }
 
 // Called to bind functionality to input
