@@ -103,11 +103,13 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
 			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
-		if(!Enemy->HandleHitReaction())
+		if (!Enemy->HandleHitReaction())
+		{
 			PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
-			HitCameraShake,
-			playerCharacter->GetActorLocation(),
-			100, 500, 1);
+				HitCameraShake,
+				playerCharacter->GetActorLocation(),
+				1, 500, 1);
+		}
 	}
 }
 
