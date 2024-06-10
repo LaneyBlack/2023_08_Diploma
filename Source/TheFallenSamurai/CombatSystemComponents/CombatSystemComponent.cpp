@@ -91,7 +91,7 @@ void UCombatSystemComponent::HandleAttackEnd()
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
 }
 
-void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector ImpactPoint)
+void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint)
 {
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
@@ -100,9 +100,22 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector Impact
 		auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
 
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
-			BloodParticles, ImpactPoint, ParticleRotation, BloodScale);
+			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
-		Enemy->ApplyDamage();
+		FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
+		//DismembermentImpulse.Z += 2.f;
+		DismembermentImpulse.Normalize();
+		DismembermentImpulse *= 60'000.f;
+
+		if (!Enemy->HandleHitReaction(DismembermentImpulse))
+		{
+			PlayerCameraManager->StopAllCameraShakes();
+
+			PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
+				HitCameraShake,
+				playerCharacter->GetActorLocation(),
+				1, 500, 1);
+		}
 	}
 }
 
@@ -122,8 +135,11 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
+	//PRINT("==========================================================", 4);
 	for (auto& result : HitTracer->HitArray)
 	{
+		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(result.GetComponent()), 4, FColor::Orange);
+		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Orange);
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
 		result.Reset();
 	}
@@ -361,7 +377,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 		N *= ValidationRules.ChecksSampleScale;
 
-
 		float InnerAngle = 360.f / N;
 
 		//int MaxChecks = 1;
@@ -526,7 +541,6 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	return true;
 }
 
-//TELEPORT COPY: THIS IS HOW THIS FUNCTION SHOULD LOOK LIKE
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
 	bInTeleport = true;
@@ -548,9 +562,9 @@ void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 	playerCharacter->GetController()->SetIgnoreLookInput(true);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	TeleportTimeline.PlayFromStart();
-
 	OnIFramesChanged.Broadcast(true);
+
+	TeleportTimeline.PlayFromStart();
 }
 
 float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
@@ -718,6 +732,7 @@ void UCombatSystemComponent::SwingKatana()
 
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
+	//HitActorsOnSwing.Empty();
 
 	//quickly stop perfect parry montage
 	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
@@ -1032,8 +1047,10 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
+		//PRINT("NO camera shake", 3);
+
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
-			AttackCameraShake,
+			CurrentAttackData.AttackShake,
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
 

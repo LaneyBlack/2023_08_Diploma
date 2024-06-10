@@ -9,6 +9,14 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "CombatSystemComponent.generated.h"
 
+
+class AKatana;
+class UCameraShakeBase;
+class ABaseEnemy;
+template<typename... Types>
+struct TTuple;
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemiesLeftChanged, int, EnemiesLeft);
@@ -45,6 +53,9 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PerfectAttackTime;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UCameraShakeBase> AttackShake;
+
 	//for later 
 	//hand offset of crig
 };
@@ -79,12 +90,6 @@ struct FValidationRules
 	bool bUseLazyCheck = true;
 	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
 };
-
-class AKatana;
-class UCameraShakeBase;
-class ABaseEnemy;
-template<typename... Types>
-struct TTuple;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent
@@ -125,6 +130,8 @@ private:
 	FAttackAnimData NextAttackData;
 
 	TArray<FAttackAnimData> CounterAttackMontages;
+
+	TSet<AActor*> HitActorsOnSwing;
 
 	class APlayerCameraManager* PlayerCameraManager;
 
@@ -200,7 +207,7 @@ private:
 	void HandleAttackEnd();
 
 	UFUNCTION()
-	void ProcessHitReaction(AActor* HitActor, FVector ImpactPoint);
+	void ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint);
 
 	UFUNCTION()
 	FVector DetermineKatanaDirection();
@@ -251,8 +258,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shakes")
-	TSubclassOf<UCameraShakeBase> AttackCameraShake;
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
+	TSubclassOf<UCameraShakeBase> HitCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
+	class UParticleSystem* DefaultHitParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	class UParticleSystem* BloodParticles;

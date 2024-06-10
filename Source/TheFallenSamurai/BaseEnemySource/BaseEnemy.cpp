@@ -2,6 +2,7 @@
 
 
 #include "BaseEnemy.h"
+#include "Engine/StaticMeshActor.h"
 
 // Sets default values
 ABaseEnemy::ABaseEnemy()
@@ -23,6 +24,42 @@ void ABaseEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
+{
+	if (!bIsGettingHit)
+	{
+		ApplyDamage();
+
+		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
+
+		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
+		SpawnedHead->SetMobility(EComponentMobility::Movable);
+
+		SpawnedHead->SetActorTransform(GetMesh()->GetBoneTransform(HeadBoneName));
+
+		auto Location = SpawnedHead->GetActorLocation();
+		Location.Z += 20.f;
+		SpawnedHead->SetActorLocation(Location);
+
+		SpawnedHead->SetActorScale3D(FVector(1.4f));
+
+		UStaticMeshComponent* MeshComponent = SpawnedHead->GetStaticMeshComponent();
+		if (MeshComponent)
+		{
+			MeshComponent->SetStaticMesh(HeadMesh);
+			MeshComponent->SetSimulatePhysics(true);
+			MeshComponent->SetEnableGravity(true);
+			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+			MeshComponent->SetAllMassScale(7);
+			MeshComponent->AddImpulse(Impulse);
+		}
+		bIsGettingHit = true;
+		return false;
+	}
+
+	return true;
 }
 
 // Called to bind functionality to input
