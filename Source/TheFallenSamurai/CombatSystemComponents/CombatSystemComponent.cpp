@@ -92,7 +92,7 @@ void UCombatSystemComponent::HandleAttackEnd()
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
 }
 
-void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector ImpactPoint)
+void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint)
 {
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
@@ -103,7 +103,11 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, FVector Impact
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
 			BloodParticles, ImpactPoint, ParticleRotation, BloodScale);
 
-		Enemy->ApplyDamage();
+		if(Enemy->HandleHitReaction())
+			PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
+			HitCameraShake,
+			playerCharacter->GetActorLocation(),
+			0, 500, 1);
 	}
 }
 
@@ -123,8 +127,11 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
+	//PRINT("==========================================================", 4);
 	for (auto& result : HitTracer->HitArray)
 	{
+		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(result.GetComponent()), 4, FColor::Orange);
+		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Orange);
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
 		result.Reset();
 	}
@@ -361,7 +368,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		int N = FMath::DivideAndRoundNearest(180.f, FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)));
 
 		N *= ValidationRules.ChecksSampleScale;
-
 
 		float InnerAngle = 360.f / N;
 
@@ -718,6 +724,7 @@ void UCombatSystemComponent::SwingKatana()
 
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
+	//HitActorsOnSwing.Empty();
 
 	//quickly stop perfect parry montage
 	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
@@ -1032,10 +1039,12 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
-		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
+		PRINT("NO camera shake", 3);
+
+		/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
 			CurrentAttackData.AttackShake,
 			playerCharacter->GetActorLocation(), 
-			0, 500, 1);
+			0, 500, 1);*/
 
 		/*auto current = playerCharacter->GetCurrentMontage();
 		GetNotifyTimeInMontage(current, "TraceWindow", "PerfectAttackTrack");*/

@@ -20,8 +20,21 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
+	UStaticMesh* HeadMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
+	FName HeadBoneName;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bIsGettingHit;
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION(BlueprintCallable)
+	bool HandleHitReaction();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void ApplyDamage();

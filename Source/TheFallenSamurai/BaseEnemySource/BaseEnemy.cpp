@@ -2,6 +2,7 @@
 
 
 #include "BaseEnemy.h"
+#include "Engine/StaticMeshActor.h"
 
 // Sets default values
 ABaseEnemy::ABaseEnemy()
@@ -23,6 +24,32 @@ void ABaseEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+bool ABaseEnemy::HandleHitReaction()
+{
+	if (!bIsGettingHit)
+	{
+		ApplyDamage();
+
+		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
+
+		AStaticMeshActor* MyNewActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
+		MyNewActor->SetMobility(EComponentMobility::Movable);
+		MyNewActor->SetActorTransform(GetMesh()->GetBoneTransform(HeadBoneName));
+
+		UStaticMeshComponent* MeshComponent = MyNewActor->GetStaticMeshComponent();
+		if (MeshComponent)
+		{
+			MeshComponent->SetStaticMesh(HeadMesh);
+			MeshComponent->SetSimulatePhysics(true);
+			MeshComponent->SetEnableGravity(true);
+		}
+	}
+
+	bIsGettingHit = true;
+
+	return bIsGettingHit;
 }
 
 // Called to bind functionality to input

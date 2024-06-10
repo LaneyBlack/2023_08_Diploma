@@ -129,6 +129,8 @@ private:
 
 	TArray<FAttackAnimData> CounterAttackMontages;
 
+	TSet<AActor*> HitActorsOnSwing;
+
 	class APlayerCameraManager* PlayerCameraManager;
 
 	FVector KatanaPreviousPosition;
@@ -203,7 +205,7 @@ private:
 	void HandleAttackEnd();
 
 	UFUNCTION()
-	void ProcessHitReaction(AActor* HitActor, FVector ImpactPoint);
+	void ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint);
 
 	UFUNCTION()
 	FVector DetermineKatanaDirection();
@@ -254,8 +256,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shakes")
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
 	TSubclassOf<UCameraShakeBase> HitCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
+	class UParticleSystem* DefaultHitParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	class UParticleSystem* BloodParticles;
