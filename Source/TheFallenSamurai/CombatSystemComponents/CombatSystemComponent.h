@@ -191,6 +191,11 @@ private:
 	
 	int SuperAbilityTargetsLeft;
 
+	TSet<ABaseEnemy*> PostProcessSA_Targets;
+
+	UFUNCTION()
+	void ClearAffectedByPostProcess();
+
 	UFUNCTION()
 	FVector GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector);
 
