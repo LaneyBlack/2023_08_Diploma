@@ -17,6 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetCombo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetKillstreak);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnComboStart);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnComboPointsChanged, int32, NewComboPoints);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeStopCalled, FString, FailReason); 
 
 UCLASS()
 class THEFALLENSAMURAI_API UComboSystem : public UObject
@@ -45,6 +46,18 @@ public:
 	FString KillStreakName;
 
 	UPROPERTY(BlueprintReadOnly)
+	int32 ComboCache;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 AbilityComboPoints;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 SuperAbilityCost = 30000;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 TimeStopCost = 20000;
+
+	UPROPERTY(BlueprintReadOnly)
 	TArray<FString> KillStreakMessages;
 
 	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
@@ -66,6 +79,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnNewKillStreakMessage OnNewKillStreakMessage;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnTimeStopCalled OnTimeStopCalled;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnResetKillstreak OnResetKillstreak;

@@ -55,7 +55,7 @@ void UCombatSystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UComboSystem::GetInstance()->OnComboPointsChanged.AddDynamic(this, &UCombatSystemComponent::OnComboPointsChanged);
+	ComboSystem = UComboSystem::GetInstance();
 }
 
 bool UCombatSystemComponent::CheckIfCanAttack()
@@ -903,8 +903,13 @@ void UCombatSystemComponent::Attack()
 				SA_State = SuperAbilityState::TELEPORTING;
 				TeleportToEnemy(SuperAbilityTarget->GetDistanceTo(playerCharacter));
 
-				StolenTokens = 0;
-				OnStolenTokensChanged.Broadcast(StolenTokens);
+				/*StolenTokens = 0;
+				OnStolenTokensChanged.Broadcast(StolenTokens);*/
+
+				if (ComboSystem->AbilityComboPoints >= ComboSystem->SuperAbilityCost)
+				{
+					ComboSystem->AbilityComboPoints -= ComboSystem->SuperAbilityCost;
+				}
 
 				OnEnemiesLeftChanged.Broadcast(SuperAbilityTargetsLeft);
 				SuperAbilityTargetsLeft--;
@@ -1000,10 +1005,10 @@ void UCombatSystemComponent::SuperAbility()
 
 	//PRINT("called ability", 2);
 
-	if (StolenTokens < SuperAbilityCost)
+	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
 	{
-		//PRINT("Not enough tokens", 2);
-		OnSuperAbilityCalled.Broadcast(false, "Not enough Parry Points");
+		//PRINT("Not enough Combo Points", 2);
+		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
 		return;
 	}
 	/*else if (!ExecuteSuperAbility())
@@ -1259,5 +1264,4 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UCombatSystemComponent::OnComboPointsChanged(int32 NewComboPoints)
 {
 	CurrentComboPoints += NewComboPoints;
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), CurrentComboPoints));
 }

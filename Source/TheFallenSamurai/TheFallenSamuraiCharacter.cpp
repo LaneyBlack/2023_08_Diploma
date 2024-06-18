@@ -321,16 +321,23 @@ void ATheFallenSamuraiCharacter::ToggleRewindParticipationNoInput()
 
 void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 {
+	UComboSystem* ComboSystem = UComboSystem::GetInstance();
+
 	if (!CombatSystemComponent->IsSuperAbilityActive())
 	{
 		if(RewindComponent->bIsTimeScrubbingForDuration)
 		{
 			RewindComponent->StopTimeScrubForDuration();
 		}
-		else if(CombatSystemComponent->CheckAndUseTokens(2))
+		else if(ComboSystem->AbilityComboPoints >= ComboSystem->TimeStopCost)
 		{
+			ComboSystem->AbilityComboPoints -= ComboSystem->TimeStopCost;
 			ToggleRewindParticipationNoInput();
-			RewindComponent->TimeScrubForDuration(10);
+			RewindComponent->TimeScrubForDuration(5.0f);
+		}
+		else
+		{
+			ComboSystem->OnTimeStopCalled.Broadcast("Not enough Combo Points");
 		}
 	}
 }

@@ -4,6 +4,7 @@
 
 //#include "Templates/Tuple.h"
 #include "CoreMinimal.h"
+#include "ComboSystem.h"
 #include "Components/ActorComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -186,6 +187,8 @@ private:
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
 
 	ABaseEnemy* SuperAbilityTarget = nullptr;
+
+	UComboSystem* ComboSystem;
 
 	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
 	
