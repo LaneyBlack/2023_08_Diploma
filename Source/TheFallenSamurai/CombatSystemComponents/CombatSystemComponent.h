@@ -450,5 +450,11 @@ public:
 	void SlowMoTimelineFinish();
 
 	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UFUNCTION()
+	void OnComboPointsChanged(int32 NewComboPoints);
+
+private:
+	int32 CurrentComboPoints;
 };

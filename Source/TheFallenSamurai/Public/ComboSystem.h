@@ -16,6 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewKillStreakMessage, const FStri
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetCombo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnResetKillstreak);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnComboStart);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnComboPointsChanged, int32, NewComboPoints);
 
 UCLASS()
 class THEFALLENSAMURAI_API UComboSystem : public UObject
@@ -92,6 +93,10 @@ public:
 		ComboState = NewComboState;
 		InitializeComboStateTimer();
 	}
+
+	int32 GetCurrentComboPoints() const;
+
+	FOnComboPointsChanged OnComboPointsChanged;
 
 protected:
 	virtual void BeginDestroy() override;

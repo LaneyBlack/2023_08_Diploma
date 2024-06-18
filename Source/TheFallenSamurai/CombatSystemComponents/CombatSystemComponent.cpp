@@ -31,6 +31,8 @@
 
 #include "UObject/Class.h"
 
+#include "ComboSystem.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -51,7 +53,9 @@ UCombatSystemComponent::UCombatSystemComponent()
 // Called when the game starts
 void UCombatSystemComponent::BeginPlay()
 {
-	Super::BeginPlay();	
+	Super::BeginPlay();
+
+	UComboSystem::GetInstance()->OnComboPointsChanged.AddDynamic(this, &UCombatSystemComponent::OnComboPointsChanged);
 }
 
 bool UCombatSystemComponent::CheckIfCanAttack()
@@ -1234,4 +1238,10 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	PRINT_B("In Combat %s", bInCombat);
 	PRINT_B("In Parry %s", bInParry);*/
 	//PRINT_B("In Teleport %s", bInTeleport);
+}
+
+void UCombatSystemComponent::OnComboPointsChanged(int32 NewComboPoints)
+{
+	CurrentComboPoints = NewComboPoints;
+	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), NewComboPoints));
 }
