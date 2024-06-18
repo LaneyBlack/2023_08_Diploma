@@ -629,6 +629,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 			continue;
 
 		Enemy->SetDebugTextValue("-");
+
 		//Enemy->SetEnableTargetWidget(false);
 
 		/*FHitResult BlockHit;
@@ -653,6 +654,11 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 			ObscuredCounter--;
 			//DrawDebugBox(GetWorld(), BlockHit.ImpactPoint, FVector(5), FColor::Magenta, false, 5);
 			continue;
+		}
+		else
+		{
+			Enemy->GetMesh()->SetCustomDepthStencilValue(3);
+			PostProcessSA_Targets.Add(Enemy);
 		}
 
 
@@ -754,6 +760,13 @@ void UCombatSystemComponent::SwingKatana()
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack,
 		1 / 60.f, true);
+}
+
+void UCombatSystemComponent::ClearAffectedByPostProcess()
+{
+	for (auto& enemy : PostProcessSA_Targets)
+		enemy->GetMesh()->SetCustomDepthStencilValue(enemy->bIsGettingHit ? 0 : 2);
+	PostProcessSA_Targets.Empty();
 }
 
 FVector UCombatSystemComponent::GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector)
@@ -872,8 +885,9 @@ void UCombatSystemComponent::Attack()
 		{
 			if (SuperAbilityTarget)
 			{
-				//PRINTC("Super Ability attack", FColor::Orange);
 				GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
+
+
 
 				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 
@@ -1008,7 +1022,8 @@ void UCombatSystemComponent::SuperAbility()
 
 void UCombatSystemComponent::CancelSuperAbility()
 {
-	//PRINT("canceled ability call", 2);
+	ClearAffectedByPostProcess();
+
 	GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
 	if (SuperAbilityTarget)
@@ -1104,6 +1119,7 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 			}
 
 			SuperAbilityTarget = nullptr;
+			ClearAffectedByPostProcess();
 			GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
 		}
 	}
