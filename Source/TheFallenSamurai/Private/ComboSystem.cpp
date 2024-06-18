@@ -45,8 +45,6 @@ void UComboSystem::UpdateComboLevel()
 
 		PreviousKillCount = KillCount;
 
-		OnComboPointsChanged.Broadcast(CurrentComboPoints);
-
 		OnComboStart.Broadcast();
 	}
 }
@@ -64,9 +62,6 @@ void UComboSystem::HandleComboState()
 		int32 Points = 1000;
 		FString StreakName = "Walljump Kill!";
 		CurrentComboPoints += Points;
-		
-		OnComboPointsChanged.Broadcast(CurrentComboPoints);
-		
 		KillStreakName = StreakName + FString::Printf(TEXT(" +%d"), Points);
 		KillStreakMessages.Add(KillStreakName);
 		OnNewKillStreakMessage.Broadcast(KillStreakName);
@@ -115,9 +110,6 @@ void UComboSystem::StartKillStreak()
 	if (!StreakName.IsEmpty())
 	{
 		CurrentComboPoints += Points;
-		
-		OnComboPointsChanged.Broadcast(CurrentComboPoints);
-		
 		KillStreakName = StreakName + FString::Printf(TEXT(" +%d"), Points);
 		KillStreakMessages.Add(KillStreakName);
 		OnNewKillStreakMessage.Broadcast(KillStreakName);
@@ -127,6 +119,7 @@ void UComboSystem::StartKillStreak()
 
 void UComboSystem::EndKillStreak()
 {
+	OnComboPointsChanged.Broadcast(CurrentComboPoints);
 	KillStreakCount = 0;
 	OnResetKillstreak.Broadcast();
 	KillStreakMessages.Empty();
@@ -136,9 +129,6 @@ void UComboSystem::EndKillStreak()
 void UComboSystem::ResetCombo()
 {
 	TotalComboPoints += CurrentComboPoints;
-
-	OnComboPointsChanged.Broadcast(CurrentComboPoints);
-	
 	CurrentComboPoints = 0;
 	ComboLevel = 0;
 	OnResetCombo.Broadcast();

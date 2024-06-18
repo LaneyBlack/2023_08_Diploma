@@ -1242,6 +1242,6 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UCombatSystemComponent::OnComboPointsChanged(int32 NewComboPoints)
 {
-	CurrentComboPoints = NewComboPoints;
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), NewComboPoints));
+	CurrentComboPoints += NewComboPoints;
+	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), CurrentComboPoints));
 }
