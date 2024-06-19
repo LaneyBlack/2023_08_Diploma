@@ -419,7 +419,7 @@ public:
 	UFUNCTION()
 	void SuperAbility();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void CancelSuperAbility();
 
 	UFUNCTION(BlueprintCallable)
