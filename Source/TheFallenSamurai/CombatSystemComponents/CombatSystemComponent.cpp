@@ -357,7 +357,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight() - 3.f;
 	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.5f;
 
-	float TeleportOffset = KatanaTriggerLenSquared * 0.7f;
+	float TeleportOffset = KatanaTriggerLenSquared * 0.55f;
 
 	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
 		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
@@ -702,22 +702,22 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (SA_State != SuperAbilityState::WAITING)
 	{
-		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 		OnSuperAbilityCalled.Broadcast(true, "");
 	}
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
 
 	if (Target)
 	{
 		//Target->SetDebugTextValue("Current Target");
 
+		bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
 		if (SuperAbilityTarget != Target)
 		{
 			//PRINTC("found new target", FColor::Cyan);
 			if (SuperAbilityTarget)
 				SuperAbilityTarget->SetEnableTargetWidget(false);
 
-			bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
 			if (bIsValidTarget)
 			{
 				Target->SetEnableTargetWidget(true);

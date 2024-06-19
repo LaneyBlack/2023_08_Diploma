@@ -45,17 +45,17 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FString KillStreakName;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	int32 ComboCache;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	int32 AbilityComboPoints;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 SuperAbilityCost = 30000;
+	int32 SuperAbilityCost = 20000;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 TimeStopCost = 20000;
+	int32 TimeStopCost = 13333;
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FString> KillStreakMessages;

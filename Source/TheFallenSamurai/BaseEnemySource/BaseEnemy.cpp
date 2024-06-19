@@ -28,6 +28,7 @@ void ABaseEnemy::Tick(float DeltaTime)
 
 bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 {
+
 	if (!bIsGettingHit)
 	{
 		ApplyDamage();

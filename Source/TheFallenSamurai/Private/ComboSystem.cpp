@@ -130,7 +130,7 @@ void UComboSystem::EndKillStreak()
 			AbilityComboPoints = SuperAbilityCost;
 		}
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), AbilityComboPoints));
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), AbilityComboPoints));
 	KillStreakCount = 0;
 	OnResetKillstreak.Broadcast();
 	KillStreakMessages.Empty();
