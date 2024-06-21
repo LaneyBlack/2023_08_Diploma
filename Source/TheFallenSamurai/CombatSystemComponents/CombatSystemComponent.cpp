@@ -939,14 +939,8 @@ void UCombatSystemComponent::PerfectParry()
 	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
 }
 
-void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
+void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo = true)
 {
-	if (InTokens != 0 && StolenTokens < MaxParryTokens)
-	{
-		StolenTokens += InTokens;
-		OnStolenTokensChanged.Broadcast(StolenTokens); //should be called when slow-mo timeline finishes?
-	}
-
 	if (bEnableSlowMo)
 	{
 		float part;
@@ -971,24 +965,6 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		ParryCameraShake,
 		playerCharacter->GetActorLocation(),
 		0, 500, 1);
-}
-
-bool UCombatSystemComponent::CheckAndUseTokens(int SubstractTokes)
-{
-	if (StolenTokens >= SubstractTokes)
-	{
-		StolenTokens -= SubstractTokes;
-		OnStolenTokensChanged.Broadcast(StolenTokens);
-		return true;
-	}
-	
-	return false;
-}
-
-void UCombatSystemComponent::OverrideTokens(int NewTokens)
-{
-	StolenTokens = NewTokens;
-	OnStolenTokensChanged.Broadcast(NewTokens);
 }
 
 void UCombatSystemComponent::SuperAbility()
