@@ -198,18 +198,18 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			//MinDot = Dot;
 		}
 
-		FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
-		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
-		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+		//FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		////float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
+		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
 
-		float InDot = 1.f / Dot;
+		//float InDot = 1.f / Dot;
 
-		float DotWeight = 600.f;
-		float distweight = .5f;
+		//float DotWeight = 600.f;
+		//float distweight = .5f;
 
-		float a = DotWeight * FMath::Abs(Dot - 0.8660) / CurrentDistance;
-		Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
-		//Enemy->SetDebugTextValue(Dot * Dot * Dot);
+		//float a = DotWeight * FMath::Abs(Dot - 0.8660) / CurrentDistance;
+		//Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
+		////Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
 
 	if (Closest)
@@ -293,10 +293,10 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	FVector EyeEnd = Enemy->GetActorLocation();
 	FHitResult EyeOutHit;
 
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	/*TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));*/
 
 
 	FCollisionQueryParams CollisionParams;
@@ -704,6 +704,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	{
 		OnSuperAbilityCalled.Broadcast(true, "");
 	}
+
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
 
@@ -742,7 +743,6 @@ void UCombatSystemComponent::SwingKatana()
 
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
-	//HitActorsOnSwing.Empty();
 
 	//quickly stop perfect parry montage
 	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
@@ -890,8 +890,6 @@ void UCombatSystemComponent::Attack()
 			if (SuperAbilityTarget)
 			{
 				GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
-
-
 
 				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 
