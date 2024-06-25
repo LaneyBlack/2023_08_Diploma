@@ -4,6 +4,22 @@
 #include "BaseEnemy.h"
 #include "Engine/StaticMeshActor.h"
 
+//#include "Engine/SkeletalMesh.h"
+//#include "Engine/StaticMesh.h"
+//#include "Engine/World.h"
+//#include "Components/StaticMeshComponent.h"
+//#include "Components/SkeletalMeshComponent.h"
+
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Rendering/SkeletalMeshLODRenderData.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "Animation/AnimInstance.h"
+#include "MeshDescription.h"
+#include "StaticMeshAttributes.h"
+#include "Rendering/SkeletalMeshModel.h"
+//#include "AssetRegistryModule.h"
+
 // Sets default values
 ABaseEnemy::ABaseEnemy()
 {
@@ -33,7 +49,8 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 	{
 		ApplyDamage();
 
-		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
+		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
+		/*GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
 
 		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
 		SpawnedHead->SetMobility(EComponentMobility::Movable);
@@ -55,13 +72,133 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 			MeshComponent->SetAllMassScale(7);
 			MeshComponent->AddImpulse(Impulse);
-		}
+		}*/
+
+		//---------------------------------------------- mesh slicing solution ---------------------------------------------- 
+        ConvertAndSpawnStaticMeshFromPose(GetWorld(), GetMesh(), GetActorTransform());
+        GetMesh()->SetVisibility(false, false);
+
 		bIsGettingHit = true;
 		return false;
 	}
 
 	return true;
 }
+
+UStaticMesh* ABaseEnemy::CreateStaticMeshFromSkeletalMeshPose(USkeletalMeshComponent* SkeletalMeshComponent)
+{
+    if (!SkeletalMeshComponent || !SkeletalMeshComponent->SkeletalMesh) return nullptr;
+
+    USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
+    const FSkeletalMeshRenderData* RenderData = SkeletalMesh->GetResourceForRendering();
+    if (!RenderData) return nullptr;
+
+    const FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+    const FSkeletalMeshLODModel& LODModel = SkeletalMesh->GetImportedModel()->LODModels[0];
+
+    // Create a new static mesh
+    UStaticMesh* NewStaticMesh = NewObject<UStaticMesh>();
+
+    // Set up the new static mesh with the same materials as the skeletal mesh
+    //NewStaticMesh->StaticMaterials = SkeletalMesh->GetMaterials();
+
+    // Create a new MeshDescription
+    FMeshDescription MeshDescription;
+    FStaticMeshAttributes Attributes(MeshDescription);
+    Attributes.Register();
+
+    // Create vertex positions
+    TVertexAttributesRef<FVector3f> VertexPositionsRef = Attributes.GetVertexPositions();
+    TVertexInstanceAttributesRef<FVector3f> Normals = Attributes.GetVertexInstanceNormals();
+    TVertexInstanceAttributesRef<FVector2f> UVs = Attributes.GetVertexInstanceUVs();
+    UVs.SetNumChannels(1);
+
+    // Get current bone transforms
+    const TArray<FTransform>& BoneTransforms = SkeletalMeshComponent->GetBoneSpaceTransforms();
+
+    // Map to hold created vertex instances
+    TMap<int32, FVertexInstanceID> VertexInstanceMap;
+
+    for (const FSkelMeshSection& Section : LODModel.Sections)
+    {
+        FPolygonGroupID PolygonGroupID = MeshDescription.CreatePolygonGroup();
+
+        for (uint32 Index = 0; Index < Section.NumTriangles * 3; ++Index)
+        {
+            int32 VertexIndex = LODModel.IndexBuffer[Section.BaseIndex + Index];
+            const FSoftSkinVertex& Vertex = Section.SoftVertices[VertexIndex];
+
+            // Transform vertex position by bone transform
+            FVector TransformedPosition = FVector::ZeroVector;
+            for (int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+            {
+                int32 BoneIndex = Vertex.InfluenceBones[InfluenceIndex];
+                if (BoneIndex >= 0)
+                {
+                    const FTransform& BoneTransform = BoneTransforms[BoneIndex];
+                    TransformedPosition += BoneTransform.TransformPosition(FVector(Vertex.Position)) * Vertex.InfluenceWeights[InfluenceIndex] / 255.0f;
+                }
+            }
+
+            FVertexID VertexID;
+            if (!VertexInstanceMap.Contains(VertexIndex))
+            {
+                VertexID = MeshDescription.CreateVertex();
+                VertexPositionsRef[VertexID] = FVector3f(TransformedPosition);
+
+                FVertexInstanceID VertexInstanceID = MeshDescription.CreateVertexInstance(VertexID);
+                Normals[VertexInstanceID] = Vertex.TangentZ;
+                UVs.Set(VertexInstanceID, 0, FVector2f(Vertex.UVs[0].X, Vertex.UVs[0].Y));
+                VertexInstanceMap.Add(VertexIndex, VertexInstanceID);
+            }
+
+            VertexID = VertexInstanceMap[VertexIndex];
+
+            // Add triangle (3 indices per triangle)
+            if (Index % 3 == 0)
+            {
+                TArray<FVertexInstanceID> TriangleVertexInstanceIDs;
+                TriangleVertexInstanceIDs.Add(VertexInstanceMap[LODModel.IndexBuffer[Section.BaseIndex + Index]]);
+                TriangleVertexInstanceIDs.Add(VertexInstanceMap[LODModel.IndexBuffer[Section.BaseIndex + Index + 1]]);
+                TriangleVertexInstanceIDs.Add(VertexInstanceMap[LODModel.IndexBuffer[Section.BaseIndex + Index + 2]]);
+
+                MeshDescription.CreatePolygon(PolygonGroupID, TriangleVertexInstanceIDs);
+            }
+        }
+    }
+
+    // Add the mesh description to the static mesh
+    NewStaticMesh->CreateMeshDescription(0, MeshDescription);
+    NewStaticMesh->CommitMeshDescription(0);
+
+    // Register the new mesh
+    NewStaticMesh->PostEditChange();
+
+    return NewStaticMesh;
+}
+
+void ABaseEnemy::ConvertAndSpawnStaticMeshFromPose(UWorld* World, USkeletalMeshComponent* SkeletalMeshComponent, const FTransform& Transform)
+{
+    if (!SkeletalMeshComponent || !World) return;
+
+    // Create a static mesh from the current pose
+    UStaticMesh* StaticMesh = CreateStaticMeshFromSkeletalMeshPose(SkeletalMeshComponent);
+
+    if (StaticMesh)
+    {
+        // Spawn the static mesh actor in the game world
+        AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Transform);
+        if (NewActor)
+        {
+            UStaticMeshComponent* MeshComponent = NewActor->GetStaticMeshComponent();
+            if (MeshComponent)
+            {
+                MeshComponent->SetStaticMesh(StaticMesh);
+            }
+        }
+    }
+}
+
 
 // Called to bind functionality to input
 //void ABaseEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
