@@ -50,7 +50,7 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 		ApplyDamage();
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
-		/*GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
+		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
 
 		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
 		SpawnedHead->SetMobility(EComponentMobility::Movable);
@@ -72,11 +72,12 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 			MeshComponent->SetAllMassScale(7);
 			MeshComponent->AddImpulse(Impulse);
-		}*/
+		}
 
 		//---------------------------------------------- mesh slicing solution ---------------------------------------------- 
-        ConvertAndSpawnStaticMeshFromPose(GetWorld(), GetMesh(), GetActorTransform());
-        GetMesh()->SetVisibility(false, false);
+        //ConvertAndSpawnStaticMeshFromPose(GetWorld(), GetMesh(), GetActorTransform());
+        /*ConvertAndSpawnStaticMesh(GetWorld(), GetMesh()->GetSkeletalMeshAsset(), GetActorTransform());
+        GetMesh()->SetVisibility(false, false);*/
 
 		bIsGettingHit = true;
 		return false;
@@ -84,6 +85,38 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 
 	return true;
 }
+
+void ABaseEnemy::ConvertAndSpawnStaticMesh(UWorld* World, USkeletalMesh* SkeletalMesh, const FTransform& Transform)
+{
+    if (!SkeletalMesh || !World) return;
+
+    // Create a new static mesh
+    UStaticMesh* NewStaticMesh = NewObject<UStaticMesh>();
+
+    // Set up the new static mesh with the same materials as the skeletal mesh
+    //NewStaticMesh->StaticMaterials = SkeletalMesh->GetMaterials();
+
+    // Extract LOD0 data
+    FMeshDescription MeshDescription;
+    SkeletalMesh->GetMeshDescription(0, MeshDescription);
+
+    NewStaticMesh->CreateMeshDescription(0, MeshDescription);
+
+    // Register the new mesh
+    NewStaticMesh->PostEditChange();
+
+    // Spawn the static mesh actor in the game world
+    AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Transform);
+    if (NewActor)
+    {
+        UStaticMeshComponent* MeshComponent = NewActor->GetStaticMeshComponent();
+        if (MeshComponent)
+        {
+            MeshComponent->SetStaticMesh(NewStaticMesh);
+        }
+    }
+}
+
 
 UStaticMesh* ABaseEnemy::CreateStaticMeshFromSkeletalMeshPose(USkeletalMeshComponent* SkeletalMeshComponent)
 {
@@ -123,47 +156,51 @@ UStaticMesh* ABaseEnemy::CreateStaticMeshFromSkeletalMeshPose(USkeletalMeshCompo
     {
         FPolygonGroupID PolygonGroupID = MeshDescription.CreatePolygonGroup();
 
-        for (uint32 Index = 0; Index < Section.NumTriangles * 3; ++Index)
+        for (uint32 TriangleIndex = 0; TriangleIndex < Section.NumTriangles; ++TriangleIndex)
         {
-            int32 VertexIndex = LODModel.IndexBuffer[Section.BaseIndex + Index];
-            const FSoftSkinVertex& Vertex = Section.SoftVertices[VertexIndex];
+            TArray<FVertexInstanceID> TriangleVertexInstanceIDs;
 
-            // Transform vertex position by bone transform
-            FVector TransformedPosition = FVector::ZeroVector;
-            for (int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+            for (int32 Corner = 0; Corner < 3; ++Corner)
             {
-                int32 BoneIndex = Vertex.InfluenceBones[InfluenceIndex];
-                if (BoneIndex >= 0)
+                int32 IndexBufferIndex = Section.BaseIndex + TriangleIndex * 3 + Corner;
+
+                if (IndexBufferIndex >= LODModel.IndexBuffer.Num())
+                    continue;
+
+                int32 VertexIndex = LODModel.IndexBuffer[IndexBufferIndex];
+
+                if (!VertexInstanceMap.Contains(VertexIndex))
                 {
-                    const FTransform& BoneTransform = BoneTransforms[BoneIndex];
-                    TransformedPosition += BoneTransform.TransformPosition(FVector(Vertex.Position)) * Vertex.InfluenceWeights[InfluenceIndex] / 255.0f;
+                    if (VertexIndex >= Section.SoftVertices.Num())
+                        continue;
+
+                    const FSoftSkinVertex& Vertex = Section.SoftVertices[VertexIndex];
+
+                    // Transform vertex position by bone transform
+                    FVector TransformedPosition = FVector::ZeroVector;
+                    for (uint32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+                    {
+                        int32 BoneIndex = Vertex.InfluenceBones[InfluenceIndex];
+                        if (BoneIndex >= 0)
+                        {
+                            const FTransform& BoneTransform = BoneTransforms[BoneIndex];
+                            TransformedPosition += BoneTransform.TransformPosition(FVector(Vertex.Position)) * Vertex.InfluenceWeights[InfluenceIndex] / 255.0f;
+                        }
+                    }
+
+                    FVertexID VertexID = MeshDescription.CreateVertex();
+                    VertexPositionsRef[VertexID] = FVector3f(TransformedPosition);
+
+                    FVertexInstanceID VertexInstanceID = MeshDescription.CreateVertexInstance(VertexID);
+                    Normals[VertexInstanceID] = Vertex.TangentZ;
+                    UVs.Set(VertexInstanceID, 0, FVector2f(Vertex.UVs[0].X, Vertex.UVs[0].Y));
+                    VertexInstanceMap.Add(VertexIndex, VertexInstanceID);
                 }
+
+                TriangleVertexInstanceIDs.Add(VertexInstanceMap[VertexIndex]);
             }
 
-            FVertexID VertexID;
-            if (!VertexInstanceMap.Contains(VertexIndex))
-            {
-                VertexID = MeshDescription.CreateVertex();
-                VertexPositionsRef[VertexID] = FVector3f(TransformedPosition);
-
-                FVertexInstanceID VertexInstanceID = MeshDescription.CreateVertexInstance(VertexID);
-                Normals[VertexInstanceID] = Vertex.TangentZ;
-                UVs.Set(VertexInstanceID, 0, FVector2f(Vertex.UVs[0].X, Vertex.UVs[0].Y));
-                VertexInstanceMap.Add(VertexIndex, VertexInstanceID);
-            }
-
-            VertexID = VertexInstanceMap[VertexIndex];
-
-            // Add triangle (3 indices per triangle)
-            if (Index % 3 == 0)
-            {
-                TArray<FVertexInstanceID> TriangleVertexInstanceIDs;
-                TriangleVertexInstanceIDs.Add(VertexInstanceMap[LODModel.IndexBuffer[Section.BaseIndex + Index]]);
-                TriangleVertexInstanceIDs.Add(VertexInstanceMap[LODModel.IndexBuffer[Section.BaseIndex + Index + 1]]);
-                TriangleVertexInstanceIDs.Add(VertexInstanceMap[LODModel.IndexBuffer[Section.BaseIndex + Index + 2]]);
-
-                MeshDescription.CreatePolygon(PolygonGroupID, TriangleVertexInstanceIDs);
-            }
+            MeshDescription.CreatePolygon(PolygonGroupID, TriangleVertexInstanceIDs);
         }
     }
 
@@ -198,7 +235,6 @@ void ABaseEnemy::ConvertAndSpawnStaticMeshFromPose(UWorld* World, USkeletalMeshC
         }
     }
 }
-
 
 // Called to bind functionality to input
 //void ABaseEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
