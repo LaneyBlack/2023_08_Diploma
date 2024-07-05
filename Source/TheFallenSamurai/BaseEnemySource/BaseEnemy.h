@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "BaseEnemy.generated.h"
 
+class UProceduralMeshComponent;
+
 UCLASS()
 class THEFALLENSAMURAI_API ABaseEnemy : public ACharacter
 {
@@ -45,6 +47,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetEnableTargetWidget(bool bIsSelected);
 
+	UFUNCTION(BlueprintCallable)
+	void ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InSkeletalMeshComponentnnn, int32 LODIndex, UProceduralMeshComponent* InProcMeshComponent);
+	
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 private:

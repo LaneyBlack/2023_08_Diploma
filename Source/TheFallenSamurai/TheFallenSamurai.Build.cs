@@ -9,7 +9,7 @@ public class TheFallenSamurai : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "DidItHit", "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AnimGraphRuntime", "MeshDescription" });
+		PublicDependencyModuleNames.AddRange(new string[] { "DidItHit", "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AnimGraphRuntime", "MeshDescription", "ProceduralMeshComponent" });
 		
 		PrivateDependencyModuleNames.AddRange(new string[]{"GameplayAbilities", "GameplayTags", "GameplayTasks", "MeshDescription", "StaticMeshDescription" });
     }

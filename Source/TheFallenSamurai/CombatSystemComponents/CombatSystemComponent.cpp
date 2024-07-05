@@ -107,9 +107,9 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
 		FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
-		//DismembermentImpulse.Z += 2.f;
+		DismembermentImpulse.Z += 2.f;
 		DismembermentImpulse.Normalize();
-		DismembermentImpulse *= 60'000.f;
+		DismembermentImpulse *= 5'000.f;
 
 		if (!Enemy->HandleHitReaction(DismembermentImpulse))
 		{

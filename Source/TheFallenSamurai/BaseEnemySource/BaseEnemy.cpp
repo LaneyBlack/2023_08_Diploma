@@ -10,6 +10,8 @@
 //#include "Components/StaticMeshComponent.h"
 //#include "Components/SkeletalMeshComponent.h"
 
+//CLEAN THE INCLUEDES
+
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "PhysicsEngine/PhysicsAsset.h"
@@ -18,8 +20,11 @@
 #include "MeshDescription.h"
 #include "StaticMeshAttributes.h"
 #include "Rendering/SkeletalMeshModel.h"
-//#include "AssetRegistryModule.h"
-
+#include "Components/SkeletalMeshComponent.h"
+#include "Rendering/MultiSizeIndexContainer.h"
+#include "Rendering/SkeletalMeshLODRenderData.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "ProceduralMeshComponent.h"
 // Sets default values
 ABaseEnemy::ABaseEnemy()
 {
@@ -44,13 +49,12 @@ void ABaseEnemy::Tick(float DeltaTime)
 
 bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 {
-
 	if (!bIsGettingHit)
 	{
 		ApplyDamage();
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
-		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
+		/*GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
 
 		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
 		SpawnedHead->SetMobility(EComponentMobility::Movable);
@@ -70,9 +74,10 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 			MeshComponent->SetSimulatePhysics(true);
 			MeshComponent->SetEnableGravity(true);
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-			MeshComponent->SetAllMassScale(7);
 			MeshComponent->AddImpulse(Impulse);
-		}
+			MeshComponent->SetAllMassScale(1);
+		}*/
+		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
 
 		//---------------------------------------------- mesh slicing solution ---------------------------------------------- 
         //ConvertAndSpawnStaticMeshFromPose(GetWorld(), GetMesh(), GetActorTransform());
@@ -84,6 +89,89 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 	}
 
 	return true;
+}
+
+
+void ABaseEnemy::ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InSkeletalMeshComponentnnn, int32 LODIndex, UProceduralMeshComponent* InProcMeshComponent)
+{
+    FSkeletalMeshRenderData* SkMeshRenderData = InSkeletalMeshComponentnnn->GetSkeletalMeshRenderData();
+    const FSkeletalMeshLODRenderData& DataArray = SkMeshRenderData->LODRenderData[LODIndex];
+    FSkinWeightVertexBuffer& SkinWeights = *InSkeletalMeshComponentnnn->GetSkinWeightBuffer(LODIndex);
+
+    TArray<FVector> VerticesArray;
+    TArray<FVector> Normals;
+    TArray<FVector2D> UV;
+    TArray<FColor> Colors;
+    TArray<FProcMeshTangent> Tangents;
+
+    for (int32 j = 0; j < DataArray.RenderSections.Num(); j++)
+    {
+        //get num vertices and offset 
+        const int32 NumSourceVertices = DataArray.RenderSections[j].NumVertices;
+        const int32 BaseVertexIndex = DataArray.RenderSections[j].BaseVertexIndex;
+
+        for (int32 i = 0; i < NumSourceVertices; i++)
+        {
+            const int32 VertexIndex = i + BaseVertexIndex;
+
+            //get skinned vector positions
+            const FVector3f SkinnedVectorPos = USkeletalMeshComponent::GetSkinnedVertexPosition(
+                InSkeletalMeshComponentnnn, VertexIndex, DataArray, SkinWeights);
+            //VerticesArray.Add(fromFVector3f(SkinnedVectorPos));
+            VerticesArray.Add(FVector(SkinnedVectorPos.X, SkinnedVectorPos.Y, SkinnedVectorPos.Z));
+
+            //Calc normals and tangents from the static version instead of the skeletal one
+            const FVector3f ZTangentStatic = DataArray.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(
+                VertexIndex);
+            const FVector3f XTangentStatic = DataArray.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(
+                VertexIndex);
+
+            //add normals from the static mesh version instead because using the skeletal one doesnt work right.
+            //Normals.Add(fromFVector3f(ZTangentStatic));
+            Normals.Add(FVector(ZTangentStatic.X, ZTangentStatic.Y, ZTangentStatic.Z));
+
+            //add tangents
+            //Tangents.Add(FProcMeshTangent(fromFVector3f(XTangentStatic), false));
+            Tangents.Add(FProcMeshTangent(FVector(XTangentStatic.X, XTangentStatic.Y, XTangentStatic.Z), false));
+
+            //get UVs
+            const FVector2f SourceUVs = DataArray.StaticVertexBuffers.StaticMeshVertexBuffer.
+                GetVertexUV(VertexIndex, 0);
+            FVector2d ResUVs;
+            ResUVs.X = SourceUVs.X;
+            ResUVs.Y = SourceUVs.Y;
+            UV.Add(ResUVs);
+
+            //dummy vertex colors
+            Colors.Add(FColor(0.0, 0.0, 0.0, 255));
+        }
+    }
+
+    //get index buffer
+    FMultiSizeIndexContainerData IndicesData;
+    DataArray.MultiSizeIndexContainer.GetIndexBuffer(IndicesData.Indices);
+
+
+    for (int32 j = 0; j < DataArray.RenderSections.Num(); j++)
+    {
+        TArray<int32> Tris;
+
+        // get number triangles and offset
+        const int32 SectionNumTriangles = DataArray.RenderSections[j].NumTriangles;
+        const int32 SectionBaseIndex = DataArray.RenderSections[j].BaseIndex;
+
+        //iterate over num indices and add triangles
+        for (int32 i = 0; i < SectionNumTriangles; i++)
+        {
+            int32 TriVertexIndex = i * 3 + SectionBaseIndex;
+            Tris.Add(IndicesData.Indices[TriVertexIndex]);
+            Tris.Add(IndicesData.Indices[TriVertexIndex + 1]);
+            Tris.Add(IndicesData.Indices[TriVertexIndex + 2]);
+        }
+
+        //Create the procedural mesh section
+        InProcMeshComponent->CreateMeshSection(j, VerticesArray, Tris, Normals, UV, Colors, Tangents, true);
+    }
 }
 
 void ABaseEnemy::ConvertAndSpawnStaticMesh(UWorld* World, USkeletalMesh* SkeletalMesh, const FTransform& Transform)
