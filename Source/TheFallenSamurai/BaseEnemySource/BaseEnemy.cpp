@@ -59,11 +59,12 @@ void ABaseEnemy::Tick(float DeltaTime)
 
 }
 
-bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
+bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneNormal)
 {
 	if (!bIsGettingHit)
 	{
-		ApplyDamage();
+
+		ApplyDamage(PlaneNormal);
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
 		/*GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);

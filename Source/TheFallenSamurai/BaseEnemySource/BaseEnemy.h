@@ -39,10 +39,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	bool HandleHitReaction(const FVector& Impulse);
+	bool HandleHitReaction(const FVector& Impulse, const FVector& PlaneNormal);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void ApplyDamage();
+	void ApplyDamage(const FVector& PlaneNormal = FVector(0.f));
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetDebugTextValue(const FString& value);
