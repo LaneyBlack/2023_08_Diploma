@@ -25,12 +25,23 @@
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "ProceduralMeshComponent.h"
+
+
+#define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
+#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+
+
 // Sets default values
 ABaseEnemy::ABaseEnemy()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+    ProceduralMesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProceduralMesh"));
+    ProceduralMesh->SetupAttachment(GetRootComponent());
 }
 
 // Called when the game starts or when spawned
@@ -38,6 +49,7 @@ void ABaseEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 	
+    ProceduralMesh->SetRelativeTransform(GetMesh()->GetRelativeTransform());
 }
 
 // Called every frame
@@ -81,8 +93,10 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse)
 
 		//---------------------------------------------- mesh slicing solution ---------------------------------------------- 
         //ConvertAndSpawnStaticMeshFromPose(GetWorld(), GetMesh(), GetActorTransform());
-        /*ConvertAndSpawnStaticMesh(GetWorld(), GetMesh()->GetSkeletalMeshAsset(), GetActorTransform());
-        GetMesh()->SetVisibility(false, false);*/
+        /*ConvertAndSpawnStaticMesh(GetWorld(), GetMesh()->GetSkeletalMeshAsset(), GetActorTransform());*/
+        
+        GetMesh()->SetVisibility(false, false);
+        //ConvertSkeletalMeshToProceduralMesh(GetMesh(), 0, ProceduralMesh);
 
 		bIsGettingHit = true;
 		return false;
@@ -172,6 +186,8 @@ void ABaseEnemy::CopySkeletalMeshToProcedural(USkeletalMeshComponent* SkeletalMe
 
 void ABaseEnemy::ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InSkeletalMeshComponent, int32 LODIndex, UProceduralMeshComponent* InProcMeshComponent)
 {
+    PRINT("using c++", 3);
+
     FSkeletalMeshRenderData* SkMeshRenderData = InSkeletalMeshComponent->GetSkeletalMeshRenderData();
     const FSkeletalMeshLODRenderData& DataArray = SkMeshRenderData->LODRenderData[LODIndex];
     FSkinWeightVertexBuffer& SkinWeights = *InSkeletalMeshComponent->GetSkinWeightBuffer(LODIndex);
@@ -221,7 +237,7 @@ void ABaseEnemy::ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InS
             UV.Add(ResUVs);
 
             //dummy vertex colors
-            Colors.Add(FColor(0.0, 0.0, 0.0, 255));
+            //Colors.Add(FColor(1.0, 0.0, 0.0, 255));
         }
     }
 
@@ -248,7 +264,7 @@ void ABaseEnemy::ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InS
         }
 
         //Create the procedural mesh section
-        InProcMeshComponent->CreateMeshSection(j, VerticesArray, Tris, Normals, UV, Colors, Tangents, true);
+        InProcMeshComponent->CreateMeshSection(j, VerticesArray, Tris, Normals, UV, Colors, Tangents, false);
     }
 }
 

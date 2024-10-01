@@ -13,6 +13,9 @@ class THEFALLENSAMURAI_API ABaseEnemy : public ACharacter
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	class UProceduralMeshComponent* ProceduralMesh;
+
 public:
 	// Sets default values for this character's properties
 	ABaseEnemy();
