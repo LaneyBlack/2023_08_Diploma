@@ -42,7 +42,7 @@ public:
 	bool HandleHitReaction(const FVector& Impulse, const FVector& PlaneNormal);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void ApplyDamage(const FVector& PlaneNormal = FVector(0.f));
+	void ApplyDamage(const FVector& PlaneNormal, const FVector& HitLocation);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetDebugTextValue(const FString& value);

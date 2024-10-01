@@ -112,10 +112,11 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 		DismembermentImpulse *= 5'000.f;
 
 		//slice plan code
-		FVector PlaneNormal = playerCharacter->GetActorForwardVector().Cross(DetermineKatanaDirection());
+		FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
+		FVector PlaneNormal = playerCharacter->GetActorForwardVector().Cross(HandVelocity);
 		PlaneNormal.Normalize();
 
-		if (!Enemy->HandleHitReaction(DismembermentImpulse, Katana->GetActorRightVector()))
+		if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		{
 			PlayerCameraManager->StopAllCameraShakes();
 

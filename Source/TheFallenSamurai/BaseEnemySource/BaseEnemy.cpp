@@ -64,7 +64,7 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneN
 	if (!bIsGettingHit)
 	{
 
-		ApplyDamage(PlaneNormal);
+		ApplyDamage(PlaneNormal, Impulse);
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
 		/*GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
