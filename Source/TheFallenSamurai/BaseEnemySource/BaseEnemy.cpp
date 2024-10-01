@@ -63,7 +63,6 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneN
 {
 	if (!bIsGettingHit)
 	{
-
 		ApplyDamage(PlaneNormal, Impulse);
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
