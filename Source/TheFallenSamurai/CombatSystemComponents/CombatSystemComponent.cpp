@@ -113,10 +113,15 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 
 		//slice plan code
 		FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
-		FVector PlaneNormal = playerCharacter->GetActorForwardVector().Cross(HandVelocity);
+		FVector PlaneNormal = Katana->GetBladeWorldVector().Cross(HandVelocity);
 		PlaneNormal.Normalize();
 
-		if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
+		/*float test = PlaneNormal.Dot(Katana->GetActorRightVector());
+
+		PRINTC_F("test dot = %f", test, 10, FColor::Cyan);*/
+
+		if (!Enemy->HandleHitReaction(ImpactPoint, Katana->GetActorRightVector()))
+		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		{
 			PlayerCameraManager->StopAllCameraShakes();
 
