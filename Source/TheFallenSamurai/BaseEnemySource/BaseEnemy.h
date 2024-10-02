@@ -60,10 +60,4 @@ public:
 	
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-private:
-	UStaticMesh* CreateStaticMeshFromSkeletalMeshPose(USkeletalMeshComponent* SkeletalMeshComponent);
-
-	void ConvertAndSpawnStaticMeshFromPose(UWorld* World, USkeletalMeshComponent* SkeletalMeshComponent, const FTransform& Transform);
-
-	void ConvertAndSpawnStaticMesh(UWorld* World, USkeletalMesh* SkeletalMesh, const FTransform& Transform);
 };
