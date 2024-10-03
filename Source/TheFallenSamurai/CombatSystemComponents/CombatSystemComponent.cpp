@@ -122,7 +122,7 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 
 		FVector TrueImpactPoint = Katana->KatanaMesh->GetSocketLocation("Middle");
 
-		if (!Enemy->HandleHitReaction(TrueImpactPoint, Katana->GetActorRightVector()))
+		if (!Enemy->HandleHitReaction(TrueImpactPoint, PlaneNormal))
 		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		{
 			PlayerCameraManager->StopAllCameraShakes();
