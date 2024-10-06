@@ -781,7 +781,7 @@ void UCombatSystemComponent::SwingKatana()
 void UCombatSystemComponent::ClearAffectedByPostProcess()
 {
 	for (auto& enemy : PostProcessSA_Targets)
-		enemy->GetMesh()->SetCustomDepthStencilValue(enemy->bIsGettingHit ? 0 : 2);
+		enemy->GetMesh()->SetCustomDepthStencilValue(enemy->bIsGettingHit ? 1 : 2);
 	PostProcessSA_Targets.Empty();
 }
 
