@@ -18,9 +18,8 @@ public:
     void LoadLevelWithLoadingScreen(FName LevelName);
 
 private:
-    // Called once the level is loaded
-    void OnLevelLoaded();
-
+    void OnLevelLoaded(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result);
+    
     // Shows the loading screen widget
     void ShowLoadingScreen();
 
@@ -37,4 +36,7 @@ private:
     // The class type of the loading screen widget
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UUserWidget> LoadingScreenClass;
+
+    // Handle to manage the async level loading
+    FDelegateHandle LevelLoadingHandle;
 };

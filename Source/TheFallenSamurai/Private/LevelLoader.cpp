@@ -1,30 +1,17 @@
-// MyLevelLoader.cpp
+// LevelLoader.cpp
 #include "LevelLoader.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/StreamableManager.h"
+#include "Engine/AssetManager.h"
 #include "Blueprint/UserWidget.h"
-#include "TimerManager.h"
 
 ALevelLoader::ALevelLoader()
 {
-	// Constructor logic, if any
-}
-
-void ALevelLoader::LoadLevelWithLoadingScreen(FName LevelName)
-{
-	// Set the target level name to load
-	TargetLevelName = LevelName;
-
-	// Show the loading screen
-	ShowLoadingScreen();
-
-	// Set a short delay before loading the next level (to ensure loading screen is visible)
-	FTimerHandle TimerHandle;
-	GetWorldTimerManager().SetTimer(TimerHandle, this, &ALevelLoader::OnLevelLoaded, 0.5f, false);
+	// Constructor logic if needed
 }
 
 void ALevelLoader::ShowLoadingScreen()
 {
-	// Check if we have a valid LoadingScreenClass to create a widget from
 	if (LoadingScreenClass)
 	{
 		LoadingScreenWidget = CreateWidget<UUserWidget>(GetWorld(), LoadingScreenClass);
@@ -37,17 +24,37 @@ void ALevelLoader::ShowLoadingScreen()
 	}
 }
 
-void ALevelLoader::OnLevelLoaded()
+void ALevelLoader::LoadLevelWithLoadingScreen(FName LevelName)
 {
-	// Load the new level using OpenLevel
-	if (!TargetLevelName.IsNone())
+	TargetLevelName = LevelName;
+
+	// Show the loading screen
+	ShowLoadingScreen();
+
+	// Start asynchronously loading the new level's package
+	FString LevelPath = FString::Printf(TEXT("/Game/Maps/%s"), *TargetLevelName.ToString());
+
+	// Use LoadPackageAsync to load the level package asynchronously
+	LoadPackageAsync(
+		FName(*LevelPath).ToString(),
+		FLoadPackageAsyncDelegate::CreateUObject(this, &ALevelLoader::OnLevelLoaded), // Delegate binding
+		0
+	);
+}
+
+void ALevelLoader::OnLevelLoaded(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result)
+{
+	if (Result == EAsyncLoadingResult::Succeeded)
 	{
-		UGameplayStatics::OpenLevel(this, TargetLevelName, true);
+		// Load the level when the package has finished loading
+		UGameplayStatics::OpenLevel(this, TargetLevelName);
 	}
 
-	// Once the level is loaded, hide the loading screen
+	// Hide the loading screen after the level has loaded
 	HideLoadingScreen();
 }
+
+
 
 void ALevelLoader::HideLoadingScreen()
 {
