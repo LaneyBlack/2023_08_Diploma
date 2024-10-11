@@ -66,7 +66,7 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneN
 		ApplyDamage(PlaneNormal, Impulse);
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
-		/*GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
+		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
 
 		AStaticMeshActor* SpawnedHead = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass());
 		SpawnedHead->SetMobility(EComponentMobility::Movable);
@@ -88,16 +88,8 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneN
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 			MeshComponent->AddImpulse(Impulse);
 			MeshComponent->SetAllMassScale(1);
-		}*/
+		}
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
-
-		//---------------------------------------------- mesh slicing solution ---------------------------------------------- 
-        //ConvertAndSpawnStaticMeshFromPose(GetWorld(), GetMesh(), GetActorTransform());
-        /*ConvertAndSpawnStaticMesh(GetWorld(), GetMesh()->GetSkeletalMeshAsset(), GetActorTransform());*/
-        
-        GetMesh()->SetVisibility(false, false);
-        //ConvertSkeletalMeshToProceduralMesh(GetMesh(), 0, ProceduralMesh);
-        //CopySkeletalMeshToProcedural(GetMesh(), 0, ProceduralMesh);
 
 		bIsGettingHit = true;
 		return false;
