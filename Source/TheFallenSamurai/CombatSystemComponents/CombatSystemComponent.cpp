@@ -33,6 +33,8 @@
 
 #include "ComboSystem.h"
 
+#include "TheFallenSamurai/Slicebles/SlicableActor.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -97,6 +99,14 @@ void UCombatSystemComponent::HandleAttackEnd()
 
 void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint)
 {
+	//slice plane code
+	FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
+	FVector PlaneNormal = Katana->GetBladeWorldVector().Cross(HandVelocity);
+	PlaneNormal.Normalize();
+
+	FVector TrueImpactPoint = Katana->KatanaMesh->GetSocketLocation("Middle");
+
+
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
 		auto KatanaDirection = DetermineKatanaDirection();
@@ -111,16 +121,9 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 		DismembermentImpulse.Normalize();
 		DismembermentImpulse *= 5'000.f;
 
-		//slice plan code
-		FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
-		FVector PlaneNormal = Katana->GetBladeWorldVector().Cross(HandVelocity);
-		PlaneNormal.Normalize();
-
 		/*float test = PlaneNormal.Dot(Katana->GetActorRightVector());
 
 		PRINTC_F("test dot = %f", test, 10, FColor::Cyan);*/
-
-		FVector TrueImpactPoint = Katana->KatanaMesh->GetSocketLocation("Middle");
 
 		if (!Enemy->HandleHitReaction(TrueImpactPoint, PlaneNormal))
 		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
@@ -132,6 +135,10 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 				playerCharacter->GetActorLocation(),
 				1, 500, 1);
 		}
+	}
+	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
+	{
+		SlicableActor->SliceActor(PlaneNormal, ImpactPoint);
 	}
 }
 
