@@ -6,10 +6,15 @@
 #include "GameFramework/Character.h"
 #include "BaseEnemy.generated.h"
 
+class UProceduralMeshComponent;
+
 UCLASS()
 class THEFALLENSAMURAI_API ABaseEnemy : public ACharacter
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	class UProceduralMeshComponent* ProceduralMesh;
 
 public:
 	// Sets default values for this character's properties
@@ -34,10 +39,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	bool HandleHitReaction(const FVector& Impulse);
+	bool HandleHitReaction(const FVector& Impulse, const FVector& PlaneNormal);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void ApplyDamage();
+	void ApplyDamage(const FVector& PlaneNormal, const FVector& HitLocation);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetDebugTextValue(const FString& value);
@@ -45,7 +50,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetEnableTargetWidget(bool bIsSelected);
 
+	//old
+	UFUNCTION(BlueprintCallable)
+	void ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InSkeletalMeshComponent, int32 LODIndex, UProceduralMeshComponent* InProcMeshComponent);
+
+	//newest functino
+	UFUNCTION(BlueprintCallable)
+	void CopySkeletalMeshToProcedural(USkeletalMeshComponent* SkeletalMeshComponent, int32 LODIndex, UProceduralMeshComponent* ProcMeshComponent);
+	
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 };

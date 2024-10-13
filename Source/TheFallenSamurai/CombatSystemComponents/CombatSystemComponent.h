@@ -19,7 +19,6 @@ struct TTuple;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemiesLeftChanged, int, EnemiesLeft);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityTargetAcquired, bool, bFoundNewTarget); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
@@ -172,7 +171,7 @@ private:
 
 	//float TeleportFOVChange;
 
-	int StolenTokens = 0;
+	//int StolenTokens = 0;
 
 	FTimeline ParrySlowMoTimeline;
 
@@ -314,8 +313,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perfect Parry Data")
-	int MaxParryTokens = 3;
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perfect Parry Data")
+	int MaxParryTokens = 3;*/
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
@@ -339,9 +338,6 @@ public:
 	UCurveFloat* FOVCurve;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int SuperAbilityCost = 3;
-
-	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Super Ability")
@@ -352,9 +348,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float LookRateScale = 0.5f;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnStolenTokensChanged OnStolenTokensChanged;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnIFramesChanged OnIFramesChanged;
@@ -408,13 +401,7 @@ public:
 	void PerfectParry();
 
 	UFUNCTION(BlueprintCallable)
-	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
-
-	UFUNCTION(BlueprintCallable)
-	bool CheckAndUseTokens(int SubstractTokes);
-
-	UFUNCTION(BlueprintCallable)
-	void OverrideTokens(int NewTokens);
+	void PerfectParryResponse(bool bEnableSlowMo);
 
 	UFUNCTION()
 	void SuperAbility();

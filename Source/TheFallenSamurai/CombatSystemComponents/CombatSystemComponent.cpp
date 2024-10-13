@@ -33,6 +33,8 @@
 
 #include "ComboSystem.h"
 
+#include "TheFallenSamurai/Slicebles/SlicableActor.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -97,6 +99,14 @@ void UCombatSystemComponent::HandleAttackEnd()
 
 void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint)
 {
+	//slice plane code
+	FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
+	FVector PlaneNormal = Katana->GetBladeWorldVector().Cross(HandVelocity);
+	PlaneNormal.Normalize();
+
+	FVector TrueImpactPoint = Katana->KatanaMesh->GetSocketLocation("Middle");
+
+
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
 		auto KatanaDirection = DetermineKatanaDirection();
@@ -107,11 +117,16 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
 		FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
-		//DismembermentImpulse.Z += 2.f;
+		DismembermentImpulse.Z += 2.f;
 		DismembermentImpulse.Normalize();
-		DismembermentImpulse *= 60'000.f;
+		DismembermentImpulse *= 5'000.f;
 
-		if (!Enemy->HandleHitReaction(DismembermentImpulse))
+		/*float test = PlaneNormal.Dot(Katana->GetActorRightVector());
+
+		PRINTC_F("test dot = %f", test, 10, FColor::Cyan);*/
+
+		if (!Enemy->HandleHitReaction(TrueImpactPoint, PlaneNormal))
+		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		{
 			PlayerCameraManager->StopAllCameraShakes();
 
@@ -120,6 +135,10 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 				playerCharacter->GetActorLocation(),
 				1, 500, 1);
 		}
+	}
+	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
+	{
+		SlicableActor->SliceActor(PlaneNormal, ImpactPoint);
 	}
 }
 
@@ -198,18 +217,18 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 			//MinDot = Dot;
 		}
 
-		FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
-		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
-		float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
+		//FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
+		////float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
+		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
 
-		float InDot = 1.f / Dot;
+		//float InDot = 1.f / Dot;
 
-		float DotWeight = 600.f;
-		float distweight = .5f;
+		//float DotWeight = 600.f;
+		//float distweight = .5f;
 
-		float a = DotWeight * FMath::Abs(Dot - 0.8660) / CurrentDistance;
-		Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
-		//Enemy->SetDebugTextValue(Dot * Dot * Dot);
+		//float a = DotWeight * FMath::Abs(Dot - 0.8660) / CurrentDistance;
+		//Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
+		////Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
 
 	if (Closest)
@@ -293,10 +312,10 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	FVector EyeEnd = Enemy->GetActorLocation();
 	FHitResult EyeOutHit;
 
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	/*TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));*/
 
 
 	FCollisionQueryParams CollisionParams;
@@ -704,6 +723,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	{
 		OnSuperAbilityCalled.Broadcast(true, "");
 	}
+
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
 
@@ -742,7 +762,6 @@ void UCombatSystemComponent::SwingKatana()
 
 	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
-	//HitActorsOnSwing.Empty();
 
 	//quickly stop perfect parry montage
 	AnimInstance->Montage_Stop(0.01, PerfectParryMontage);
@@ -769,7 +788,7 @@ void UCombatSystemComponent::SwingKatana()
 void UCombatSystemComponent::ClearAffectedByPostProcess()
 {
 	for (auto& enemy : PostProcessSA_Targets)
-		enemy->GetMesh()->SetCustomDepthStencilValue(enemy->bIsGettingHit ? 0 : 2);
+		enemy->GetMesh()->SetCustomDepthStencilValue(enemy->bIsGettingHit ? 1 : 2);
 	PostProcessSA_Targets.Empty();
 }
 
@@ -891,8 +910,6 @@ void UCombatSystemComponent::Attack()
 			{
 				GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
 
-
-
 				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
 
 				SuperAbilityTarget->SetEnableTargetWidget(false);
@@ -941,14 +958,8 @@ void UCombatSystemComponent::PerfectParry()
 	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
 }
 
-void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnableSlowMo = true)
+void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo = true)
 {
-	if (InTokens != 0 && StolenTokens < MaxParryTokens)
-	{
-		StolenTokens += InTokens;
-		OnStolenTokensChanged.Broadcast(StolenTokens); //should be called when slow-mo timeline finishes?
-	}
-
 	if (bEnableSlowMo)
 	{
 		float part;
@@ -973,24 +984,6 @@ void UCombatSystemComponent::PerfectParryResponse(int InTokens = 0, bool bEnable
 		ParryCameraShake,
 		playerCharacter->GetActorLocation(),
 		0, 500, 1);
-}
-
-bool UCombatSystemComponent::CheckAndUseTokens(int SubstractTokes)
-{
-	if (StolenTokens >= SubstractTokes)
-	{
-		StolenTokens -= SubstractTokes;
-		OnStolenTokensChanged.Broadcast(StolenTokens);
-		return true;
-	}
-	
-	return false;
-}
-
-void UCombatSystemComponent::OverrideTokens(int NewTokens)
-{
-	StolenTokens = NewTokens;
-	OnStolenTokensChanged.Broadcast(NewTokens);
 }
 
 void UCombatSystemComponent::SuperAbility()
