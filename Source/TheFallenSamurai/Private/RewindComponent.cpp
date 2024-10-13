@@ -20,7 +20,6 @@
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 //#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
-
 URewindComponent::URewindComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
