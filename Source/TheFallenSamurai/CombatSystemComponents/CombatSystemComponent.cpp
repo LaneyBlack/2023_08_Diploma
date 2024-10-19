@@ -205,6 +205,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!Enemy)
 			continue;
 
+		//PRINT_F("hit component %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent()), 4)
+
 		/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Hit) = %f"), HitResult.Distance));
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Math) = %f"), Enemy->GetDistanceTo(playerCharacter)));*/
 
@@ -356,6 +358,22 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 
 bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
+	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
+	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
+
+	if (Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield")[0])
+	{
+		float dot = ToPlayerNormalized.Dot(Enemy->GetActorForwardVector());
+		float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
+
+		if (dot > cos)
+		{
+			if (ValidationRules.bUseDebugPrint)
+				PRINT("CANT TELEPORT: [FOUND SHIELD]", 2);
+			return false;
+		}
+	}
+
 	//PRINTC("validating", FColor::Red);
 	if (CheckIsTeleportTargetObscured(Enemy))
 	{
@@ -365,9 +383,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	}
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-
-	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
 
 	FVector EvaluatedDestination;
 
