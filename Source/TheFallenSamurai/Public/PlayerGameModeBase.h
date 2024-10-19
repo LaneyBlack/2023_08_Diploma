@@ -23,6 +23,9 @@ class APlayerGameModeBase : public AGameModeBase
 
 public:
 	APlayerGameModeBase();
+
+	UPROPERTY(BlueprintReadWrite, Category = "Summary Data")
+	int32 PlayerDeaths = 0;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rewind")
 	float SlowestRewindSpeed = 0.25f;
