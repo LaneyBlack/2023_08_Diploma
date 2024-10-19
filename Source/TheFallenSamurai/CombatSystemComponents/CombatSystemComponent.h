@@ -14,6 +14,7 @@
 class AKatana;
 class UCameraShakeBase;
 class ABaseEnemy;
+class UParticleSystem;
 template<typename... Types>
 struct TTuple;
 
@@ -269,10 +270,10 @@ public:
 	TSubclassOf<UCameraShakeBase> HitCameraShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
-	class UParticleSystem* DefaultHitParticles;
+	UParticleSystem* DefaultHitParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
-	class UParticleSystem* BloodParticles;
+	UParticleSystem* BloodParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	FVector BloodScale = FVector(.6f, .6f, .8f);
@@ -308,7 +309,7 @@ public:
 	FVector PerfectParrySparksSize = FVector(3.f, 3.f, 3.f);
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
-	class UParticleSystem* PerfectParryShockwave;
+	UParticleSystem* PerfectParryShockwave;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
@@ -336,6 +337,15 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* FOVCurve;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | Teleport")
+	float ShieldIgnoreAngle = 0.f;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | Camera Shake")
+	TSubclassOf<UCameraShakeBase> ShieldHitCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
+	UParticleSystem* ShieldHitParticle;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
