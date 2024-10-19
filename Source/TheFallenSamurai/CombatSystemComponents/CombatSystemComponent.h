@@ -90,6 +90,7 @@ struct FValidationRules
 	bool bUsePitch = true;
 	bool bUseLazyCheck = true;
 	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
+	bool bShouldIgnoreShields = false;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )

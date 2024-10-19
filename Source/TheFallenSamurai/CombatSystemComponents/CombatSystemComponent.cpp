@@ -163,6 +163,9 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	{
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(result.GetComponent()), 4, FColor::Orange);
 		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Orange);
+
+
+
 		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
 		result.Reset();
 	}
@@ -361,16 +364,19 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
 	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
 
-	if (Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield")[0])
+	if (!ValidationRules.bShouldIgnoreShields)
 	{
-		float dot = ToPlayerNormalized.Dot(Enemy->GetActorForwardVector());
-		float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
-
-		if (dot > cos)
+		if (Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield")[0])
 		{
-			if (ValidationRules.bUseDebugPrint)
-				PRINT("CANT TELEPORT: [FOUND SHIELD]", 2);
-			return false;
+			float dot = ToPlayerNormalized.Dot(Enemy->GetActorForwardVector());
+			float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
+
+			if (dot > cos)
+			{
+				if (ValidationRules.bUseDebugPrint)
+					PRINT("CANT TELEPORT: [FOUND SHIELD]", 2);
+				return false;
+			}
 		}
 	}
 
@@ -581,6 +587,8 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
+	PRINT("TELEPORT", 3)
+
 	bInTeleport = true;
 
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
