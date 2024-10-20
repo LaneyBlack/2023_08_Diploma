@@ -36,7 +36,7 @@ public:
 	bool bIsGettingHit;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-	bool bOwnsShield_cpp = false;
+	bool bOwnsShield = false;
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

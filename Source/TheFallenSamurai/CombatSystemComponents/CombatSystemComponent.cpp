@@ -115,7 +115,7 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		//UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.f);
 
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
-		if (!bInTeleport && HitResult.GetComponent()->ComponentHasTag("Shield"))
+		if (!bInTeleport && Enemy->bOwnsShield)
 		{
 			auto ToPlayerNormalized = (playerCharacter->GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal();
 			if (CheckIsShieldProtected(ToPlayerNormalized, HitActor->GetActorForwardVector()))
@@ -409,7 +409,8 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	if (!ValidationRules.bShouldIgnoreShields)
 	{
-		if (!Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield").IsEmpty())
+		//if (!Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield").IsEmpty())
+		if (Enemy->bOwnsShield)
 		{
 			if (CheckIsShieldProtected(ToPlayerNormalized, Enemy->GetActorForwardVector()))
 			{
