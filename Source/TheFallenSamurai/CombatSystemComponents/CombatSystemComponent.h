@@ -213,7 +213,7 @@ private:
 	const FAttackAnimData& DetermineNextCounterAttackData();
 
 	UFUNCTION()
-	void HandleAttackEnd();
+	void HandleAttackEnd(bool bShouldPerformFinalTraceCheck = true);
 
 	UFUNCTION()
 	void ProcessHitResult(const FHitResult& HitResult);
@@ -241,6 +241,9 @@ private:
 
 	UFUNCTION()
 	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
+
+	UFUNCTION()
+	bool CheckIsShieldProtected(const FVector& ToPlayerNormalized, const FVector& EnemyForward);
 
 	UFUNCTION()
 	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);

@@ -82,7 +82,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
 	return CounterAttackMontages[index++ % CounterAttackMontages.Num()];
 }
 
-void UCombatSystemComponent::HandleAttackEnd()
+void UCombatSystemComponent::HandleAttackEnd(bool bShouldPerformFinalTraceCheck)
 {
 	//TargetPointOffset = FVector::Zero();
 
@@ -92,6 +92,9 @@ void UCombatSystemComponent::HandleAttackEnd()
 	bInCombat = false;
 
 	HitTracer->ToggleTraceCheck(false);
+
+	if (!bShouldPerformFinalTraceCheck)
+		return;
 
 	for (auto result : HitTracer->HitArray)
 		ProcessHitResult(result);
@@ -112,10 +115,14 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		//UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.f);
 
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
-		if (HitResult.GetComponent()->ComponentHasTag("Shield") && !bInTeleport)
+		if (!bInTeleport && HitResult.GetComponent()->ComponentHasTag("Shield"))
 		{
-			ProcessHitResponse(ShieldHitImpulse, HitResult.ImpactPoint);
-			return;
+			auto ToPlayerNormalized = (playerCharacter->GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal();
+			if (CheckIsShieldProtected(ToPlayerNormalized, HitActor->GetActorForwardVector()))
+			{
+				ProcessHitResponse(ShieldHitImpulse, HitResult.ImpactPoint);
+				return;
+			}
 		}
 
 		auto KatanaDirection = DetermineKatanaDirection();
@@ -160,6 +167,8 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 	}
 
 	AnimInstance->Montage_Stop(OnHitAnimationBlendTime, CurrentAttackData.AttackMontage);
+
+	HandleAttackEnd(false);
 
 	PlayerCameraManager->StopAllCameraShakes();
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
@@ -385,6 +394,14 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	return bEyeToCenterHit && bEyeToEyeHit;
 }
 
+bool UCombatSystemComponent::CheckIsShieldProtected(const FVector& ToPlayerNormalized, const FVector& EnemyForward)
+{
+	float dot = ToPlayerNormalized.Dot(EnemyForward);
+	static const float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
+
+	return dot > cos;
+}
+
 bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
@@ -394,10 +411,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	{
 		if (!Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield").IsEmpty())
 		{
-			float dot = ToPlayerNormalized.Dot(Enemy->GetActorForwardVector());
-			float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
-
-			if (dot > cos)
+			if (CheckIsShieldProtected(ToPlayerNormalized, Enemy->GetActorForwardVector()))
 			{
 				if (ValidationRules.bUseDebugPrint)
 					PRINT("CANT TELEPORT: [FOUND SHIELD]", 2);
