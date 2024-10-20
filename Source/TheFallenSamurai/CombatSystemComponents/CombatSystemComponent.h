@@ -354,6 +354,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
 	float UniformShieldHitParticleSize;
 
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
+	float ShieldHitImpulse = 600.f;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
+	float OnHitAnimationBlendTime = .5f;
+
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
 

@@ -114,7 +114,7 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
 		if (HitResult.GetComponent()->ComponentHasTag("Shield") && !bInTeleport)
 		{
-			ProcessHitResponse(0.f, HitResult.ImpactPoint);
+			ProcessHitResponse(ShieldHitImpulse, HitResult.ImpactPoint);
 			return;
 		}
 
@@ -159,7 +159,7 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 		playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 	}
 
-	AnimInstance->Montage_Stop(.2f, CurrentAttackData.AttackMontage);
+	AnimInstance->Montage_Stop(OnHitAnimationBlendTime, CurrentAttackData.AttackMontage);
 
 	PlayerCameraManager->StopAllCameraShakes();
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
@@ -392,7 +392,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	if (!ValidationRules.bShouldIgnoreShields)
 	{
-		if (Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield")[0])
+		if (!Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield").IsEmpty())
 		{
 			float dot = ToPlayerNormalized.Dot(Enemy->GetActorForwardVector());
 			float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
@@ -693,6 +693,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 	ValidationRules.bUseLazyCheck = false;
 	ValidationRules.ChecksSampleScale = 2;
+	ValidationRules.bShouldIgnoreShields = true;
 
 	for (auto HitResult : HitResults)
 	{
@@ -1048,12 +1049,13 @@ void UCombatSystemComponent::SuperAbility()
 
 	//PRINT("called ability", 2);
 
-	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
-	{
-		//PRINT("Not enough Combo Points", 2);
-		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
-		return;
-	}
+	//if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
+	//{
+	//	//PRINT("Not enough Combo Points", 2);
+	//	OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
+	//	return;
+	//}
+
 	/*else if (!ExecuteSuperAbility())
 	{
 		PRINT("No enemies nearby");
