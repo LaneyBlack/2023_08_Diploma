@@ -166,6 +166,7 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 		playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 	}
 
+	//AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage);
 	AnimInstance->Montage_Stop(OnHitAnimationBlendTime, CurrentAttackData.AttackMontage);
 
 	HandleAttackEnd(false);
