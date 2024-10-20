@@ -110,6 +110,8 @@ public:
 		InitializeComboStateTimer();
 	}
 
+	int32 GetTotalComboPoints() const;
+
 	int32 GetCurrentComboPoints() const;
 
 	FOnComboPointsChanged OnComboPointsChanged;

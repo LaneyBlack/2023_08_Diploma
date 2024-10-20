@@ -49,6 +49,11 @@ void UComboSystem::UpdateComboLevel()
 	}
 }
 
+int32 UComboSystem::GetTotalComboPoints() const
+{
+	return TotalComboPoints;
+}
+
 int32 UComboSystem::GetCurrentComboPoints() const
 {
 	return CurrentComboPoints;
