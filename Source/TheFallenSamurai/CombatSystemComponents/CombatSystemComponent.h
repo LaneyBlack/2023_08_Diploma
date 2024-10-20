@@ -14,6 +14,7 @@
 class AKatana;
 class UCameraShakeBase;
 class ABaseEnemy;
+class UParticleSystem;
 template<typename... Types>
 struct TTuple;
 
@@ -89,6 +90,7 @@ struct FValidationRules
 	bool bUsePitch = true;
 	bool bUseLazyCheck = true;
 	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
+	bool bShouldIgnoreShields = false;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -211,10 +213,13 @@ private:
 	const FAttackAnimData& DetermineNextCounterAttackData();
 
 	UFUNCTION()
-	void HandleAttackEnd();
+	void HandleAttackEnd(bool bShouldPerformFinalTraceCheck = true);
 
 	UFUNCTION()
-	void ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint);
+	void ProcessHitResult(const FHitResult& HitResult);
+
+	UFUNCTION()
+	void ProcessHitResponse(float ImpulseStrength, const FVector& ImapctPoint);
 
 	UFUNCTION()
 	FVector DetermineKatanaDirection();
@@ -236,6 +241,9 @@ private:
 
 	UFUNCTION()
 	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
+
+	UFUNCTION()
+	bool CheckIsShieldProtected(const FVector& ToPlayerNormalized, const FVector& EnemyForward);
 
 	UFUNCTION()
 	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);
@@ -269,10 +277,10 @@ public:
 	TSubclassOf<UCameraShakeBase> HitCameraShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
-	class UParticleSystem* DefaultHitParticles;
+	UParticleSystem* DefaultHitParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
-	class UParticleSystem* BloodParticles;
+	UParticleSystem* BloodParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	FVector BloodScale = FVector(.6f, .6f, .8f);
@@ -308,7 +316,7 @@ public:
 	FVector PerfectParrySparksSize = FVector(3.f, 3.f, 3.f);
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
-	class UParticleSystem* PerfectParryShockwave;
+	UParticleSystem* PerfectParryShockwave;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
@@ -336,6 +344,24 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* FOVCurve;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | Teleport")
+	float ShieldIgnoreAngle = 0.f;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | Camera Shake")
+	TSubclassOf<UCameraShakeBase> ShieldHitCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
+	UParticleSystem* ShieldHitParticle;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
+	float UniformShieldHitParticleSize;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
+	float ShieldHitImpulse = 600.f;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
+	float OnHitAnimationBlendTime = .5f;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
@@ -401,7 +427,7 @@ public:
 	void PerfectParry();
 
 	UFUNCTION(BlueprintCallable)
-	void PerfectParryResponse(bool bEnableSlowMo);
+	void PerfectParryResponse(bool bEnableSlowMo = true);
 
 	UFUNCTION()
 	void SuperAbility();

@@ -82,7 +82,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
 	return CounterAttackMontages[index++ % CounterAttackMontages.Num()];
 }
 
-void UCombatSystemComponent::HandleAttackEnd()
+void UCombatSystemComponent::HandleAttackEnd(bool bShouldPerformFinalTraceCheck)
 {
 	//TargetPointOffset = FVector::Zero();
 
@@ -93,11 +93,14 @@ void UCombatSystemComponent::HandleAttackEnd()
 
 	HitTracer->ToggleTraceCheck(false);
 
+	if (!bShouldPerformFinalTraceCheck)
+		return;
+
 	for (auto result : HitTracer->HitArray)
-		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
+		ProcessHitResult(result);
 }
 
-void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint)
+void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 {
 	//slice plane code
 	FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
@@ -106,9 +109,22 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 
 	FVector TrueImpactPoint = Katana->KatanaMesh->GetSocketLocation("Middle");
 
-
+	AActor* HitActor = HitResult.GetActor();
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
+		//UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.f);
+
+		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
+		if (!bInTeleport && Enemy->bOwnsShield)
+		{
+			auto ToPlayerNormalized = (playerCharacter->GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal();
+			if (CheckIsShieldProtected(ToPlayerNormalized, HitActor->GetActorForwardVector()))
+			{
+				ProcessHitResponse(ShieldHitImpulse, HitResult.ImpactPoint);
+				return;
+			}
+		}
+
 		auto KatanaDirection = DetermineKatanaDirection();
 
 		auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
@@ -138,8 +154,30 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 	}
 	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
 	{
-		SlicableActor->SliceActor(PlaneNormal, ImpactPoint);
+		SlicableActor->SliceActor(PlaneNormal, HitResult.ImpactPoint);
 	}
+}
+
+void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVector& ImpactPoint)
+{
+	if (ImpulseStrength)
+	{
+		auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -ImpulseStrength;
+		playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
+	}
+
+	//AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage);
+	AnimInstance->Montage_Stop(OnHitAnimationBlendTime, CurrentAttackData.AttackMontage);
+
+	HandleAttackEnd(false);
+
+	PlayerCameraManager->StopAllCameraShakes();
+	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
+		ShieldHitCameraShake,
+		playerCharacter->GetActorLocation(),
+		0, 500, 1);
+
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ShieldHitParticle, ImpactPoint, FRotator(0.f), FVector(UniformShieldHitParticleSize));
 }
 
 FVector UCombatSystemComponent::DetermineKatanaDirection()
@@ -162,8 +200,9 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	for (auto& result : HitTracer->HitArray)
 	{
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(result.GetComponent()), 4, FColor::Orange);
-		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Orange);
-		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
+		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Red);
+
+		ProcessHitResult(result);
 		result.Reset();
 	}
 
@@ -204,6 +243,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 		if (!Enemy)
 			continue;
+
+		//PRINT_F("hit component %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent()), 4)
 
 		/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Hit) = %f"), HitResult.Distance));
 		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Math) = %f"), Enemy->GetDistanceTo(playerCharacter)));*/
@@ -354,8 +395,33 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	return bEyeToCenterHit && bEyeToEyeHit;
 }
 
+bool UCombatSystemComponent::CheckIsShieldProtected(const FVector& ToPlayerNormalized, const FVector& EnemyForward)
+{
+	float dot = ToPlayerNormalized.Dot(EnemyForward);
+	static const float cos = FMath::Cos(FMath::DegreesToRadians(ShieldIgnoreAngle));
+
+	return dot > cos;
+}
+
 bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
+	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
+	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
+
+	if (!ValidationRules.bShouldIgnoreShields)
+	{
+		//if (!Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield").IsEmpty())
+		if (Enemy->bOwnsShield)
+		{
+			if (CheckIsShieldProtected(ToPlayerNormalized, Enemy->GetActorForwardVector()))
+			{
+				if (ValidationRules.bUseDebugPrint)
+					PRINT("CANT TELEPORT: [FOUND SHIELD]", 2);
+				return false;
+			}
+		}
+	}
+
 	//PRINTC("validating", FColor::Red);
 	if (CheckIsTeleportTargetObscured(Enemy))
 	{
@@ -365,9 +431,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	}
 
 	PlayerStartForTeleport = playerCharacter->GetActorLocation();
-
-	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
 
 	FVector EvaluatedDestination;
 
@@ -566,6 +629,8 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
+	//PRINT("TELEPORT", 3)
+
 	bInTeleport = true;
 
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
@@ -644,6 +709,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
 	ValidationRules.bUseLazyCheck = false;
 	ValidationRules.ChecksSampleScale = 2;
+	ValidationRules.bShouldIgnoreShields = true;
 
 	for (auto HitResult : HitResults)
 	{
@@ -958,7 +1024,7 @@ void UCombatSystemComponent::PerfectParry()
 	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
 }
 
-void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo = true)
+void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo)
 {
 	if (bEnableSlowMo)
 	{
@@ -966,6 +1032,7 @@ void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo = true)
 		int sec;
 		UGameplayStatics::GetAccurateRealTime(sec, part);
 		DebugTimeStamp = sec + part;
+
 		bShouldSpeedUpSlowMoTimeline = false;
 		ParrySlowMoTimeline.PlayFromStart();
 	}
@@ -998,12 +1065,13 @@ void UCombatSystemComponent::SuperAbility()
 
 	//PRINT("called ability", 2);
 
-	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
-	{
-		//PRINT("Not enough Combo Points", 2);
-		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
-		return;
-	}
+	//if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
+	//{
+	//	//PRINT("Not enough Combo Points", 2);
+	//	OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
+	//	return;
+	//}
+
 	/*else if (!ExecuteSuperAbility())
 	{
 		PRINT("No enemies nearby");
