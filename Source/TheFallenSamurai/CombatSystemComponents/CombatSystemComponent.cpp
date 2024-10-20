@@ -94,10 +94,10 @@ void UCombatSystemComponent::HandleAttackEnd()
 	HitTracer->ToggleTraceCheck(false);
 
 	for (auto result : HitTracer->HitArray)
-		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
+		ProcessHitResult(result);
 }
 
-void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint)
+void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 {
 	//slice plane code
 	FVector HandVelocity = playerCharacter->GetMesh()->GetBoneLinearVelocity("hand_r");
@@ -106,9 +106,18 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 
 	FVector TrueImpactPoint = Katana->KatanaMesh->GetSocketLocation("Middle");
 
-
+	AActor* HitActor = HitResult.GetActor();
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
+		//UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.f);
+
+		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
+		if (HitResult.GetComponent()->ComponentHasTag("Shield") && !bInTeleport)
+		{
+			ProcessHitResponse(0.f, HitResult.ImpactPoint);
+			return;
+		}
+
 		auto KatanaDirection = DetermineKatanaDirection();
 
 		auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
@@ -138,8 +147,27 @@ void UCombatSystemComponent::ProcessHitReaction(AActor* HitActor, const FVector&
 	}
 	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
 	{
-		SlicableActor->SliceActor(PlaneNormal, ImpactPoint);
+		SlicableActor->SliceActor(PlaneNormal, HitResult.ImpactPoint);
 	}
+}
+
+void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVector& ImpactPoint)
+{
+	if (ImpulseStrength)
+	{
+		auto LaunchVelocity = playerCharacter->GetActorForwardVector() * -ImpulseStrength;
+		playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
+	}
+
+	AnimInstance->Montage_Stop(.2f, CurrentAttackData.AttackMontage);
+
+	PlayerCameraManager->StopAllCameraShakes();
+	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
+		ShieldHitCameraShake,
+		playerCharacter->GetActorLocation(),
+		0, 500, 1);
+
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ShieldHitParticle, ImpactPoint, FRotator(0.f), FVector(UniformShieldHitParticleSize));
 }
 
 FVector UCombatSystemComponent::DetermineKatanaDirection()
@@ -162,11 +190,9 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	for (auto& result : HitTracer->HitArray)
 	{
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(result.GetComponent()), 4, FColor::Orange);
-		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Orange);
+		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Red);
 
-
-
-		ProcessHitReaction(result.GetActor(), result.ImpactPoint);
+		ProcessHitResult(result);
 		result.Reset();
 	}
 
@@ -981,7 +1007,7 @@ void UCombatSystemComponent::PerfectParry()
 	AnimInstance->Montage_Play(PerfectParryMontage, PerfectParryMontageSpeed, EMontagePlayReturnType::MontageLength);
 }
 
-void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo = true)
+void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo)
 {
 	if (bEnableSlowMo)
 	{
@@ -989,6 +1015,7 @@ void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo = true)
 		int sec;
 		UGameplayStatics::GetAccurateRealTime(sec, part);
 		DebugTimeStamp = sec + part;
+
 		bShouldSpeedUpSlowMoTimeline = false;
 		ParrySlowMoTimeline.PlayFromStart();
 	}

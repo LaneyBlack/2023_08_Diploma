@@ -216,7 +216,10 @@ private:
 	void HandleAttackEnd();
 
 	UFUNCTION()
-	void ProcessHitReaction(AActor* HitActor, const FVector& ImpactPoint);
+	void ProcessHitResult(const FHitResult& HitResult);
+
+	UFUNCTION()
+	void ProcessHitResponse(float ImpulseStrength, const FVector& ImapctPoint);
 
 	UFUNCTION()
 	FVector DetermineKatanaDirection();
@@ -348,6 +351,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
 	UParticleSystem* ShieldHitParticle;
 
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
+	float UniformShieldHitParticleSize;
+
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
 
@@ -412,7 +418,7 @@ public:
 	void PerfectParry();
 
 	UFUNCTION(BlueprintCallable)
-	void PerfectParryResponse(bool bEnableSlowMo);
+	void PerfectParryResponse(bool bEnableSlowMo = true);
 
 	UFUNCTION()
 	void SuperAbility();
