@@ -7,6 +7,7 @@
 #include "BaseEnemy.generated.h"
 
 class UProceduralMeshComponent;
+struct FCombatHitData;
 
 UCLASS()
 class THEFALLENSAMURAI_API ABaseEnemy : public ACharacter
@@ -32,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
 	FName HeadBoneName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
+	float DismembermentStrength = 5000.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bIsGettingHit;
 
@@ -41,10 +45,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	bool HandleHitReaction(const FVector& Impulse, const FVector& PlaneNormal);
+	bool HandleHitReaction(const FCombatHitData& CombatHitData);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void ApplyDamage(const FVector& PlaneNormal, const FVector& HitLocation);
+	void ApplyDamage(const FCombatHitData& CombatHitData);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetDebugTextValue(const FString& value);

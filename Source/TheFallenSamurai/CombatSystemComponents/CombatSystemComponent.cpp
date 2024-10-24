@@ -125,24 +125,30 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 			}
 		}
 
-		auto KatanaDirection = DetermineKatanaDirection();
+		//auto KatanaDirection = DetermineKatanaDirection();
 
-		auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
+		//auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
 
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
 			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
 
-		FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
+		/*FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
 		DismembermentImpulse.Z += 2.f;
 		DismembermentImpulse.Normalize();
-		DismembermentImpulse *= 5'000.f;
+		DismembermentImpulse *= 5'000.f;*/
 
 		/*float test = PlaneNormal.Dot(Katana->GetActorRightVector());
 
 		PRINTC_F("test dot = %f", test, 10, FColor::Cyan);*/
 
-		if (!Enemy->HandleHitReaction(TrueImpactPoint, PlaneNormal))
+		FCombatHitData KatanaHitResult;
+		KatanaHitResult.ActorCauser = playerCharacter;
+		KatanaHitResult.ImpactLocation = HitResult.ImpactPoint;
+		KatanaHitResult.CutPlaneNormal = PlaneNormal;
+		KatanaHitResult.CutVelocity = HandVelocity;
+
 		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
+		if (!Enemy->HandleHitReaction(KatanaHitResult))
 		{
 			PlayerCameraManager->StopAllCameraShakes();
 
@@ -172,6 +178,7 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 	HandleAttackEnd(false);
 
 	PlayerCameraManager->StopAllCameraShakes();
+
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
 		ShieldHitCameraShake,
 		playerCharacter->GetActorLocation(),

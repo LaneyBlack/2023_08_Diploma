@@ -26,6 +26,8 @@
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "ProceduralMeshComponent.h"
 
+#include "../CombatSystemComponents/CombatSystemComponent.h"
+
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
@@ -59,11 +61,11 @@ void ABaseEnemy::Tick(float DeltaTime)
 
 }
 
-bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneNormal)
+bool ABaseEnemy::HandleHitReaction(const FCombatHitData& CombatHitData)
 {
 	if (!bIsGettingHit)
 	{
-		ApplyDamage(PlaneNormal, Impulse);
+		ApplyDamage(CombatHitData);
 
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
 		GetMesh()->HideBoneByName(HeadBoneName, EPhysBodyOp::PBO_None);
@@ -79,6 +81,8 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneN
 
 		SpawnedHead->SetActorScale3D(FVector(1.4f));
 
+        FVector HeadImpulse = (CombatHitData.CutPlaneNormal + CombatHitData.CutVelocity).GetSafeNormal() * DismembermentStrength;
+
 		UStaticMeshComponent* MeshComponent = SpawnedHead->GetStaticMeshComponent();
 		if (MeshComponent)
 		{
@@ -86,7 +90,7 @@ bool ABaseEnemy::HandleHitReaction(const FVector& Impulse, const FVector& PlaneN
 			MeshComponent->SetSimulatePhysics(true);
 			MeshComponent->SetEnableGravity(true);
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-			MeshComponent->AddImpulse(Impulse);
+			MeshComponent->AddImpulse(HeadImpulse);
 			MeshComponent->SetAllMassScale(1);
 		}
 		//---------------------------------------------- previous dismemberment solution ---------------------------------------------- 
