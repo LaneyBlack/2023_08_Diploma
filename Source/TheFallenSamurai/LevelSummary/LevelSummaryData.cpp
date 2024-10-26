@@ -11,7 +11,7 @@ ULevelSummaryData::ULevelSummaryData()
 	SummaryData = FLevelSummaryDataStruct();
 }
 
-int32 ULevelSummaryData::GatherAndReturnComboPoints()
+int64 ULevelSummaryData::GatherAndReturnComboPoints()
 {
 	UComboSystem* ComboSystem = UComboSystem::GetInstance();
 
@@ -40,6 +40,38 @@ int32 ULevelSummaryData::GatherAndReturnPlayerDeaths()
 void ULevelSummaryData::GatherElapsedTime(float ElapsedTime)
 {
 	SummaryData.ElapsedTime = ElapsedTime;
+}
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Elapsed Time: %f"), SummaryData.ElapsedTime));
+void ULevelSummaryData::GatherLevelName(FString LevelName)
+{
+	SummaryData.LevelName = LevelName;
+}
+
+bool ULevelSummaryData::SaveSummaryDataToFile(const FString& LevelName)
+{
+	SummaryData.LevelName = LevelName;
+
+	if (LevelName == "None")
+	{
+		return false;
+	}
+	
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	
+	JsonObject->SetStringField("LevelName", SummaryData.LevelName);
+	JsonObject->SetNumberField("ComboPoints", SummaryData.ComboPoints);
+	JsonObject->SetNumberField("PlayerDeaths", SummaryData.PlayerDeaths);
+	JsonObject->SetNumberField("ElapsedTime", SummaryData.ElapsedTime);
+	
+	FString OutputString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
+	{
+		return false;
+	}
+	
+	FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *LevelName);
+	FString FilePath = FPaths::ProjectDir() / TEXT("Saved") / FileName;
+	
+	return FFileHelper::SaveStringToFile(OutputString, *FilePath);
 }

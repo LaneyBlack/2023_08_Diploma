@@ -4,7 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "Json.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "LevelSummaryData.generated.h"
+
 
 /**
  * 
@@ -17,7 +21,10 @@ struct THEFALLENSAMURAI_API FLevelSummaryDataStruct
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	int32 ComboPoints;
+	FString LevelName;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
+	int64 ComboPoints;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
 	int32 PlayerDeaths;
@@ -26,7 +33,7 @@ public:
 	float ElapsedTime;
 	
 	FLevelSummaryDataStruct()
-		: ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f)
+		: LevelName("none") ,ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f)
 	{
 	}
 };
@@ -40,13 +47,19 @@ public:
 	ULevelSummaryData();
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	int32 GatherAndReturnComboPoints();
+	int64 GatherAndReturnComboPoints();
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	int32 GatherAndReturnPlayerDeaths();
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	void GatherElapsedTime(float ElapsedTime);
+
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	void GatherLevelName(FString LevelName);
+
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	bool SaveSummaryDataToFile(const FString& LevelName);
 
 private:
 	FLevelSummaryDataStruct SummaryData;
