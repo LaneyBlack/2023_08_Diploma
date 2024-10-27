@@ -77,6 +77,9 @@ struct FCombatHitData
 
 	UPROPERTY(BlueprintReadWrite)
 	AActor*  ActorCauser;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bSuperAbilityKill;
 };
 
 USTRUCT(BlueprintType)

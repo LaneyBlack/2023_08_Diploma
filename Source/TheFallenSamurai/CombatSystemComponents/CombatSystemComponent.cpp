@@ -146,6 +146,7 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		KatanaHitResult.ImpactLocation = HitResult.ImpactPoint;
 		KatanaHitResult.CutPlaneNormal = PlaneNormal;
 		KatanaHitResult.CutVelocity = HandVelocity;
+		KatanaHitResult.bSuperAbilityKill = SuperAbilityTargetsLeft > 0;
 
 		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		if (!Enemy->HandleHitReaction(KatanaHitResult))
@@ -156,6 +157,8 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 				HitCameraShake,
 				playerCharacter->GetActorLocation(),
 				1, 500, 1);
+
+			//PRINT_F("targets left %i", SuperAbilityTargetsLeft, 4)
 		}
 	}
 	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
