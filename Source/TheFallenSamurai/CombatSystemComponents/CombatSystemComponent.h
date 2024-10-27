@@ -62,6 +62,27 @@ struct FAttackAnimData
 };
 
 USTRUCT(BlueprintType)
+struct FCombatHitData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector  CutPlaneNormal;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector  CutVelocity;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector  ImpactLocation;
+
+	UPROPERTY(BlueprintReadWrite)
+	AActor*  ActorCauser;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bSuperAbilityKill;
+};
+
+USTRUCT(BlueprintType)
 struct FTeleportProperties
 {
 	GENERATED_BODY()
