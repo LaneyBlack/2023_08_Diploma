@@ -1075,12 +1075,12 @@ void UCombatSystemComponent::SuperAbility()
 
 	//PRINT("called ability", 2);
 
-	//if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
-	//{
-	//	//PRINT("Not enough Combo Points", 2);
-	//	OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
-	//	return;
-	//}
+	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
+	{
+		//PRINT("Not enough Combo Points", 2);
+		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
+		return;
+	}
 
 	/*else if (!ExecuteSuperAbility())
 	{
