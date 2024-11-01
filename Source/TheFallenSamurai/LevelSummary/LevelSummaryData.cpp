@@ -11,6 +11,13 @@ ULevelSummaryData::ULevelSummaryData()
 	SummaryData = FLevelSummaryDataStruct();
 }
 
+void ULevelSummaryData::GatherSteamData(FString SteamName, FString SteamID)
+{
+	SummaryData.SteamID = SteamID;
+	SummaryData.SteamUsername = SteamName;
+}
+
+
 int64 ULevelSummaryData::GatherAndReturnComboPoints()
 {
 	UComboSystem* ComboSystem = UComboSystem::GetInstance();
@@ -47,17 +54,18 @@ void ULevelSummaryData::GatherLevelName(FString LevelName)
 	SummaryData.LevelName = LevelName;
 }
 
-bool ULevelSummaryData::SaveSummaryDataToFile(const FString& LevelName)
+bool ULevelSummaryData::SaveSummaryDataToFile()
 {
-	SummaryData.LevelName = LevelName;
 
-	if (LevelName == "None")
+	if (SummaryData.LevelName.IsEmpty() || SummaryData.SteamID.IsEmpty())
 	{
 		return false;
 	}
 	
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-	
+
+	JsonObject->SetStringField("SteamID", SummaryData.SteamID);
+	JsonObject->SetStringField("SteamUsername", SummaryData.SteamUsername);
 	JsonObject->SetStringField("LevelName", SummaryData.LevelName);
 	JsonObject->SetNumberField("ComboPoints", SummaryData.ComboPoints);
 	JsonObject->SetNumberField("PlayerDeaths", SummaryData.PlayerDeaths);
@@ -70,8 +78,17 @@ bool ULevelSummaryData::SaveSummaryDataToFile(const FString& LevelName)
 		return false;
 	}
 	
-	FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *LevelName);
-	FString FilePath = FPaths::ProjectDir() / TEXT("Saved") / FileName;
+	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SummaryData.SteamID;
+	
+	IFileManager& FileManager = IFileManager::Get();
+	if (!FileManager.DirectoryExists(*DirectoryPath))
+	{
+		FileManager.MakeDirectory(*DirectoryPath);
+	}
+	
+	FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *SummaryData.LevelName);
+	FString FilePath = DirectoryPath / FileName;
 	
 	return FFileHelper::SaveStringToFile(OutputString, *FilePath);
 }
+

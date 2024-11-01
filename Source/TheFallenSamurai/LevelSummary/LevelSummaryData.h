@@ -21,6 +21,12 @@ struct THEFALLENSAMURAI_API FLevelSummaryDataStruct
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
+	FString SteamID;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
+	FString SteamUsername;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
 	FString LevelName;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
@@ -33,7 +39,7 @@ public:
 	float ElapsedTime;
 	
 	FLevelSummaryDataStruct()
-		: LevelName("none") ,ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f)
+		: SteamID("Unknown"), SteamUsername("Unknown") ,LevelName("none") ,ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f)
 	{
 	}
 };
@@ -45,6 +51,9 @@ class THEFALLENSAMURAI_API ULevelSummaryData : public UObject
 
 public:
 	ULevelSummaryData();
+
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	void GatherSteamData(FString SteamName, FString SteamID);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	int64 GatherAndReturnComboPoints();
@@ -59,7 +68,7 @@ public:
 	void GatherLevelName(FString LevelName);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	bool SaveSummaryDataToFile(const FString& LevelName);
+	bool SaveSummaryDataToFile();
 
 private:
 	FLevelSummaryDataStruct SummaryData;
