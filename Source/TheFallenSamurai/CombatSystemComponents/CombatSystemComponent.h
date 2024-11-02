@@ -57,6 +57,8 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UCameraShakeBase> AttackShake;
 
+	bool bIsTeleportAttack = false;
+
 	//for later 
 	//hand offset of crig
 };
@@ -214,7 +216,7 @@ private:
 
 	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
 	
-	int SuperAbilityTargetsLeft;
+	int SuperAbilityTargetsLeft = -1;
 
 	TSet<ABaseEnemy*> PostProcessSA_Targets;
 
