@@ -17,6 +17,7 @@
 #include "CombatSystemComponents\CombatSystemComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GAS/PlayerAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -91,6 +92,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 
 	// Capture game mode for driving global rewind
 	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	/*if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
+		LockPlayerPerfectParry = true;*/
 
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -293,7 +297,7 @@ void ATheFallenSamuraiCharacter::Attack(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::PerfectParry(const FInputActionValue& Value)
 {
-	//if(!LockPlayerPerfectParry)
+	if(!LockPlayerPerfectParry)
 	CombatSystemComponent->PerfectParry();
 }
 

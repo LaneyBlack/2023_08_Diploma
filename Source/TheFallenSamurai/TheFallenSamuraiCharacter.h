@@ -93,10 +93,10 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
 	bool LockPlayerAttack = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
 	bool LockPlayerPerfectParry = false;
 
 	ATheFallenSamuraiCharacter();
