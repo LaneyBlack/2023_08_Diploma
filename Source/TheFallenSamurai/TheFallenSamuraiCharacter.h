@@ -99,6 +99,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
 	bool LockPlayerPerfectParry = false;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	bool bLockPlayerAbilities = false;
+
 	ATheFallenSamuraiCharacter();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))

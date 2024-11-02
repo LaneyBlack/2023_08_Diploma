@@ -96,6 +96,9 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	/*if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
 		LockPlayerPerfectParry = true;*/
 
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
+		bLockPlayerAbilities = true;
+
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -325,6 +328,9 @@ void ATheFallenSamuraiCharacter::ToggleRewindParticipationNoInput()
 
 void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 {
+	if (bLockPlayerAbilities)
+		return;
+
 	UComboSystem* ComboSystem = UComboSystem::GetInstance();
 
 	if (!CombatSystemComponent->IsSuperAbilityActive())
@@ -348,6 +354,9 @@ void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::ToggleSuperAbility(const FInputActionValue& Value)
 {
+	if (bLockPlayerAbilities)
+		return;
+
 	if (!RewindComponent->bIsTimeScrubbingForDuration)
 		CombatSystemComponent->SuperAbility();
 }
