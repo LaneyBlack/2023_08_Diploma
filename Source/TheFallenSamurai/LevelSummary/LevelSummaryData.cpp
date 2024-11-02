@@ -54,12 +54,16 @@ void ULevelSummaryData::GatherLevelName(FString LevelName)
 	SummaryData.LevelName = LevelName;
 }
 
-bool ULevelSummaryData::SaveSummaryDataToFile()
+FString ULevelSummaryData::SaveSummaryDataToFile()
 {
-
-	if (SummaryData.LevelName.IsEmpty() || SummaryData.SteamID.IsEmpty())
+	if (SummaryData.LevelName == "None")
 	{
-		return false;
+		return "Level not found";
+	}
+	
+	if (SummaryData.SteamID == "Unknown")
+	{
+		return "Steam not connected";
 	}
 	
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
@@ -70,16 +74,16 @@ bool ULevelSummaryData::SaveSummaryDataToFile()
 	JsonObject->SetNumberField("ComboPoints", SummaryData.ComboPoints);
 	JsonObject->SetNumberField("PlayerDeaths", SummaryData.PlayerDeaths);
 	JsonObject->SetNumberField("ElapsedTime", SummaryData.ElapsedTime);
+	JsonObject->SetNumberField("TotalScore", SummaryData.TotalScore);
 	
 	FString OutputString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
 	if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
 	{
-		return false;
+		return "Failed to serialize save data";
 	}
 	
 	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SummaryData.SteamID;
-	
 	IFileManager& FileManager = IFileManager::Get();
 	if (!FileManager.DirectoryExists(*DirectoryPath))
 	{
@@ -88,7 +92,59 @@ bool ULevelSummaryData::SaveSummaryDataToFile()
 	
 	FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *SummaryData.LevelName);
 	FString FilePath = DirectoryPath / FileName;
+	if (!FFileHelper::SaveStringToFile(OutputString, *FilePath))
+	{
+		return "Failed to save data to file";
+	}
 	
-	return FFileHelper::SaveStringToFile(OutputString, *FilePath);
+	return "Data saved successfully";
 }
+
+
+int32 ULevelSummaryData::CalculateTotalScore()
+{
+	SummaryData.TotalScore = SummaryData.ComboPoints - (SummaryData.PlayerDeaths * 1000) - (SummaryData.ElapsedTime * 10.0f);
+
+	if(SummaryData.TotalScore < 0)
+	{
+		SummaryData.TotalScore = 0;
+	}
+	return FMath::RoundToInt(SummaryData.TotalScore);
+}
+
+bool ULevelSummaryData::IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const
+{
+	const FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SteamID;
+	const FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *LevelName);
+	const FString FilePath = DirectoryPath / FileName;
+	
+	if (!FPaths::FileExists(FilePath))
+	{
+		return true;
+	}
+	
+	FString FileContent;
+	if (!FFileHelper::LoadFileToString(FileContent, *FilePath))
+	{
+		return true;
+	}
+	
+	TSharedPtr<FJsonObject> JsonObject;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FileContent);
+	
+	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
+	{
+		return true;
+	}
+	
+	float PreviousTotalScore = 0.0f;
+	if (!JsonObject->TryGetNumberField("TotalScore", PreviousTotalScore))
+	{
+		return true;
+	}
+	
+	return SummaryData.TotalScore > PreviousTotalScore;
+}
+
+
 

@@ -37,9 +37,12 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
 	float ElapsedTime;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
+	float TotalScore;
 	
 	FLevelSummaryDataStruct()
-		: SteamID("Unknown"), SteamUsername("Unknown") ,LevelName("none") ,ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f)
+		: SteamID("Unknown"), SteamUsername("Unknown") ,LevelName("None") ,ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f), TotalScore(0.0f)
 	{
 	}
 };
@@ -68,7 +71,13 @@ public:
 	void GatherLevelName(FString LevelName);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	bool SaveSummaryDataToFile();
+	FString SaveSummaryDataToFile();
+
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	int32 CalculateTotalScore();
+
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	bool IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const;
 
 private:
 	FLevelSummaryDataStruct SummaryData;
