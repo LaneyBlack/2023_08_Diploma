@@ -37,13 +37,13 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 void ATheFallenSamuraiCharacter::EnableJumpLock()
 {
-	PRINT("finihed timeline", 3);
+	//PRINT("finihed timeline", 3);
 	bLockedJump = true;
 }
 
 void ATheFallenSamuraiCharacter::InterpolateGravity(float Value)
 {
-	PRINT("timeline", 3);
+	//PRINT("timeline", 3);
 	GetCharacterMovement()->GravityScale = UKismetMathLibrary::Lerp(MinGravity, GravityCache, Value);
 }
 

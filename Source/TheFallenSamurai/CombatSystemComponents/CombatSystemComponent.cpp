@@ -1307,7 +1307,7 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	TeleportTimeline.TickTimeline(DeltaTime);
 	ParrySlowMoTimeline.TickTimeline(DeltaTime);
 
-	PRINTC_F("Super Ability Targets Left = %i", SuperAbilityTargetsLeft, 0, FColor::Orange);
+	//PRINTC_F("Super Ability Targets Left = %i", SuperAbilityTargetsLeft, 0, FColor::Orange);
 	
 	if (!bInCombat) //change to not attacking??
 	{
