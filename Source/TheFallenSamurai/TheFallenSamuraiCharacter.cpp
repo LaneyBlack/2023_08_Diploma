@@ -17,6 +17,10 @@
 #include "CombatSystemComponents\CombatSystemComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GAS/PlayerAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/TimelineComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -30,6 +34,26 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 //#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
+
+void ATheFallenSamuraiCharacter::EnableJumpLock()
+{
+	//PRINT("finihed timeline", 3);
+	bLockedJump = true;
+}
+
+void ATheFallenSamuraiCharacter::InterpolateGravity(float Value)
+{
+	//PRINT("timeline", 3);
+	GetCharacterMovement()->GravityScale = UKismetMathLibrary::Lerp(MinGravity, GravityCache, Value);
+}
+
+void ATheFallenSamuraiCharacter::ResetCoyoteProperties()
+{
+	bLockedJump = false;
+
+	GetCharacterMovement()->GravityScale = GravityCache;
+	CoyoteGravityTimeline.Stop();
+}
 
 ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 {
@@ -92,6 +116,12 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	// Capture game mode for driving global rewind
 	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
 
+	/*if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
+		LockPlayerPerfectParry = true;*/
+
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
+		bLockPlayerAbilities = true;
+
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -109,12 +139,53 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 
 	//Reset combo on start
 	ResetCombo();
+
+	//set up coyote time timeline dependencies
+	GravityCache = GetCharacterMovement()->GravityScale;
+	if (bUseGravityTimeline)
+	{
+		//PRINTC_F("Gravity Cache = %f", GravityCache, 2, FColor::Red);
+
+		FOnTimelineFloat TimelineProgressGravity;
+		TimelineProgressGravity.BindUFunction(this, FName("InterpolateGravity"));
+		CoyoteGravityTimeline.AddInterpFloat(GravityCurve, TimelineProgressGravity);
+
+		FOnTimelineEvent GravityTimelineFinished;
+		GravityTimelineFinished.BindUFunction(this, FName("EnableJumpLock"));
+		CoyoteGravityTimeline.SetTimelineFinishedFunc(GravityTimelineFinished);
+
+		CoyoteGravityTimeline.SetLooping(false);
+
+		CoyoteGravityTimeline.SetPlayRate(1.f / CoyoteTime);
+	}
+}
+
+void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	/*PRINT_F("MOVEMENT STATE: %s", *UEnum::GetValueAsString(GetCharacterMovement()->MovementMode), 0.f);
+	PRINT_F("bLockedJump: %i", bLockedJump, 0.f);*/
+
+	if(bUseGravityTimeline)
+		CoyoteGravityTimeline.TickTimeline(DeltaTime);
+}
+
+bool ATheFallenSamuraiCharacter::CanJumpInternal_Implementation() const
+{
+	//PRINT("can jump internal", 3)
+	return Super::CanJumpInternal_Implementation() || !bLockedJump;
+	//return Super::CanJumpInternal_Implementation();
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 	ResetDoubleJump();
+
+	GetWorld()->GetTimerManager().ClearTimer(CoyoteTimeTimer);
+
+	ResetCoyoteProperties();
 }
 
 void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
@@ -125,6 +196,15 @@ void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovemen
 	{
 		bFirstJump = true;
 		bDoubleJumpingFromGround = false;
+
+		ResetCoyoteProperties();
+	}
+	else if (GetCharacterMovement()->MovementMode == MOVE_Falling && bFirstJump)
+	{
+		if (!bUseGravityTimeline)
+			GetWorld()->GetTimerManager().SetTimer(CoyoteTimeTimer, this, &ATheFallenSamuraiCharacter::EnableJumpLock, CoyoteTime, false);
+		else
+			CoyoteGravityTimeline.PlayFromStart();
 	}
 }
 
@@ -136,6 +216,10 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 		{
 			bFirstJump = false;
 			bDoubleJumpingFromGround = true;
+
+			CoyoteGravityTimeline.Stop();
+			GetCharacterMovement()->GravityScale = GravityCache;
+
 			ACharacter::Jump();
 		}
 		else if (bIsWallrunJumping && !bDoubleJumpingFromGround && !bFirstJump)
@@ -151,6 +235,8 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 
 void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 {
+	PRINTC("double jump", FColor::Red);
+
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
 	if (PlayerController)
@@ -293,7 +379,7 @@ void ATheFallenSamuraiCharacter::Attack(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::PerfectParry(const FInputActionValue& Value)
 {
-	//if(!LockPlayerPerfectParry)
+	if(!LockPlayerPerfectParry)
 	CombatSystemComponent->PerfectParry();
 }
 
@@ -321,6 +407,9 @@ void ATheFallenSamuraiCharacter::ToggleRewindParticipationNoInput()
 
 void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 {
+	if (bLockPlayerAbilities)
+		return;
+
 	UComboSystem* ComboSystem = UComboSystem::GetInstance();
 
 	if (!CombatSystemComponent->IsSuperAbilityActive())
@@ -344,6 +433,9 @@ void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::ToggleSuperAbility(const FInputActionValue& Value)
 {
+	if (bLockPlayerAbilities)
+		return;
+
 	if (!RewindComponent->bIsTimeScrubbingForDuration)
 		CombatSystemComponent->SuperAbility();
 }

@@ -115,7 +115,7 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		//UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.f);
 
 		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
-		if (!bInTeleport && Enemy->bOwnsShield)
+		if (!CurrentAttackData.bIsTeleportAttack && Enemy->bOwnsShield)
 		{
 			auto ToPlayerNormalized = (playerCharacter->GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal();
 			if (CheckIsShieldProtected(ToPlayerNormalized, HitActor->GetActorForwardVector()))
@@ -146,7 +146,7 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		KatanaHitResult.ImpactLocation = HitResult.ImpactPoint;
 		KatanaHitResult.CutPlaneNormal = PlaneNormal;
 		KatanaHitResult.CutVelocity = HandVelocity;
-		KatanaHitResult.bSuperAbilityKill = SuperAbilityTargetsLeft > 0;
+		KatanaHitResult.bSuperAbilityKill = SuperAbilityTargetsLeft >= 0;
 
 		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		if (!Enemy->HandleHitReaction(KatanaHitResult))
@@ -643,6 +643,8 @@ void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 
 	bInTeleport = true;
 
+	CurrentAttackData.bIsTeleportAttack = true;
+
 	PlayerCameraFOV = PlayerCameraManager->GetFOVAngle();
 
 	float NormalizedTeleportTime = UKismetMathLibrary::MapRangeClamped(TeleportDistance, KatanaTriggerLenSquared,
@@ -991,6 +993,8 @@ void UCombatSystemComponent::Attack()
 				SuperAbilityTarget->SetEnableTargetWidget(false);
 				OnSuperAbilityTargetAcquired.Broadcast(false);
 
+				//NextAttackData.bIsTeleportAttack = true;
+
 				SwingKatana();
 
 				SA_State = SuperAbilityState::TELEPORTING;
@@ -1102,6 +1106,8 @@ void UCombatSystemComponent::SuperAbility()
 
 void UCombatSystemComponent::CancelSuperAbility()
 {
+	SuperAbilityTargetsLeft = -1;
+
 	ClearAffectedByPostProcess();
 
 	GetWorld()->GetTimerManager().ClearTimer(SuperAbilityTimerHandle);
@@ -1301,7 +1307,7 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	TeleportTimeline.TickTimeline(DeltaTime);
 	ParrySlowMoTimeline.TickTimeline(DeltaTime);
 
-	//PRINTC_F("Tokens = %i", StolenTokens, 0, FColor::Orange);
+	//PRINTC_F("Super Ability Targets Left = %i", SuperAbilityTargetsLeft, 0, FColor::Orange);
 	
 	if (!bInCombat) //change to not attacking??
 	{
