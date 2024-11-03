@@ -18,6 +18,8 @@
 #include "AbilitySystemComponent.h"
 #include "GAS/PlayerAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/TimelineComponent.h"
+
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -31,6 +33,16 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 //#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
+
+void ATheFallenSamuraiCharacter::EnableJumpLock()
+{
+	bLockedJump = true;
+}
+
+void ATheFallenSamuraiCharacter::InterpolateGravityOnCoyoteTime(float Value)
+{
+
+}
 
 ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 {
@@ -116,12 +128,42 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 
 	//Reset combo on start
 	ResetCombo();
+
+	//set up coyote time timeline dependencies
+	if (bUseGravityTimeline)
+	{
+		FOnTimelineFloat TimelineProgressGravity;
+		TimelineProgressGravity.BindUFunction(this, FName("InterpolateGravityOnCoyoteTime"));
+		CoyoteGravityTimeline.AddInterpFloat(GravityCurve, TimelineProgressGravity);
+	}
+}
+
+void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	/*PRINT_F("MOVEMENT STATE: %s", *UEnum::GetValueAsString(GetCharacterMovement()->MovementMode), 0.f);
+	PRINT_F("bLockedJump: %i", bLockedJump, 0.f);*/
+
+	if(bUseGravityTimeline)
+		CoyoteGravityTimeline.TickTimeline(DeltaTime);
+}
+
+bool ATheFallenSamuraiCharacter::CanJumpInternal_Implementation() const
+{
+	//PRINT("can jump internal", 3)
+	return Super::CanJumpInternal_Implementation() || !bLockedJump;
+	//return Super::CanJumpInternal_Implementation();
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 	ResetDoubleJump();
+
+	GetWorld()->GetTimerManager().ClearTimer(CoyoteTimeTimer);
+
+	bLockedJump = false;
 }
 
 void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
@@ -132,6 +174,14 @@ void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovemen
 	{
 		bFirstJump = true;
 		bDoubleJumpingFromGround = false;
+		bLockedJump = false;
+	}
+	else if (GetCharacterMovement()->MovementMode == MOVE_Falling)
+	{
+		if (!bUseGravityTimeline)
+			GetWorld()->GetTimerManager().SetTimer(CoyoteTimeTimer, this, &ATheFallenSamuraiCharacter::EnableJumpLock, CoyoteTime, false);
+		else
+			PRINT("start timeline", 3);
 	}
 }
 
@@ -158,6 +208,8 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 
 void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 {
+	PRINTC("double jump", FColor::Red);
+
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
 	if (PlayerController)

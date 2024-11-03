@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "AbilitySystemInterface.h"
+#include "Components/TimelineComponent.h"
 #include "TheFallenSamuraiCharacter.generated.h"
 
 class USpringArmComponent;
@@ -91,6 +92,17 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CombatSystem, meta = (AllowPrivateAccess = "true"))
 	class UCombatSystemComponent* CombatSystemComponent;
 
+	UPROPERTY()
+	FTimeline CoyoteGravityTimeline;
+
+	UPROPERTY()
+	FTimerHandle CoyoteTimeTimer = FTimerHandle();
+
+	bool bLockedJump = false;
+
+	void EnableJumpLock();
+
+	void InterpolateGravityOnCoyoteTime(float Value);
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
@@ -106,6 +118,15 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
 	bool bIsWallrunJumping = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true"))
+	float CoyoteTime = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true"))
+	bool bUseGravityTimeline = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true", EditCondition = "bUseGravityTimeline"))
+	UCurveFloat* GravityCurve;
 
 	UFUNCTION(BlueprintCallable, Category = "NoJump")
 	void SetNoJumpState(ENoJumpState NewNoJumpState)
@@ -167,6 +188,10 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
+
+	virtual void Tick(float DeltaTime) override;
+
+	virtual bool CanJumpInternal_Implementation() const override;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
