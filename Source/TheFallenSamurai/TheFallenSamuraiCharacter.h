@@ -92,6 +92,9 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CombatSystem, meta = (AllowPrivateAccess = "true"))
 	class UCombatSystemComponent* CombatSystemComponent;
 
+	//never use it, accept in coyote gravity related functions
+	float GravityCache = -1.f;
+
 	UPROPERTY()
 	FTimeline CoyoteGravityTimeline;
 
@@ -100,9 +103,13 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 
 	bool bLockedJump = false;
 
+	UFUNCTION()
 	void EnableJumpLock();
 
-	void InterpolateGravityOnCoyoteTime(float Value);
+	UFUNCTION()
+	void InterpolateGravity(float Value);
+
+	void ResetCoyoteProperties();
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
@@ -127,6 +134,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true", EditCondition = "bUseGravityTimeline"))
 	UCurveFloat* GravityCurve;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true", EditCondition = "bUseGravityTimeline"))
+	float  MinGravity = 0.1f;
 
 	UFUNCTION(BlueprintCallable, Category = "NoJump")
 	void SetNoJumpState(ENoJumpState NewNoJumpState)

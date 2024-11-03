@@ -19,6 +19,7 @@
 #include "GAS/PlayerAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/TimelineComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -36,12 +37,22 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 void ATheFallenSamuraiCharacter::EnableJumpLock()
 {
+	PRINT("finihed timeline", 3);
 	bLockedJump = true;
 }
 
-void ATheFallenSamuraiCharacter::InterpolateGravityOnCoyoteTime(float Value)
+void ATheFallenSamuraiCharacter::InterpolateGravity(float Value)
 {
+	PRINT("timeline", 3);
+	GetCharacterMovement()->GravityScale = UKismetMathLibrary::Lerp(MinGravity, GravityCache, Value);
+}
 
+void ATheFallenSamuraiCharacter::ResetCoyoteProperties()
+{
+	bLockedJump = false;
+
+	GetCharacterMovement()->GravityScale = GravityCache;
+	CoyoteGravityTimeline.Stop();
 }
 
 ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
@@ -130,11 +141,22 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	ResetCombo();
 
 	//set up coyote time timeline dependencies
+	GravityCache = GetCharacterMovement()->GravityScale;
 	if (bUseGravityTimeline)
 	{
+		//PRINTC_F("Gravity Cache = %f", GravityCache, 2, FColor::Red);
+
 		FOnTimelineFloat TimelineProgressGravity;
-		TimelineProgressGravity.BindUFunction(this, FName("InterpolateGravityOnCoyoteTime"));
+		TimelineProgressGravity.BindUFunction(this, FName("InterpolateGravity"));
 		CoyoteGravityTimeline.AddInterpFloat(GravityCurve, TimelineProgressGravity);
+
+		FOnTimelineEvent GravityTimelineFinished;
+		GravityTimelineFinished.BindUFunction(this, FName("EnableJumpLock"));
+		CoyoteGravityTimeline.SetTimelineFinishedFunc(GravityTimelineFinished);
+
+		CoyoteGravityTimeline.SetLooping(false);
+
+		CoyoteGravityTimeline.SetPlayRate(1.f / CoyoteTime);
 	}
 }
 
@@ -163,7 +185,7 @@ void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
 
 	GetWorld()->GetTimerManager().ClearTimer(CoyoteTimeTimer);
 
-	bLockedJump = false;
+	ResetCoyoteProperties();
 }
 
 void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
@@ -174,14 +196,15 @@ void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovemen
 	{
 		bFirstJump = true;
 		bDoubleJumpingFromGround = false;
-		bLockedJump = false;
+
+		ResetCoyoteProperties();
 	}
-	else if (GetCharacterMovement()->MovementMode == MOVE_Falling)
+	else if (GetCharacterMovement()->MovementMode == MOVE_Falling && bFirstJump)
 	{
 		if (!bUseGravityTimeline)
 			GetWorld()->GetTimerManager().SetTimer(CoyoteTimeTimer, this, &ATheFallenSamuraiCharacter::EnableJumpLock, CoyoteTime, false);
 		else
-			PRINT("start timeline", 3);
+			CoyoteGravityTimeline.PlayFromStart();
 	}
 }
 
@@ -193,6 +216,10 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 		{
 			bFirstJump = false;
 			bDoubleJumpingFromGround = true;
+
+			CoyoteGravityTimeline.Stop();
+			GetCharacterMovement()->GravityScale = GravityCache;
+
 			ACharacter::Jump();
 		}
 		else if (bIsWallrunJumping && !bDoubleJumpingFromGround && !bFirstJump)
