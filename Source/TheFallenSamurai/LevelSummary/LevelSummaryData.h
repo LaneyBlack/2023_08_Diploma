@@ -53,8 +53,9 @@ class THEFALLENSAMURAI_API ULevelSummaryData : public UObject
 	GENERATED_BODY()
 
 public:
-	ULevelSummaryData();
-
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	static ULevelSummaryData* GetDataInstance();
+	
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	void GatherSteamData(FString SteamName, FString SteamID);
 
@@ -62,7 +63,7 @@ public:
 	int64 GatherAndReturnComboPoints();
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	int32 GatherAndReturnPlayerDeaths();
+	int32 GatherAndReturnPlayerDeaths(APlayerGameModeBase* GameMode);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	void GatherElapsedTime(float ElapsedTime);
@@ -79,6 +80,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	bool IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const;
 
+protected:
+	ULevelSummaryData();
+
 private:
+	static ULevelSummaryData* Instance;
+	
 	FLevelSummaryDataStruct SummaryData;
 };

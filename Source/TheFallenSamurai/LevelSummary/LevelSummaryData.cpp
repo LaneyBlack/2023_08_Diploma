@@ -6,9 +6,21 @@
 #include "ComboSystem.h"
 #include "PlayerGameModeBase.h"
 
+ULevelSummaryData* ULevelSummaryData::Instance = nullptr;
+
 ULevelSummaryData::ULevelSummaryData()
 {
 	SummaryData = FLevelSummaryDataStruct();
+}
+
+ULevelSummaryData* ULevelSummaryData::GetDataInstance()
+{
+	if (!Instance)
+	{
+		Instance = NewObject<ULevelSummaryData>();
+		Instance->AddToRoot();
+	}
+	return Instance;
 }
 
 void ULevelSummaryData::GatherSteamData(FString SteamName, FString SteamID)
@@ -31,18 +43,18 @@ int64 ULevelSummaryData::GatherAndReturnComboPoints()
 	return 0;
 }
 
-int32 ULevelSummaryData::GatherAndReturnPlayerDeaths()
+int32 ULevelSummaryData::GatherAndReturnPlayerDeaths(APlayerGameModeBase* GameMode)
 {
-	APlayerGameModeBase* GameMode = GetWorld()->GetAuthGameMode<APlayerGameModeBase>();
-
 	if (GameMode)
 	{
 		SummaryData.PlayerDeaths = GameMode->PlayerDeaths;
-
 		return SummaryData.PlayerDeaths;
 	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GatherAndReturnPlayerDeaths: GameMode is null"));
 	return 0;
 }
+
 
 void ULevelSummaryData::GatherElapsedTime(float ElapsedTime)
 {
@@ -145,6 +157,3 @@ bool ULevelSummaryData::IsNewTotalScoreHigherThanFile(const FString& SteamID, co
 	
 	return SummaryData.TotalScore > PreviousTotalScore;
 }
-
-
-
