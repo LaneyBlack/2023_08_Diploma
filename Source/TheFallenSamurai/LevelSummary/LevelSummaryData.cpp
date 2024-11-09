@@ -157,3 +157,63 @@ bool ULevelSummaryData::IsNewTotalScoreHigherThanFile(const FString& SteamID, co
 	
 	return SummaryData.TotalScore > PreviousTotalScore;
 }
+
+bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
+{
+	if (SummaryData.SteamID == "Unknown")
+	{
+		return false;
+	}
+	
+	if (!LevelName.StartsWith(TEXT("Level")) || LevelName.Len() <= 5)
+	{
+		return false;
+	}
+	
+	FString NumericPart = LevelName.Mid(5);
+	int32 LevelNumber = FCString::Atoi(*NumericPart);
+	
+	if (LevelNumber <= 0)
+	{
+		return false;
+	}
+	
+	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SummaryData.SteamID;
+	FString FilePath = DirectoryPath / TEXT("UnlockedLevels.json");
+	
+	IFileManager& FileManager = IFileManager::Get();
+	if (!FileManager.DirectoryExists(*DirectoryPath))
+	{
+		FileManager.MakeDirectory(*DirectoryPath);
+	}
+	
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	
+	if (FPaths::FileExists(FilePath))
+	{
+		FString FileContent;
+		if (FFileHelper::LoadFileToString(FileContent, *FilePath))
+		{
+			TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FileContent);
+			FJsonSerializer::Deserialize(Reader, JsonObject);
+		}
+	}
+	else
+	{
+		JsonObject->SetBoolField("Level_0_Tutorial", true);
+		JsonObject->SetBoolField("Level1", true);
+		JsonObject->SetBoolField("Level2", false);
+		JsonObject->SetBoolField("Level3", false);
+	}
+	
+	JsonObject->SetBoolField(LevelName, true);
+	
+	FString OutputString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
+	{
+		return false;
+	}
+	
+	return FFileHelper::SaveStringToFile(OutputString, *FilePath);
+}

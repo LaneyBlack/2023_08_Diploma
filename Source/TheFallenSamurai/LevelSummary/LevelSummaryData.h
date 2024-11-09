@@ -80,6 +80,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	bool IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	bool UnlockLevel(const FString& LevelName);
+
 protected:
 	ULevelSummaryData();
 
