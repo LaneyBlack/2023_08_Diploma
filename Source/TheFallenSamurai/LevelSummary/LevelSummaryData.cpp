@@ -158,28 +158,21 @@ bool ULevelSummaryData::IsNewTotalScoreHigherThanFile(const FString& SteamID, co
 	return SummaryData.TotalScore > PreviousTotalScore;
 }
 
-bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
+FString ULevelSummaryData::GetFilePath() const
 {
-	if (SummaryData.SteamID == "Unknown")
-	{
-		return false;
-	}
-	
-	if (!LevelName.StartsWith(TEXT("Level")) || LevelName.Len() <= 5)
-	{
-		return false;
-	}
-	
-	FString NumericPart = LevelName.Mid(5);
-	int32 LevelNumber = FCString::Atoi(*NumericPart);
-	
-	if (LevelNumber <= 0)
-	{
-		return false;
-	}
-	
 	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SummaryData.SteamID;
+	return DirectoryPath / TEXT("UnlockedLevels.json");
+}
+
+bool ULevelSummaryData::EnsureFileExists(const FString& SteamID)
+{
+	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SteamID;
 	FString FilePath = DirectoryPath / TEXT("UnlockedLevels.json");
+	
+	if (FPaths::FileExists(FilePath))
+	{
+		return true;
+	}
 	
 	IFileManager& FileManager = IFileManager::Get();
 	if (!FileManager.DirectoryExists(*DirectoryPath))
@@ -187,33 +180,98 @@ bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
 		FileManager.MakeDirectory(*DirectoryPath);
 	}
 	
+	TSharedPtr<FJsonObject> DefaultJsonObject = MakeShareable(new FJsonObject);
+	DefaultJsonObject->SetBoolField("Level1", true);
+	DefaultJsonObject->SetBoolField("Level2", false);
+	DefaultJsonObject->SetBoolField("Level3", false);
+
+	FString DefaultContent;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&DefaultContent);
+	if (!FJsonSerializer::Serialize(DefaultJsonObject.ToSharedRef(), Writer))
+	{
+		return false;
+	}
+	
+	return FFileHelper::SaveStringToFile(DefaultContent, *FilePath);
+}
+
+bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
+{
+	if (SummaryData.SteamID == "Unknown")
+	{
+		return false;
+	}
+
+	if (!LevelName.StartsWith(TEXT("Level")) || LevelName.Len() <= 5)
+	{
+		return false;
+	}
+
+	FString NumericPart = LevelName.Mid(5);
+	int32 LevelNumber = FCString::Atoi(*NumericPart);
+
+	if (LevelNumber <= 0)
+	{
+		return false;
+	}
+
+	FString FilePath = GetFilePath();
+	
+	if (!EnsureFileExists(SummaryData.SteamID))
+	{
+		return false;
+	}
+
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-	
-	if (FPaths::FileExists(FilePath))
+
+	FString FileContent;
+	if (FFileHelper::LoadFileToString(FileContent, *FilePath))
 	{
-		FString FileContent;
-		if (FFileHelper::LoadFileToString(FileContent, *FilePath))
-		{
-			TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FileContent);
-			FJsonSerializer::Deserialize(Reader, JsonObject);
-		}
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FileContent);
+		FJsonSerializer::Deserialize(Reader, JsonObject);
 	}
-	else
-	{
-		JsonObject->SetBoolField("Level_0_Tutorial", true);
-		JsonObject->SetBoolField("Level1", true);
-		JsonObject->SetBoolField("Level2", false);
-		JsonObject->SetBoolField("Level3", false);
-	}
-	
+
 	JsonObject->SetBoolField(LevelName, true);
-	
+
 	FString OutputString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
 	if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
 	{
 		return false;
 	}
-	
+
 	return FFileHelper::SaveStringToFile(OutputString, *FilePath);
+}
+
+TArray<FString> ULevelSummaryData::GetUnlockedLevels(const FString& SteamID)
+{
+	TArray<FString> UnlockedLevels;
+	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SteamID;
+	FString FilePath = DirectoryPath / TEXT("UnlockedLevels.json");
+	
+	if (!EnsureFileExists(SteamID))
+	{
+		return UnlockedLevels;
+	}
+
+	FString FileContent;
+	if (FFileHelper::LoadFileToString(FileContent, *FilePath))
+	{
+		TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FileContent);
+
+		if (FJsonSerializer::Deserialize(Reader, JsonObject))
+		{
+			for (auto& Entry : JsonObject->Values)
+			{
+				bool bIsUnlocked = false;
+				if (Entry.Value->TryGetBool(bIsUnlocked) && bIsUnlocked)
+				{
+					UnlockedLevels.Add(Entry.Key);
+				}
+			}
+		}
+	}
+
+	return UnlockedLevels;
 }

@@ -80,8 +80,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	bool IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
 	bool UnlockLevel(const FString& LevelName);
+
+	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
+	bool EnsureFileExists(const FString& SteamID);
+
+	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
+	TArray<FString> GetUnlockedLevels(const FString& SteamID);
 
 protected:
 	ULevelSummaryData();
@@ -90,4 +96,6 @@ private:
 	static ULevelSummaryData* Instance;
 	
 	FLevelSummaryDataStruct SummaryData;
+
+	FString GetFilePath() const;
 };
