@@ -368,16 +368,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* FOVCurve;
 
-	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | Teleport")
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|Teleport")
 	float ShieldIgnoreAngle = 0.f;
 
-	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | Camera Shake")
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|Camera Shake")
 	TSubclassOf<UCameraShakeBase> ShieldHitCameraShake;
 
-	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|VFX")
 	UParticleSystem* ShieldHitParticle;
 
-	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data | VFX")
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|VFX")
 	float UniformShieldHitParticleSize;
 
 	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
