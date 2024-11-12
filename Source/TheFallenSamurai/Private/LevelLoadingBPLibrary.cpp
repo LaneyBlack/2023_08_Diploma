@@ -6,32 +6,30 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/AssetManager.h"
 
-void ULevelLoadingBPLibrary::LoadLevelWithLoadingScreen(ACharacter* Character, FName LevelName, TSubclassOf<UUserWidget> LoadingScreenClass)
+void ULevelLoadingBPLibrary::LoadLevelWithLoadingScreen(UObject* WorldContextObject, FName LevelName, TSubclassOf<UUserWidget> LoadingScreenClass)
 {
-    // Show the loading screen
-    UUserWidget* LoadingScreenWidget = ShowLoadingScreen(Character, LoadingScreenClass);
+    UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
 
-    // Start asynchronously loading the new level's package
+    if (!World) return;
+
+    UUserWidget* LoadingScreenWidget = ShowLoadingScreen(World, LoadingScreenClass);
+
     FString LevelPath = FString::Printf(TEXT("/Game/Maps/%s"), *LevelName.ToString());
 
-    // Use LoadPackageAsync to load the level package asynchronously
     LoadPackageAsync(
         FName(*LevelPath).ToString(),
-        FLoadPackageAsyncDelegate::CreateStatic(&ULevelLoadingBPLibrary::OnLevelLoaded, Character, LevelName, LoadingScreenWidget),
+        FLoadPackageAsyncDelegate::CreateStatic(&ULevelLoadingBPLibrary::OnLevelLoaded, World, LevelName, LoadingScreenWidget),
         0
     );
 }
 
-UUserWidget* ULevelLoadingBPLibrary::ShowLoadingScreen(ACharacter* Character, TSubclassOf<UUserWidget> LoadingScreenClass)
+UUserWidget* ULevelLoadingBPLibrary::ShowLoadingScreen(UWorld* World, TSubclassOf<UUserWidget> LoadingScreenClass)
 {
-    if (LoadingScreenClass && Character)
+    if (LoadingScreenClass && World)
     {
-        UWorld* World = Character->GetWorld();
         UUserWidget* LoadingScreenWidget = CreateWidget<UUserWidget>(World, LoadingScreenClass);
-
         if (LoadingScreenWidget)
         {
-            // Add it to the viewport to display the loading screen
             LoadingScreenWidget->AddToViewport();
         }
         return LoadingScreenWidget;
@@ -48,12 +46,12 @@ void ULevelLoadingBPLibrary::HideLoadingScreen(UUserWidget* LoadingScreenWidget)
     }
 }
 
-void ULevelLoadingBPLibrary::OnLevelLoaded(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result, ACharacter* Character, FName TargetLevelName, UUserWidget* LoadingScreenWidget)
+void ULevelLoadingBPLibrary::OnLevelLoaded(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result, UWorld* World, FName TargetLevelName, UUserWidget* LoadingScreenWidget)
 {
-    if (Result == EAsyncLoadingResult::Succeeded && Character)
+    if (Result == EAsyncLoadingResult::Succeeded && World)
     {
         // Load the level when the package has finished loading
-        UGameplayStatics::OpenLevel(Character, TargetLevelName);
+        UGameplayStatics::OpenLevel(World, TargetLevelName);
     }
 
     // Hide the loading screen after the level has loaded

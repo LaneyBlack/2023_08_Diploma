@@ -15,15 +15,15 @@ class THEFALLENSAMURAI_API ULevelLoadingBPLibrary : public UBlueprintFunctionLib
 public:
 	// Initiates the loading process with a loading screen
 	UFUNCTION(BlueprintCallable, Category = "Level Loading")
-	static void LoadLevelWithLoadingScreen(ACharacter* Character, FName LevelName, TSubclassOf<UUserWidget> LoadingScreenClass);
+	static void LoadLevelWithLoadingScreen(UObject* WorldContextObject, FName LevelName, TSubclassOf<UUserWidget> LoadingScreenClass);
 
 private:
 	// Shows the loading screen widget
-	static UUserWidget* ShowLoadingScreen(ACharacter* Character, TSubclassOf<UUserWidget> LoadingScreenClass);
+	static UUserWidget* ShowLoadingScreen(UWorld* World, TSubclassOf<UUserWidget> LoadingScreenClass);
 
 	// Hides the loading screen widget
 	static void HideLoadingScreen(UUserWidget* LoadingScreenWidget);
 
 	// Callback for when the level has finished loading
-	static void OnLevelLoaded(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result, ACharacter* Character, FName TargetLevelName, UUserWidget* LoadingScreenWidget);
+	static void OnLevelLoaded(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result, UWorld* World, FName TargetLevelName, UUserWidget* LoadingScreenWidget);
 };
