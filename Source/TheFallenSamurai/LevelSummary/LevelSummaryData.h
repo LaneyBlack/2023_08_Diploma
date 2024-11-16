@@ -1,51 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
-#include "Json.h"
-#include "Misc/FileHelper.h"
-#include "Misc/Paths.h"
+#include "LevelSummarySaveGame.h"
+#include "Kismet/GameplayStatics.h"
 #include "LevelSummaryData.generated.h"
-
-
-/**
- * 
- */
-
-USTRUCT(BlueprintType)
-struct THEFALLENSAMURAI_API FLevelSummaryDataStruct
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	FString SteamID;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	FString SteamUsername;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	FString LevelName;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	int64 ComboPoints;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	int32 PlayerDeaths;
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	float ElapsedTime;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Summary Data")
-	float TotalScore;
-	
-	FLevelSummaryDataStruct()
-		: SteamID("Unknown"), SteamUsername("Unknown") ,LevelName("None") ,ComboPoints(0), PlayerDeaths(0), ElapsedTime(0.0f), TotalScore(0.0f)
-	{
-	}
-};
 
 UCLASS(BlueprintType)
 class THEFALLENSAMURAI_API ULevelSummaryData : public UObject
@@ -55,47 +14,43 @@ class THEFALLENSAMURAI_API ULevelSummaryData : public UObject
 public:
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	static ULevelSummaryData* GetDataInstance();
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
 	void GatherSteamData(FString SteamName, FString SteamID);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	int64 GatherAndReturnComboPoints();
+	float CalculateTotalScore(int64 ComboPoints, int32 PlayerDeaths, float ElapsedTime);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	int32 GatherAndReturnPlayerDeaths(APlayerGameModeBase* GameMode);
+	bool AddLevelData(const FLevelData& LevelData);
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	void GatherElapsedTime(float ElapsedTime);
+	bool SaveSummaryDataToSlot();
 
 	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	void GatherLevelName(FString LevelName);
-
-	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	FString SaveSummaryDataToFile();
-
-	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	int32 CalculateTotalScore();
-
-	UFUNCTION(BlueprintCallable, Category = "Summary Data")
-	bool IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const;
+	bool LoadSaveData();
 
 	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
 	bool UnlockLevel(const FString& LevelName);
 
 	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
-	bool EnsureFileExists(const FString& SteamID);
+	TArray<FString> GetUnlockedLevels() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
-	TArray<FString> GetUnlockedLevels(const FString& SteamID);
+	UFUNCTION(BlueprintCallable, Category = "DEBUG")
+	void PrintSaveDataWithSteamID();
+
+	UFUNCTION(BlueprintCallable, Category = "DEBUG")
+	void PrintUnlockedLevels();
 
 protected:
 	ULevelSummaryData();
 
 private:
 	static ULevelSummaryData* Instance;
-	
-	FLevelSummaryDataStruct SummaryData;
 
-	FString GetFilePath() const;
+	UPROPERTY()
+	ULevelSummarySaveGame* SaveGameInstance;
+
+	FString GetSlotName() const;
+	bool IsNewLevelScoreHigher(const FLevelData& NewData);
 };
