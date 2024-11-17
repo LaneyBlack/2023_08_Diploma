@@ -1,150 +1,194 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+#include "LevelSummaryData.h"
+#include "Kismet/GameplayStatics.h"
 
-
-#include "TheFallenSamurai/LevelSummary/LevelSummaryData.h"
-
-#include "ComboSystem.h"
-#include "PlayerGameModeBase.h"
+ULevelSummaryData* ULevelSummaryData::Instance = nullptr;
 
 ULevelSummaryData::ULevelSummaryData()
 {
-	SummaryData = FLevelSummaryDataStruct();
+	SaveGameInstance = NewObject<ULevelSummarySaveGame>();
+}
+
+ULevelSummaryData* ULevelSummaryData::GetDataInstance()
+{
+	if (!Instance)
+	{
+		Instance = NewObject<ULevelSummaryData>();
+		Instance->AddToRoot();
+	}
+	return Instance;
 }
 
 void ULevelSummaryData::GatherSteamData(FString SteamName, FString SteamID)
 {
-	SummaryData.SteamID = SteamID;
-	SummaryData.SteamUsername = SteamName;
+	if (SaveGameInstance)
+	{
+		SaveGameInstance->SteamID = SteamID;
+		SaveGameInstance->SteamUsername = SteamName;
+	}
 }
 
-
-int64 ULevelSummaryData::GatherAndReturnComboPoints()
+float ULevelSummaryData::CalculateTotalScore(int64 ComboPoints, int32 PlayerDeaths, float ElapsedTime)
 {
-	UComboSystem* ComboSystem = UComboSystem::GetInstance();
-
-	if (ComboSystem)
+	float TotalScore = ComboPoints - (PlayerDeaths * 1000) - (ElapsedTime * 10.0f);
+	
+	if (TotalScore < 0)
 	{
-		SummaryData.ComboPoints = ComboSystem->GetTotalComboPoints();
-
-		return SummaryData.ComboPoints;
+		TotalScore = 0;
 	}
-	return 0;
+	
+	return FMath::RoundToInt64(TotalScore);
 }
 
-int32 ULevelSummaryData::GatherAndReturnPlayerDeaths()
+FString ULevelSummaryData::GetSlotName() const
 {
-	APlayerGameModeBase* GameMode = GetWorld()->GetAuthGameMode<APlayerGameModeBase>();
-
-	if (GameMode)
-	{
-		SummaryData.PlayerDeaths = GameMode->PlayerDeaths;
-
-		return SummaryData.PlayerDeaths;
-	}
-	return 0;
+	return SaveGameInstance && !SaveGameInstance->SteamID.IsEmpty()
+		? SaveGameInstance->SteamID + "_LevelSummary"
+		: "Default_LevelSummary";
 }
 
-void ULevelSummaryData::GatherElapsedTime(float ElapsedTime)
+bool ULevelSummaryData::AddLevelData(const FLevelData& LevelData)
 {
-	SummaryData.ElapsedTime = ElapsedTime;
+	if (!SaveGameInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SaveGameInstance is null"));
+		return false;
+	}
+	
+	for (FLevelData& ExistingData : SaveGameInstance->LevelSummaries)
+	{
+		if (ExistingData.LevelName == LevelData.LevelName)
+		{
+			if (IsNewLevelScoreHigher(LevelData))
+				{
+				ExistingData = LevelData;
+				return true;
+				}
+			
+			UE_LOG(LogTemp, Warning, TEXT("New score is not higher for level: %s"), *LevelData.LevelName);
+			return false;
+		}
+	}
+	
+	SaveGameInstance->LevelSummaries.Add(LevelData);
+	return true;
 }
 
-void ULevelSummaryData::GatherLevelName(FString LevelName)
+bool ULevelSummaryData::SaveSummaryDataToSlot()
 {
-	SummaryData.LevelName = LevelName;
+	if (SaveGameInstance && !SaveGameInstance->SteamID.IsEmpty())
+	{
+		return UGameplayStatics::SaveGameToSlot(SaveGameInstance, GetSlotName(), 0);
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Save failed. Steam ID is empty or SaveGameInstance is null."));
+	return false;
 }
 
-FString ULevelSummaryData::SaveSummaryDataToFile()
+bool ULevelSummaryData::LoadSaveData()
 {
-	if (SummaryData.LevelName == "None")
+	if (!SaveGameInstance || SaveGameInstance->SteamID.IsEmpty())
 	{
-		return "Level not found";
+		UE_LOG(LogTemp, Warning, TEXT("Steam ID not set, cannot load save data"));
+		return false;
 	}
-	
-	if (SummaryData.SteamID == "Unknown")
-	{
-		return "Steam not connected";
-	}
-	
-	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
 
-	JsonObject->SetStringField("SteamID", SummaryData.SteamID);
-	JsonObject->SetStringField("SteamUsername", SummaryData.SteamUsername);
-	JsonObject->SetStringField("LevelName", SummaryData.LevelName);
-	JsonObject->SetNumberField("ComboPoints", SummaryData.ComboPoints);
-	JsonObject->SetNumberField("PlayerDeaths", SummaryData.PlayerDeaths);
-	JsonObject->SetNumberField("ElapsedTime", SummaryData.ElapsedTime);
-	JsonObject->SetNumberField("TotalScore", SummaryData.TotalScore);
-	
-	FString OutputString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
-	if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
-	{
-		return "Failed to serialize save data";
-	}
-	
-	FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SummaryData.SteamID;
-	IFileManager& FileManager = IFileManager::Get();
-	if (!FileManager.DirectoryExists(*DirectoryPath))
-	{
-		FileManager.MakeDirectory(*DirectoryPath);
-	}
-	
-	FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *SummaryData.LevelName);
-	FString FilePath = DirectoryPath / FileName;
-	if (!FFileHelper::SaveStringToFile(OutputString, *FilePath))
-	{
-		return "Failed to save data to file";
-	}
-	
-	return "Data saved successfully";
-}
+	ULevelSummarySaveGame* LoadedData = Cast<ULevelSummarySaveGame>(
+		UGameplayStatics::LoadGameFromSlot(GetSlotName(), 0));
 
-
-int32 ULevelSummaryData::CalculateTotalScore()
-{
-	SummaryData.TotalScore = SummaryData.ComboPoints - (SummaryData.PlayerDeaths * 1000) - (SummaryData.ElapsedTime * 10.0f);
-
-	if(SummaryData.TotalScore < 0)
+	if (LoadedData)
 	{
-		SummaryData.TotalScore = 0;
-	}
-	return FMath::RoundToInt(SummaryData.TotalScore);
-}
-
-bool ULevelSummaryData::IsNewTotalScoreHigherThanFile(const FString& SteamID, const FString& LevelName) const
-{
-	const FString DirectoryPath = FPaths::ProjectDir() / TEXT("Saved") / SteamID;
-	const FString FileName = FString::Printf(TEXT("%s_summary_data.json"), *LevelName);
-	const FString FilePath = DirectoryPath / FileName;
-	
-	if (!FPaths::FileExists(FilePath))
-	{
+		SaveGameInstance = LoadedData;
+		UE_LOG(LogTemp, Log, TEXT("Save data loaded for Steam ID: %s"), *SaveGameInstance->SteamID);
 		return true;
 	}
-	
-	FString FileContent;
-	if (!FFileHelper::LoadFileToString(FileContent, *FilePath))
-	{
-		return true;
-	}
-	
-	TSharedPtr<FJsonObject> JsonObject;
-	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(FileContent);
-	
-	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
-	{
-		return true;
-	}
-	
-	float PreviousTotalScore = 0.0f;
-	if (!JsonObject->TryGetNumberField("TotalScore", PreviousTotalScore))
-	{
-		return true;
-	}
-	
-	return SummaryData.TotalScore > PreviousTotalScore;
+
+	UE_LOG(LogTemp, Warning, TEXT("No save data found for Steam ID: %s"), *SaveGameInstance->SteamID);
+	return false;
 }
 
+bool ULevelSummaryData::IsNewLevelScoreHigher(const FLevelData& NewData)
+{
+	for (const FLevelData& ExistingData : SaveGameInstance->LevelSummaries)
+	{
+		if (ExistingData.LevelName == NewData.LevelName)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("NewData.TotalScore: %f"), NewData.TotalScore));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ExistingData.TotalScore: %f"), ExistingData.TotalScore));
+			return NewData.TotalScore > ExistingData.TotalScore; // Only true if score is higher
+		}
+	}
+	
+	return true;
+}
+
+
+bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
+{
+	FRegexPattern LevelPattern(TEXT("^Level\\d+$"));
+	FRegexMatcher LevelMatcher(LevelPattern, LevelName);
+	
+	if (!LevelMatcher.FindNext())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid level name: %s. Level names must match the pattern 'Level<number>'"), *LevelName);
+		return false;
+	}
+	
+	if (!SaveGameInstance->UnlockedLevels.Contains(LevelName))
+	{
+		SaveGameInstance->UnlockedLevels.Add(LevelName);
+		return true;
+	}
+	return false;
+}
+
+TArray<FString> ULevelSummaryData::GetUnlockedLevels() const
+{
+	return SaveGameInstance ? SaveGameInstance->UnlockedLevels : TArray<FString>();
+}
+
+//DEBUG
+void ULevelSummaryData::PrintSaveDataWithSteamID()
+{
+	if (SaveGameInstance)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("SteamID: %s"), *SaveGameInstance->SteamID));
+		
+		for (const FLevelData& LevelData : SaveGameInstance->LevelSummaries)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Level: %s"), *LevelData.LevelName));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ComboPoints: %lld"), LevelData.ComboPoints));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("PlayerDeaths: %d"), LevelData.PlayerDeaths));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ElapsedTime: %f"), LevelData.ElapsedTime));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("TotalScore: %f"), LevelData.TotalScore));
+		}
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SaveGameInstance is null!"));
+	}
+}
+
+void ULevelSummaryData::PrintUnlockedLevels()
+{
+	if (SaveGameInstance)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("GEngine -> SteamID: %s"), *SaveGameInstance->SteamID));
+		
+		if (SaveGameInstance->UnlockedLevels.Num() > 0)
+		{
+			for (const FString& LevelName : SaveGameInstance->UnlockedLevels)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("GEngine -> Unlocked Level: %s"), *LevelName));
+			}
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GEngine -> No levels unlocked!"));
+		}
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SaveGameInstance is null!"));
+	}
+}
 
 
