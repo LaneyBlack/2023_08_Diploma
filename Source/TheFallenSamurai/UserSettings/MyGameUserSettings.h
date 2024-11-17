@@ -18,7 +18,8 @@ enum class EGraphicsQuality : uint8
     Medium     UMETA(DisplayName = "Medium", Value = 1),
     High       UMETA(DisplayName = "High", Value = 2),
     Epic       UMETA(DisplayName = "Epic", Value = 3),
-    Cinematic  UMETA(DisplayName = "Cinematic", Value = 4)
+    Cinematic  UMETA(DisplayName = "Cinematic", Value = 4),
+    Custom UMETA(DisplayName = "Custom", Value = 5)
 };
 
 UCLASS()
