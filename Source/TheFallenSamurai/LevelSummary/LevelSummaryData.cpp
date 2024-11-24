@@ -5,190 +5,194 @@ ULevelSummaryData* ULevelSummaryData::Instance = nullptr;
 
 ULevelSummaryData::ULevelSummaryData()
 {
-	SaveGameInstance = NewObject<ULevelSummarySaveGame>();
+    SaveGameInstance = NewObject<ULevelSummarySaveGame>();
 }
 
 ULevelSummaryData* ULevelSummaryData::GetDataInstance()
 {
-	if (!Instance)
-	{
-		Instance = NewObject<ULevelSummaryData>();
-		Instance->AddToRoot();
-	}
-	return Instance;
+    if (!Instance)
+    {
+        Instance = NewObject<ULevelSummaryData>();
+        Instance->AddToRoot();
+    }
+    return Instance;
 }
 
 void ULevelSummaryData::GatherSteamData(FString SteamName, FString SteamID)
 {
-	if (SaveGameInstance)
-	{
-		SaveGameInstance->SteamID = SteamID;
-		SaveGameInstance->SteamUsername = SteamName;
-	}
-}
-
-float ULevelSummaryData::CalculateTotalScore(int64 ComboPoints, int32 PlayerDeaths, float ElapsedTime)
-{
-	float TotalScore = ComboPoints - (PlayerDeaths * 1000) - (ElapsedTime * 10.0f);
-	
-	if (TotalScore < 0)
-	{
-		TotalScore = 0;
-	}
-	
-	return FMath::RoundToInt64(TotalScore);
+    if (SaveGameInstance)
+    {
+        SaveGameInstance->SteamID = SteamID;
+        SaveGameInstance->SteamUsername = SteamName;
+    }
 }
 
 FString ULevelSummaryData::GetSlotName() const
 {
-	return SaveGameInstance && !SaveGameInstance->SteamID.IsEmpty()
-		? SaveGameInstance->SteamID + "_LevelSummary"
-		: "Default_LevelSummary";
+    return SaveGameInstance && !SaveGameInstance->SteamID.IsEmpty()
+        ? SaveGameInstance->SteamID + "_LevelSummary"
+        : "Local_LevelSummary";
+}
+
+float ULevelSummaryData::CalculateTotalScore(int64 ComboPoints, int32 PlayerDeaths, float ElapsedTime)
+{
+    float TotalScore = FMath::RoundToInt64(ComboPoints - (PlayerDeaths * 1000) - (ElapsedTime * 10.0f));
+
+    if (TotalScore < 0)
+    {
+        TotalScore = 0;
+    }
+
+    return TotalScore;
 }
 
 bool ULevelSummaryData::AddLevelData(const FLevelData& LevelData)
 {
-	if (!SaveGameInstance)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SaveGameInstance is null"));
-		return false;
-	}
-	
-	for (FLevelData& ExistingData : SaveGameInstance->LevelSummaries)
-	{
-		if (ExistingData.LevelName == LevelData.LevelName)
-		{
-			if (IsNewLevelScoreHigher(LevelData))
-				{
-				ExistingData = LevelData;
-				return true;
-				}
-			
-			UE_LOG(LogTemp, Warning, TEXT("New score is not higher for level: %s"), *LevelData.LevelName);
-			return false;
-		}
-	}
-	
-	SaveGameInstance->LevelSummaries.Add(LevelData);
-	return true;
+    if (!SaveGameInstance)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SaveGameInstance is null"));
+        return false;
+    }
+
+    for (FLevelData& ExistingData : SaveGameInstance->LevelSummaries)
+    {
+        if (ExistingData.LevelName == LevelData.LevelName)
+        {
+            if (IsNewLevelScoreHigher(LevelData))
+            {
+                ExistingData = LevelData;
+                return true;
+            }
+
+            UE_LOG(LogTemp, Warning, TEXT("New score is not higher for level: %s"), *LevelData.LevelName);
+            return false;
+        }
+    }
+
+    SaveGameInstance->LevelSummaries.Add(LevelData);
+    return true;
 }
 
 bool ULevelSummaryData::SaveSummaryDataToSlot()
 {
-	if (SaveGameInstance && !SaveGameInstance->SteamID.IsEmpty())
-	{
-		return UGameplayStatics::SaveGameToSlot(SaveGameInstance, GetSlotName(), 0);
-	}
-	UE_LOG(LogTemp, Warning, TEXT("Save failed. Steam ID is empty or SaveGameInstance is null."));
-	return false;
+    if (SaveGameInstance)
+    {
+        FString SlotName = GetSlotName();
+        bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGameInstance, SlotName, 0);
+
+        if (bSuccess)
+        {
+            UE_LOG(LogTemp, Log, TEXT("Save successful to slot: %s"), *SlotName);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Failed to save to slot: %s"), *SlotName);
+        }
+
+        return bSuccess;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Save failed. SaveGameInstance is null."));
+    return false;
 }
 
 bool ULevelSummaryData::LoadSaveData()
 {
-	if (!SaveGameInstance || SaveGameInstance->SteamID.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Steam ID not set, cannot load save data"));
-		return false;
-	}
+    FString SlotName = GetSlotName();
+    ULevelSummarySaveGame* LoadedData = Cast<ULevelSummarySaveGame>(
+        UGameplayStatics::LoadGameFromSlot(SlotName, 0));
 
-	ULevelSummarySaveGame* LoadedData = Cast<ULevelSummarySaveGame>(
-		UGameplayStatics::LoadGameFromSlot(GetSlotName(), 0));
+    if (LoadedData)
+    {
+        SaveGameInstance = LoadedData;
+        UE_LOG(LogTemp, Log, TEXT("Save data loaded from slot: %s"), *SlotName);
+        return true;
+    }
 
-	if (LoadedData)
-	{
-		SaveGameInstance = LoadedData;
-		UE_LOG(LogTemp, Log, TEXT("Save data loaded for Steam ID: %s"), *SaveGameInstance->SteamID);
-		return true;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("No save data found for Steam ID: %s"), *SaveGameInstance->SteamID);
-	return false;
+    UE_LOG(LogTemp, Warning, TEXT("No save data found in slot: %s"), *SlotName);
+    return false;
 }
 
 bool ULevelSummaryData::IsNewLevelScoreHigher(const FLevelData& NewData)
 {
-	for (const FLevelData& ExistingData : SaveGameInstance->LevelSummaries)
-	{
-		if (ExistingData.LevelName == NewData.LevelName)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("NewData.TotalScore: %f"), NewData.TotalScore));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ExistingData.TotalScore: %f"), ExistingData.TotalScore));
-			return NewData.TotalScore > ExistingData.TotalScore; // Only true if score is higher
-		}
-	}
-	
-	return true;
-}
+    for (const FLevelData& ExistingData : SaveGameInstance->LevelSummaries)
+    {
+        if (ExistingData.LevelName == NewData.LevelName)
+        {
+            return NewData.TotalScore > ExistingData.TotalScore;
+        }
+    }
 
+    return true;
+}
 
 bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
 {
-	FRegexPattern LevelPattern(TEXT("^Level\\d+$"));
-	FRegexMatcher LevelMatcher(LevelPattern, LevelName);
-	
-	if (!LevelMatcher.FindNext())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid level name: %s. Level names must match the pattern 'Level<number>'"), *LevelName);
-		return false;
-	}
-	
-	if (!SaveGameInstance->UnlockedLevels.Contains(LevelName))
-	{
-		SaveGameInstance->UnlockedLevels.Add(LevelName);
-		return true;
-	}
-	return false;
+    FRegexPattern LevelPattern(TEXT("^Level\\d+$"));
+    FRegexMatcher LevelMatcher(LevelPattern, LevelName);
+
+    if (!LevelMatcher.FindNext())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid level name: %s. Level names must match the pattern 'Level<number>'"), *LevelName);
+        return false;
+    }
+
+    if (!SaveGameInstance->UnlockedLevels.Contains(LevelName))
+    {
+        SaveGameInstance->UnlockedLevels.Add(LevelName);
+        return true;
+    }
+    return false;
 }
 
 TArray<FString> ULevelSummaryData::GetUnlockedLevels() const
 {
-	return SaveGameInstance ? SaveGameInstance->UnlockedLevels : TArray<FString>();
+    return SaveGameInstance ? SaveGameInstance->UnlockedLevels : TArray<FString>();
 }
+
 
 //DEBUG
 void ULevelSummaryData::PrintSaveDataWithSteamID()
 {
-	if (SaveGameInstance)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("SteamID: %s"), *SaveGameInstance->SteamID));
-		
-		for (const FLevelData& LevelData : SaveGameInstance->LevelSummaries)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Level: %s"), *LevelData.LevelName));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ComboPoints: %lld"), LevelData.ComboPoints));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("PlayerDeaths: %d"), LevelData.PlayerDeaths));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ElapsedTime: %f"), LevelData.ElapsedTime));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("TotalScore: %f"), LevelData.TotalScore));
-		}
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SaveGameInstance is null!"));
-	}
+    if (SaveGameInstance)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("SteamID: %s"), *SaveGameInstance->SteamID));
+
+        for (const FLevelData& LevelData : SaveGameInstance->LevelSummaries)
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Level: %s"), *LevelData.LevelName));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ComboPoints: %lld"), LevelData.ComboPoints));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("PlayerDeaths: %d"), LevelData.PlayerDeaths));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("ElapsedTime: %f"), LevelData.ElapsedTime));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("TotalScore: %f"), LevelData.TotalScore));
+        }
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SaveGameInstance is null!"));
+    }
 }
 
 void ULevelSummaryData::PrintUnlockedLevels()
 {
-	if (SaveGameInstance)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("GEngine -> SteamID: %s"), *SaveGameInstance->SteamID));
-		
-		if (SaveGameInstance->UnlockedLevels.Num() > 0)
-		{
-			for (const FString& LevelName : SaveGameInstance->UnlockedLevels)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("GEngine -> Unlocked Level: %s"), *LevelName));
-			}
-		}
-		else
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GEngine -> No levels unlocked!"));
-		}
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SaveGameInstance is null!"));
-	}
+    if (SaveGameInstance)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("SteamID: %s"), *SaveGameInstance->SteamID));
+
+        if (SaveGameInstance->UnlockedLevels.Num() > 0)
+        {
+            for (const FString& LevelName : SaveGameInstance->UnlockedLevels)
+            {
+                GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Unlocked Level: %s"), *LevelName));
+            }
+        }
+        else
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No levels unlocked!"));
+        }
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SaveGameInstance is null!"));
+    }
 }
-
-
