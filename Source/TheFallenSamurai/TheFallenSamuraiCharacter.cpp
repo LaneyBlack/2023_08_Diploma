@@ -62,10 +62,10 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 	RewindComponent->SnapshotFrequencySeconds = 1.0f / 30.0f;
 	RewindComponent->bSnapshotMovementVelocityAndMode = true;
 	RewindComponent->bPauseAnimationDuringTimeScrubbing = true;
-	
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
+
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -92,7 +92,8 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 
 	// Create a follow camera
 	ThirdPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	ThirdPersonCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	ThirdPersonCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	// Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	ThirdPersonCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	bFirstJump = true;
@@ -100,7 +101,7 @@ ATheFallenSamuraiCharacter::ATheFallenSamuraiCharacter()
 
 	//setup combat system component
 	CombatSystemComponent = CreateDefaultSubobject<UCombatSystemComponent>(TEXT("CombatSystem_cpp"));
-	
+
 	//setup GAS
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 
@@ -125,16 +126,17 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
+			UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
 
 	//Initialize AttributeSets
-	if(IsValid(AbilitySystemComponent))
+	if (IsValid(AbilitySystemComponent))
 	{
-		PlayerAttributeSet = AbilitySystemComponent -> GetSet<UPlayerAttributeSet>();
+		PlayerAttributeSet = AbilitySystemComponent->GetSet<UPlayerAttributeSet>();
 	}
 
 	//Reset combo on start
@@ -167,7 +169,7 @@ void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
 	/*PRINT_F("MOVEMENT STATE: %s", *UEnum::GetValueAsString(GetCharacterMovement()->MovementMode), 0.f);
 	PRINT_F("bLockedJump: %i", bLockedJump, 0.f);*/
 
-	if(bUseGravityTimeline)
+	if (bUseGravityTimeline)
 		CoyoteGravityTimeline.TickTimeline(DeltaTime);
 }
 
@@ -202,7 +204,8 @@ void ATheFallenSamuraiCharacter::OnMovementModeChanged(EMovementMode PrevMovemen
 	else if (GetCharacterMovement()->MovementMode == MOVE_Falling && bFirstJump)
 	{
 		if (!bUseGravityTimeline)
-			GetWorld()->GetTimerManager().SetTimer(CoyoteTimeTimer, this, &ATheFallenSamuraiCharacter::EnableJumpLock, CoyoteTime, false);
+			GetWorld()->GetTimerManager().SetTimer(CoyoteTimeTimer, this, &ATheFallenSamuraiCharacter::EnableJumpLock,
+			                                       CoyoteTime, false);
 		else
 			CoyoteGravityTimeline.PlayFromStart();
 	}
@@ -256,7 +259,7 @@ void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 		LaunchVelocity.Z = 750.0f;
 
 		LaunchCharacter(LaunchVelocity, false, true);
-			
+
 		bIsWallrunJumping = false;
 		bDoubleJumpingFromGround = false;
 	}
@@ -286,52 +289,62 @@ void ATheFallenSamuraiCharacter::ResetCombo()
 void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::DoubleJump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this,
+		                                   &ATheFallenSamuraiCharacter::DoubleJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this,
+		                                   &ATheFallenSamuraiCharacter::Move);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATheFallenSamuraiCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this,
+		                                   &ATheFallenSamuraiCharacter::Look);
 
 		//Attack
 		/*EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatSystemComponent,
 			&UCombatSystemComponent::Attack);*/
 
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this,
-			&ATheFallenSamuraiCharacter::Attack);
+		                                   &ATheFallenSamuraiCharacter::Attack);
 
 		//Perfect Parry
 		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
 			&UCombatSystemComponent::PerfectParry);*/
 
 		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, this,
-			&ATheFallenSamuraiCharacter::PerfectParry);
+		                                   &ATheFallenSamuraiCharacter::PerfectParry);
 
 		//Super Ability
 		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
 			&UCombatSystemComponent::SuperAbility);*/
 
 		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, this,
-			&ATheFallenSamuraiCharacter::ToggleSuperAbility);
+		                                   &ATheFallenSamuraiCharacter::ToggleSuperAbility);
 
 		// Rewind
-		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::Rewind);
-		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Completed, this, &ATheFallenSamuraiCharacter::StopRewinding);
+		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Started, this,
+		                                   &ATheFallenSamuraiCharacter::Rewind);
+		EnhancedInputComponent->BindAction(RewindAction, ETriggerEvent::Completed, this,
+		                                   &ATheFallenSamuraiCharacter::StopRewinding);
 
 		// Toggle Rewind Participation
-		EnhancedInputComponent->BindAction(ToggleRewindParticipationAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleRewindParticipation);
+		EnhancedInputComponent->BindAction(ToggleRewindParticipationAction, ETriggerEvent::Started, this,
+		                                   &ATheFallenSamuraiCharacter::ToggleRewindParticipation);
 
 		// Toggle Time Scrub
-		EnhancedInputComponent->BindAction(ToggleTimeScrubAction, ETriggerEvent::Started, this, &ATheFallenSamuraiCharacter::ToggleTimeScrub);
+		EnhancedInputComponent->BindAction(ToggleTimeScrubAction, ETriggerEvent::Started, this,
+		                                   &ATheFallenSamuraiCharacter::ToggleTimeScrub);
 	}
 	else
 	{
-		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+		UE_LOG(LogTemplateCharacter, Error,
+		       TEXT(
+			       "'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."
+		       ), *GetNameSafe(this));
 	}
 }
 
@@ -348,7 +361,7 @@ void ATheFallenSamuraiCharacter::Move(const FInputActionValue& Value)
 
 		// get forward vector
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
+
 		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
@@ -373,14 +386,14 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 
 void ATheFallenSamuraiCharacter::Attack(const FInputActionValue& Value)
 {
-	if(!LockPlayerAttack)
+	if (!LockPlayerAttack)
 		CombatSystemComponent->Attack();
 }
 
 void ATheFallenSamuraiCharacter::PerfectParry(const FInputActionValue& Value)
 {
-	if(!LockPlayerPerfectParry)
-	CombatSystemComponent->PerfectParry();
+	if (!LockPlayerPerfectParry)
+		CombatSystemComponent->PerfectParry();
 }
 
 void ATheFallenSamuraiCharacter::Rewind(const FInputActionValue& Value)
@@ -414,11 +427,11 @@ void ATheFallenSamuraiCharacter::ToggleTimeScrub(const FInputActionValue& Value)
 
 	if (!CombatSystemComponent->IsSuperAbilityActive())
 	{
-		if(RewindComponent->bIsTimeScrubbingForDuration)
+		if (RewindComponent->bIsTimeScrubbingForDuration)
 		{
 			RewindComponent->StopTimeScrubForDuration();
 		}
-		else if(ComboSystem->AbilityComboPoints >= ComboSystem->TimeStopCost)
+		else if (ComboSystem->AbilityComboPoints >= ComboSystem->TimeStopCost)
 		{
 			ComboSystem->AbilityComboPoints -= ComboSystem->TimeStopCost;
 			ToggleRewindParticipationNoInput();
