@@ -138,6 +138,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true", EditCondition = "bUseGravityTimeline"))
 	float  MinGravity = 0.1f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float DesiredCharacterYaw = 0.f;
+
 	UFUNCTION(BlueprintCallable, Category = "NoJump")
 	void SetNoJumpState(ENoJumpState NewNoJumpState)
 	{

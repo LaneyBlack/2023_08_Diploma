@@ -169,6 +169,8 @@ void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
 
 	if(bUseGravityTimeline)
 		CoyoteGravityTimeline.TickTimeline(DeltaTime);
+
+
 }
 
 bool ATheFallenSamuraiCharacter::CanJumpInternal_Implementation() const
@@ -366,8 +368,10 @@ void ATheFallenSamuraiCharacter::Look(const FInputActionValue& Value)
 	if (Controller != nullptr)
 	{
 		// add yaw and pitch input to controller
-		AddControllerYawInput(LookAxisVector.X);
-		AddControllerPitchInput(LookAxisVector.Y);
+		//AddControllerYawInput(LookAxisVector.X);
+		//AddControllerPitchInput(LookAxisVector.Y);
+
+		DesiredCharacterYaw = Cast<APlayerController>(Controller)->RotationInput.Yaw;
 	}
 }
 
