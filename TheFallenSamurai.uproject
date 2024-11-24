@@ -40,16 +40,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "LDAssistant",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/51c5a9a0d5f84beba23aab69bed8d28c"
-		},
-		{
-			"Name": "RenameTool",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/c6e227383f754209ab1eeb294aa0f6d6"
-		},
-		{
 			"Name": "AsyncLoadingScreen",
 			"Enabled": false,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/01f39767dc6b4290877f38365787cbf8"
