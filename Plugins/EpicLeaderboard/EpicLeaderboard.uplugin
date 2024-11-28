@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "EpicLeaderboard",
+	"Description": "Epic Leaderboards for UE5",
+	"Category": "Online Services",
+	"CreatedBy": "EpicLeaderboard",
+	"CreatedByURL": "https://EpicLeaderboard.com",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "EpicLeaderboard",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
