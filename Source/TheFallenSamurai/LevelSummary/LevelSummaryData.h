@@ -42,6 +42,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "String Utilities")
 	FString NameSeparator(const FString& InputString);
 
+	UFUNCTION(BlueprintCallable, Category = "Summary Data")
+	FLevelData GetLevelStatsByName(const FString& LevelName) const;
+
 	UFUNCTION(BlueprintCallable, Category = "DEBUG")
 	void PrintSaveDataWithSteamID();
 

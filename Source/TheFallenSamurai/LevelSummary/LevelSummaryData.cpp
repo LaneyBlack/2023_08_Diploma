@@ -150,6 +150,24 @@ TArray<FString> ULevelSummaryData::GetUnlockedLevels() const
     return SaveGameInstance ? SaveGameInstance->UnlockedLevels : TArray<FString>();
 }
 
+FLevelData ULevelSummaryData::GetLevelStatsByName(const FString& LevelName) const
+{
+    if (!SaveGameInstance)
+    {
+        return FLevelData();
+    }
+
+    for (const FLevelData& LevelData : SaveGameInstance->LevelSummaries)
+    {
+        if (LevelData.LevelName == LevelName)
+        {
+            return LevelData;
+        }
+    }
+    
+    return FLevelData();
+}
+
 FString ULevelSummaryData::NameIDMerger(const FString& StringA, const FString& StringB)
 {
     return StringA + TEXT("@") + StringB;
