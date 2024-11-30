@@ -36,6 +36,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Level Unlock")
 	TArray<FString> GetUnlockedLevels() const;
 
+	UFUNCTION(BlueprintCallable, Category = "String Utilities")
+	FString NameIDMerger(const FString& StringA, const FString& StringB);
+
+	UFUNCTION(BlueprintCallable, Category = "String Utilities")
+	FString NameSeparator(const FString& InputString);
+
 	UFUNCTION(BlueprintCallable, Category = "DEBUG")
 	void PrintSaveDataWithSteamID();
 

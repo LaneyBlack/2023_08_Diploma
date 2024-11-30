@@ -150,6 +150,21 @@ TArray<FString> ULevelSummaryData::GetUnlockedLevels() const
     return SaveGameInstance ? SaveGameInstance->UnlockedLevels : TArray<FString>();
 }
 
+FString ULevelSummaryData::NameIDMerger(const FString& StringA, const FString& StringB)
+{
+    return StringA + TEXT("@") + StringB;
+}
+
+FString ULevelSummaryData::NameSeparator(const FString& InputString)
+{
+    int32 Separator;
+    if (InputString.FindChar('@', Separator))
+    {
+        return InputString.Left(Separator);
+    }
+    return InputString;
+}
+
 
 //DEBUG
 void ULevelSummaryData::PrintSaveDataWithSteamID()
