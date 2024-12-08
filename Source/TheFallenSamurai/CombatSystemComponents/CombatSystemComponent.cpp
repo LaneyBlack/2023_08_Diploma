@@ -62,7 +62,6 @@ void UCombatSystemComponent::BeginPlay()
 
 bool UCombatSystemComponent::CheckIfCanAttack()
 {
-	//return !bIsAttacking && (bInterputedByItself || !AttackMontages.Contains(playerCharacter->GetCurrentMontage()));
 	return !bIsAttacking && (bInterputedByItself || CurrentAttackData.AttackMontage != playerCharacter->GetCurrentMontage() || !CurrentAttackData.AttackMontage);
 }
 
@@ -84,7 +83,6 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
 
 void UCombatSystemComponent::HandleAttackEnd(bool bShouldPerformFinalTraceCheck)
 {
-	//TargetPointOffset = FVector::Zero();
 
 	GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 

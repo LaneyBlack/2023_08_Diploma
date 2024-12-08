@@ -194,10 +194,6 @@ private:
 
 	float PlayerCameraFOV;
 
-	//float TeleportFOVChange;
-
-	//int StolenTokens = 0;
-
 	FTimeline ParrySlowMoTimeline;
 
 	float TimeDilationBeforeParry = 1.f;
@@ -205,8 +201,6 @@ private:
 	bool bShouldSpeedUpSlowMoTimeline = false;
 
 	float DebugTimeStamp;
-
-	//FVector TargetPointInitialPosition;
 
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
 
@@ -259,9 +253,6 @@ private:
 	UFUNCTION()
 	void GetVelocityVariables();
 
-	/*UFUNCTION()
-	void TraceForEnemiesToTeleport();*/
-
 	UFUNCTION()
 	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
 
@@ -291,7 +282,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	TArray<FAttackAnimData> AttackMontages;
-	//TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
@@ -344,8 +334,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perfect Parry Data")
-	int MaxParryTokens = 3;*/
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
@@ -430,9 +418,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
-
-	/*UPROPERTY(BlueprintReadOnly)
-	FVector TargetPointPosition;*/
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bInTeleport;
