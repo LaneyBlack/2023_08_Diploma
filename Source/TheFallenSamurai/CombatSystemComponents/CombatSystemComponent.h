@@ -200,8 +200,6 @@ private:
 
 	bool bShouldSpeedUpSlowMoTimeline = false;
 
-	float DebugTimeStamp;
-
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
 
 	ABaseEnemy* SuperAbilityTarget = nullptr;
