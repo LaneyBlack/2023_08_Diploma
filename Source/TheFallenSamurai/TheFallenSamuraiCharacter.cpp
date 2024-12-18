@@ -177,9 +177,7 @@ void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
 
 bool ATheFallenSamuraiCharacter::CanJumpInternal_Implementation() const
 {
-	//PRINT("can jump internal", 3)
 	return Super::CanJumpInternal_Implementation() || !bLockedJump;
-	//return Super::CanJumpInternal_Implementation();
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
