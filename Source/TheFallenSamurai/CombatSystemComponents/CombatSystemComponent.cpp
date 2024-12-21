@@ -40,9 +40,9 @@
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
-#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Magenta, FString::Printf(TEXT(prompt), mess));
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
-#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Magenta, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
 
 // Sets default values for this component's properties
@@ -272,8 +272,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			/*ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
+			ValidationRules.bUseDebugPrint = true;
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			if (bIsTargetValid)
@@ -337,9 +337,15 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 
 	bool bEyeToCenterHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
 
+	if (bEyeToCenterHit)
+		PRINTC_F("eye to center failed - hit actor %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()), 5, FColor::Blue);
+
 	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
 	bool bEyeToEyeHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+	if (bEyeToEyeHit)
+		PRINTC_F("eye to eye failed - hit actor %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()), 5, FColor::Cyan);
 
 	return bEyeToCenterHit && bEyeToEyeHit;
 }
@@ -426,7 +432,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		float LeftRotation = InnerAngle;
 		float RightRotation = -InnerAngle;
 
-		for (int Checks = 1; (Checks < N) && !bCanTeleport; ++Checks)
+		for (int Checks = 1; (Checks <= N) && !bCanTeleport; Checks += 2)
 		{
 			//PRINTC_F("Total Angle = %f", RightRotation, 10, FColor::Magenta);
 			auto LeftDirection = TeleportOffsetVector.RotateAngleAxis(LeftRotation, FVector(0, 0, 1));
@@ -467,7 +473,10 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.bTraceComplex = true;
 
-	bool bHasGround = GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECollisionChannel::ECC_Visibility, CollisionParams);
+	//bool bHasGround = GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECollisionChannel::ECC_Visibility, CollisionParams);
+	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, ETraceTypeQuery::TraceTypeQuery1, 
+		true, {}, ValidationRules.DrawDebugTrace, GroundHit, true);
+
 
 	if (!bHasGround)
 	{
@@ -494,7 +503,11 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	if (bTeleportBlock)
 	{
 		if (ValidationRules.bUseDebugPrint)
-			PRINT("CANT TELEPORT: [CAPSULE CHECK]", 4);
+		{
+			PRINT("CANT TELEPORT: [CAPSULE CHECK] - actor : %s, component: %s", 4);
+			PRINT_F("actor : %s", *UKismetSystemLibrary::GetDisplayName(CapsuleSpaceHit.GetActor()), 4);
+			PRINT_F("component : %s", *UKismetSystemLibrary::GetDisplayName(CapsuleSpaceHit.GetComponent()), 4);
+		}
 		return false;
 	}
 
@@ -614,26 +627,31 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, Start, MaxJumpRadius, ObjToTrace,
 		true, Ignore, EDrawDebugTrace::None, HitResults, true);
 
+	/*TArray<AActor*> HitActors;
+	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Start, MaxJumpRadius, ObjToTrace, ABaseEnemy::StaticClass(), Ignore, HitActors);
+
+	UKismetSystemLibrary::SphereTraceMultiByProfile(GetWorld(), Start, Start, MaxJumpRadius, "Camera",
+		true, Ignore, EDrawDebugTrace::None, HitResults, true);*/
+
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
 
 	int ObscuredCounter = HitResults.Num();
-
-	FValidationRules ValidationRules;
-	/*ValidationRules.bUseDebugPrint = true;
-	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
-	ValidationRules.bUseLazyCheck = false;
-	ValidationRules.ChecksSampleScale = 2;
-	ValidationRules.bShouldIgnoreShields = true;
+	//int ObscuredCounter = HitActors.Num();
+	//PRINT_F("Hit count = %i", ObscuredCounter, 2);
 
 	for (auto HitResult : HitResults)
 	{
+		//PRINTC_F("hit actor %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetActor()), 5, FColor::Cyan);
+		//PRINTC_F("hit actor %s", *UKismetSystemLibrary::GetDisplayName(HitResult), 5, FColor::Cyan);
+
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 		if (!Enemy)
 			continue;
 
-		Enemy->SetDebugTextValue("-");
+		//Enemy->SetDebugTextValue("-");
 		bool bIsTargetObscured = CheckIsTeleportTargetObscured(Enemy);
+		//PRINT_B("Is obscured %s ", bIsTargetObscured);
 
 		if (bIsTargetObscured)
 		{
@@ -679,6 +697,13 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (Target)
 	{
+		FValidationRules ValidationRules;
+		//ValidationRules.bUseDebugPrint = true;
+		ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		ValidationRules.bUseLazyCheck = false;
+		ValidationRules.ChecksSampleScale = 2;
+		ValidationRules.bShouldIgnoreShields = true;
+
 		bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
 		if (SuperAbilityTarget != Target)
 		{
@@ -921,11 +946,11 @@ void UCombatSystemComponent::SuperAbility()
 		return;
 
 
-	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
+	/*if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
 	{
 		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
 		return;
-	}
+	}*/
 
 	SuperAbilityTargetsLeft = SuperAbilityTargetLimit;
 
