@@ -43,15 +43,14 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Chance;				//how often should this montage be played
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//float Chance;				//how often should this montage be played
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
 
 	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PerfectAttackTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -268,7 +267,7 @@ private:
 	void TeleportToEnemy(float TeleportDistance);
 
 	UFUNCTION()
-	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName);
 
 	UFUNCTION()
 	void ExecuteSuperAbility();

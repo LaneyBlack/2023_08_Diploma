@@ -238,8 +238,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			if (bIsTargetValid)
@@ -522,30 +520,14 @@ void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 	TeleportTimeline.PlayFromStart();
 }
 
-float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
+float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName)
 {
-	/*auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
-		return CurrentEvent.NotifyName.IsEqual(NotifyName);
-		});*/
-
-	/*auto notifies = Montage->Notifies;
-	for (const auto& NotifyEvent : notifies)
-	{
-		PRINT_F("notify name = %s", *NotifyEvent.NotifyName.ToString(), 20);
-		PRINT_B("is blueprint notify %s", NotifyEvent.IsBlueprintNotify());
-	}*/
-
-	auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
-		return CurrentTrack.TrackName.IsEqual(TrackName);
+	auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
+		return CurrentEvent.NotifyName == NotifyName;
 		});
 
-	if (track)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
-
-		return track->Notifies[0]->GetTriggerTime();
-	}
+	if (NotifyEvent)
+		return NotifyEvent->GetTriggerTime();
 	
 	return 0;
 }
@@ -733,7 +715,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 
 	for (auto& AttackMontageData : AttackMontages)
 	{
-		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
+		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "AN_PerfectAttack");
 
 		if (AttackMontageData.PerfectForCounter)
 			CounterAttackMontages.Add(AttackMontageData);
