@@ -39,7 +39,7 @@
 
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
-#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
+#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 0.33, color, TEXT(mess));
 #define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Magenta, FString::Printf(TEXT(prompt), mess));
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 #define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Magenta, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
@@ -431,9 +431,16 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 	FHitResult CapsuleSpaceHit;
 
+	/*FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 2.f);
+	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
+		BlockCapsuleRadius, BlockCapsuleHalfHeight / 2.f,
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);*/
+
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight,
 		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
+
+	//DrawDebugCapsule(GetWorld(), PlayerDestinationForTeleport, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, true);	
 
 	if (bTeleportBlock)
 	{
@@ -601,10 +608,21 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	if (Target)
 	{
+		PRINTC_F("Target = %s", *UKismetSystemLibrary::GetDisplayName(Target), 0.33f, FColor::Cyan);
+	}
+	else
+		PRINTC("Target = NULLPTR", FColor::Cyan);
+
+	if (Target)
+	{
 		FValidationRules ValidationRules;
 		ValidationRules.bUseLazyCheck = false;
 		ValidationRules.ChecksSampleScale = 2;
 		ValidationRules.bShouldIgnoreShields = true;
+
+		//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		//ValidationRules.bUseDebugPrint = true;
+
 
 		bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
 		if (SuperAbilityTarget != Target)
@@ -618,6 +636,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 				SuperAbilityTarget = Target;
 				OnSuperAbilityTargetAcquired.Broadcast(true);
 			}
+			else
+				SuperAbilityTarget = nullptr;
 		}
 	}
 	else if (SuperAbilityTarget)
@@ -1037,6 +1057,16 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
+
+	//SUPER ABILITY DEBUG PRINT
+	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
+
+	if (SuperAbilityTarget)
+	{
+		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
+	}
+	else
+		PRINT("Super Ability Target = NULLPTR", 0);
 }
 
 void UCombatSystemComponent::OnComboPointsChanged(int32 NewComboPoints)
