@@ -40,7 +40,7 @@
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 0.33, color, TEXT(mess));
-#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Magenta, FString::Printf(TEXT(prompt), mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::White, FString::Printf(TEXT(prompt), mess));
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 #define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Magenta, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
@@ -238,6 +238,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
+			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
 			if (bIsTargetValid)
@@ -346,8 +348,10 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	FVector EvaluatedDestination;
 
 	auto playerCapsule = playerCharacter->GetCapsuleComponent();
-	float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius() * .8f;
-	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight() - 3.f;
+	/*float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius() * .8f;
+	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight() - 3.f;*/
+	float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius();
+	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight();
 	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.5f;
 
 	float TeleportOffset = KatanaTriggerLenSquared * 0.55f;
@@ -401,17 +405,32 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector EvaluatedDestination = EnemyLocationOverTime + Direction;
 	EvaluatedDestination.Z = EnemyLocationOverTime.Z;
 
-	FVector Start = EvaluatedDestination;
+	FVector GroundStart = EvaluatedDestination;
 
-	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
+	FVector GroundEnd = GroundStart - (Enemy->GetActorUpVector() * TraceDepth);
 	FHitResult GroundHit;
 
-	FCollisionQueryParams CollisionParams;
-	CollisionParams.bTraceComplex = true;
+	/*FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;*/
 
-	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, ETraceTypeQuery::TraceTypeQuery1, 
-		true, {}, ValidationRules.DrawDebugTrace, GroundHit, true);
+	/*bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GroundStart, GroundEnd, ETraceTypeQuery::TraceTypeQuery1, 
+		true, {}, ValidationRules.DrawDebugTrace, GroundHit, true);*/
 
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+	//FVector HalfHeightVector = playerCharacter->GetActorUpVector() * BlockCapsuleHalfHeight;
+	/*FVector CapsuleStart = EvaluatedDestination + HalfHeightVector;
+	FVector CapsuleEnd = EvaluatedDestination - HalfHeightVector;*/
+
+	bool bHasGround = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), GroundStart, GroundEnd,
+		BlockCapsuleRadius, BlockCapsuleRadius,
+		ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);
+
+	DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
+	//PRINT_B("penetrating hit %s", GroundHit.bStartPenetrating);
 
 	if (!bHasGround)
 	{
@@ -420,27 +439,18 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 		return false;
 	}
 
-	//change Z so that player has perfect teleport position and collision enabling won't cause chaos
-	PlayerDestinationForTeleport = GroundHit.Location;
-	PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	PRINT_F("hit actor by ground check %s", *UKismetSystemLibrary::GetDisplayName(GroundHit.GetComponent()), 0.033f);
 
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+	//change Z so that player has perfect teleport position and collision enabling won't cause chaos
+	PlayerDestinationForTeleport = GroundHit.ImpactPoint;
+	PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
 	FHitResult CapsuleSpaceHit;
 
-	/*FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 2.f);
+	FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 2.f);
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight / 2.f,
-		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);*/
-
-	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
-		BlockCapsuleRadius, BlockCapsuleHalfHeight,
 		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
-
-	//DrawDebugCapsule(GetWorld(), PlayerDestinationForTeleport, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, true);	
 
 	if (bTeleportBlock)
 	{
@@ -452,6 +462,30 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 		}
 		return false;
 	}
+
+	////change Z so that player has perfect teleport position and collision enabling won't cause chaos
+	//PlayerDestinationForTeleport = GroundHit.Location;
+	//PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	//TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+	////ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+
+	//FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 2.f);
+	//bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
+	//	BlockCapsuleRadius, BlockCapsuleHalfHeight / 2.f,
+	//	ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
+
+	//DrawDebugBox(GetWorld(), CapsuleSpaceHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
+
+	/*bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
+		BlockCapsuleRadius, BlockCapsuleHalfHeight,
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);*/
+
+	//DrawDebugCapsule(GetWorld(), PlayerDestinationForTeleport, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, true);	
+
 
 	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 	RotationToEnemy = playerCharacter->GetControlRotation();
@@ -606,12 +640,12 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
 
-	if (Target)
+	/*if (Target)
 	{
 		PRINTC_F("Target = %s", *UKismetSystemLibrary::GetDisplayName(Target), 0.33f, FColor::Cyan);
 	}
 	else
-		PRINTC("Target = NULLPTR", FColor::Cyan);
+		PRINTC("Target = NULLPTR", FColor::Cyan);*/
 
 	if (Target)
 	{
@@ -620,7 +654,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		ValidationRules.ChecksSampleScale = 2;
 		ValidationRules.bShouldIgnoreShields = true;
 
-		//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 		//ValidationRules.bUseDebugPrint = true;
 
 
@@ -1059,14 +1093,14 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 
 	//SUPER ABILITY DEBUG PRINT
-	PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
+	/*PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
 
 	if (SuperAbilityTarget)
 	{
 		PRINT_F("Super Ability Target = %s", *UKismetSystemLibrary::GetDisplayName(SuperAbilityTarget), 0);
 	}
 	else
-		PRINT("Super Ability Target = NULLPTR", 0);
+		PRINT("Super Ability Target = NULLPTR", 0);*/
 }
 
 void UCombatSystemComponent::OnComboPointsChanged(int32 NewComboPoints)
