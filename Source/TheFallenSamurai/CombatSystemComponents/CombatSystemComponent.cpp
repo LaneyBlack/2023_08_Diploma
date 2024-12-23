@@ -238,7 +238,7 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+			//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
@@ -321,7 +321,7 @@ bool UCombatSystemComponent::CheckIsShieldProtected(const FVector& ToPlayerNorma
 bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
+	auto ToPlayerNormalized = ToPlayer.GetSafeNormal2D(); //change to unsafe normal for perfomance?
 
 	if (!ValidationRules.bShouldIgnoreShields)
 	{
@@ -354,7 +354,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight();
 	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.5f;
 
-	float TeleportOffset = KatanaTriggerLenSquared * 0.55f;
+	float TeleportOffset = KatanaTriggerLenSquared * 0.7f;
 
 	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
 		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
@@ -430,16 +430,15 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 		ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);
 
 	DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
-	//PRINT_B("penetrating hit %s", GroundHit.bStartPenetrating);
 
-	if (!bHasGround)
+	if (!bHasGround || GroundHit.ImpactNormal.Dot(FVector::UpVector) < 0.7170f)
 	{
 		if (ValidationRules.bUseDebugPrint)
 			PRINT("CANT TELEPORT: [GROUND CHECK]", 4);
 		return false;
 	}
 
-	PRINT_F("hit actor by ground check %s", *UKismetSystemLibrary::GetDisplayName(GroundHit.GetComponent()), 0.033f);
+	//PRINT_F("hit actor by ground check %s", *UKismetSystemLibrary::GetDisplayName(GroundHit.GetComponent()), 0.033f);
 
 	//change Z so that player has perfect teleport position and collision enabling won't cause chaos
 	PlayerDestinationForTeleport = GroundHit.ImpactPoint;
@@ -447,10 +446,10 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 	FHitResult CapsuleSpaceHit;
 
-	FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 2.f);
+	FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 4.f);
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
-		BlockCapsuleRadius, BlockCapsuleHalfHeight / 2.f,
-		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
+		BlockCapsuleRadius, BlockCapsuleHalfHeight * 0.75f,
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
 
 	if (bTeleportBlock)
 	{
@@ -462,6 +461,10 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 		}
 		return false;
 	}
+
+	//DrawDebugCapsule(GetWorld(), PlayerDestinationForTeleport, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, true);
+
+
 
 	////change Z so that player has perfect teleport position and collision enabling won't cause chaos
 	//PlayerDestinationForTeleport = GroundHit.Location;
@@ -483,8 +486,6 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	/*bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight,
 		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);*/
-
-	//DrawDebugCapsule(GetWorld(), PlayerDestinationForTeleport, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, true);	
 
 
 	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
@@ -654,7 +655,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		ValidationRules.ChecksSampleScale = 2;
 		ValidationRules.bShouldIgnoreShields = true;
 
-		ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 		//ValidationRules.bUseDebugPrint = true;
 
 
