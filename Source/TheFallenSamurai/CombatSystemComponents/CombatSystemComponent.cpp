@@ -591,7 +591,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
 
-	int ObscuredCounter = HitResults.Num();
+	int VisibleCounter = 0;
 
 	for (auto HitResult : HitResults)
 	{
@@ -599,6 +599,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 		if (!Enemy)
 			continue;
+		VisibleCounter++;
 
 		PRINT_F("hit actor %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetActor()), .018f);
 
@@ -606,7 +607,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		if (bIsTargetObscured)
 		{
-			ObscuredCounter--;
+			VisibleCounter--;
 			Enemy->GetMesh()->SetCustomDepthStencilValue(0);
 			PostProcessSA_Targets.Remove(Enemy);
 			continue;
@@ -632,7 +633,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		}
 	}
 
-	if (!ObscuredCounter)
+	if (!VisibleCounter)
 	{
 		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
 
