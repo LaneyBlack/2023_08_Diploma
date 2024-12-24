@@ -595,15 +595,20 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 	for (auto HitResult : HitResults)
 	{
+
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 		if (!Enemy)
 			continue;
+
+		PRINT_F("hit actor %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetActor()), .018f);
 
 		bool bIsTargetObscured = CheckIsTeleportTargetObscured(Enemy);
 
 		if (bIsTargetObscured)
 		{
 			ObscuredCounter--;
+			Enemy->GetMesh()->SetCustomDepthStencilValue(0);
+			PostProcessSA_Targets.Remove(Enemy);
 			continue;
 		}
 		else
