@@ -429,7 +429,7 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 		BlockCapsuleRadius, BlockCapsuleRadius,
 		ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);*/
 
-	DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
+	//DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
 
 	//if (!bHasGround || GroundHit.ImpactNormal.Dot(FVector::UpVector) < 0.7170f)
 	if (!bHasGround)
@@ -660,7 +660,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		ValidationRules.ChecksSampleScale = 2;
 		ValidationRules.bShouldIgnoreShields = true;
 
-		ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 		//ValidationRules.bUseDebugPrint = true;
 
 
