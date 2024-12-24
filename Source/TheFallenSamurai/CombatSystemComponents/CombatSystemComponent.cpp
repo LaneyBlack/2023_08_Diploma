@@ -354,7 +354,7 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight();
 	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.5f;
 
-	float TeleportOffset = KatanaTriggerLenSquared * 0.7f;
+	float TeleportOffset = KatanaTriggerLenSquared * 0.6f;
 
 	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
 		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
@@ -410,28 +410,29 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector GroundEnd = GroundStart - (Enemy->GetActorUpVector() * TraceDepth);
 	FHitResult GroundHit;
 
-	/*FCollisionQueryParams CollisionParams;
-	CollisionParams.bTraceComplex = true;*/
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.bTraceComplex = true;
 
-	/*bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GroundStart, GroundEnd, ETraceTypeQuery::TraceTypeQuery1, 
-		true, {}, ValidationRules.DrawDebugTrace, GroundHit, true);*/
+	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GroundStart, GroundEnd, ETraceTypeQuery::TraceTypeQuery1, 
+		true, {Enemy, playerCharacter}, ValidationRules.DrawDebugTrace, GroundHit, true);
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
-	//FVector HalfHeightVector = playerCharacter->GetActorUpVector() * BlockCapsuleHalfHeight;
-	/*FVector CapsuleStart = EvaluatedDestination + HalfHeightVector;
-	FVector CapsuleEnd = EvaluatedDestination - HalfHeightVector;*/
+	////FVector HalfHeightVector = playerCharacter->GetActorUpVector() * BlockCapsuleHalfHeight;
+	///*FVector CapsuleStart = EvaluatedDestination + HalfHeightVector;
+	//FVector CapsuleEnd = EvaluatedDestination - HalfHeightVector;*/
 
-	bool bHasGround = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), GroundStart, GroundEnd,
-		BlockCapsuleRadius, BlockCapsuleRadius,
-		ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);
+	//bool bHasGround = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), GroundStart, GroundEnd,
+	//	BlockCapsuleRadius, BlockCapsuleRadius,
+	//	ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);
 
 	DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
 
-	if (!bHasGround || GroundHit.ImpactNormal.Dot(FVector::UpVector) < 0.7170f)
+	//if (!bHasGround || GroundHit.ImpactNormal.Dot(FVector::UpVector) < 0.7170f)
+	if (!bHasGround)
 	{
 		if (ValidationRules.bUseDebugPrint)
 			PRINT("CANT TELEPORT: [GROUND CHECK]", 4);
@@ -449,7 +450,7 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 4.f);
 	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight * 0.75f,
-		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald);
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald, 30.f);
 
 	if (bTeleportBlock)
 	{
@@ -601,8 +602,6 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 			continue;
 		VisibleCounter++;
 
-		PRINT_F("hit actor %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetActor()), .018f);
-
 		bool bIsTargetObscured = CheckIsTeleportTargetObscured(Enemy);
 
 		if (bIsTargetObscured)
@@ -661,7 +660,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 		ValidationRules.ChecksSampleScale = 2;
 		ValidationRules.bShouldIgnoreShields = true;
 
-		//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
 		//ValidationRules.bUseDebugPrint = true;
 
 
