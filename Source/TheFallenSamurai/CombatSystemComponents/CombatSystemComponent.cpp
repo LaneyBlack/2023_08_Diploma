@@ -425,9 +425,9 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	///*FVector CapsuleStart = EvaluatedDestination + HalfHeightVector;
 	//FVector CapsuleEnd = EvaluatedDestination - HalfHeightVector;*/
 
-	//bool bHasGround = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), GroundStart, GroundEnd,
-	//	BlockCapsuleRadius, BlockCapsuleRadius,
-	//	ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);
+	/*bool bHasGround = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), GroundStart, GroundEnd,
+		BlockCapsuleRadius, BlockCapsuleRadius,
+		ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);*/
 
 	DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
 
