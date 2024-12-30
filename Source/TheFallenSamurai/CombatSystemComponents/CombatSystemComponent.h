@@ -49,9 +49,11 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
 
-	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
+	//float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
 	float PerfectAttackTime;
+
+	float StartTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UCameraShakeBase> AttackShake;
@@ -60,6 +62,10 @@ struct FAttackAnimData
 
 	//for later 
 	//hand offset of crig
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FVector AttackVector;
+
+	FVector AttackWorldVector;
 };
 
 USTRUCT(BlueprintType)
@@ -148,8 +154,6 @@ private:
 	bool bInterputedByItself;
 
 	class UAnimInstance* AnimInstance;
-
-	FAttackAnimData CurrentAttackData;
 
 	FAttackAnimData NextAttackData;
 
@@ -276,6 +280,9 @@ private:
 	void SwingKatana();
 
 public:
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attack Data|Animation")
+	FAttackAnimData CurrentAttackData;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	TArray<FAttackAnimData> AttackMontages;

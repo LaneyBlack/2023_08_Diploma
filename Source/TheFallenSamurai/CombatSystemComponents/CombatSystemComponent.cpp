@@ -68,6 +68,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 {
 	static int index = 0;
 	return AttackMontages[index++ % AttackMontages.Num()];
+	//return AttackMontages[1];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -571,7 +572,18 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 
 	if (NotifyEvent)
 		return NotifyEvent->GetTriggerTime();
-	
+
+	//how to get the bone transform at a given time in notify
+	/*auto data = Montage->GetAnimationData("");
+
+	auto seg = data->GetSegmentAtTime(0);
+
+	float f;
+	auto seq = seg->GetAnimationData(0, f);
+
+	FFrameNumber fn(3);
+	auto x = seq->GetDataModel()->GetBoneTrackTransform("", fn);*/
+
 	return 0;
 }
 
@@ -779,6 +791,9 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 
 		if (AttackMontageData.PerfectForCounter)
 			CounterAttackMontages.Add(AttackMontageData);
+
+		FVector ca = AttackMontageData.AttackVector;
+		AttackMontageData.AttackWorldVector = FVector(ca.Y, -ca.X, ca.Z);
 	}
 
 	NextAttackData = DetermineNextAttackData();
@@ -963,12 +978,24 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
-		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
+		/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
 			CurrentAttackData.AttackShake,
 			playerCharacter->GetActorLocation(), 
-			0, 500, 1);
+			0, 500, 1);*/
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
+
+		// ============================= test code =============================
+
+		//for right attack:		(X=-79.580000,Y=6.157000,Z=1.111000)
+		//for left attacK:		(X=76.000000,Y=15.000000,Z=-17.000000)
+
+		/*FVector Hand = playerCharacter->GetMesh()->GetBoneLocation("hand_r");
+		float Rotation = playerCharacter->GetControlRotation().Yaw;
+		DrawDebugLine(GetWorld(), Hand, Hand + (CurrentAttackData.AttackWorldVector).RotateAngleAxis(Rotation, FVector(0, 0, 1)), FColor::Red, false, 20.f, 0, 3.f);*/
+
+		// ============================= test code =============================
+
 	}
 	else if (NotifyName.IsEqual("CRigUpdate"))
 	{
