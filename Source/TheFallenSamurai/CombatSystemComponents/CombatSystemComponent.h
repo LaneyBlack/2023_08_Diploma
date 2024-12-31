@@ -55,17 +55,12 @@ struct FAttackAnimData
 
 	float StartTime;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UCameraShakeBase> AttackShake;
-
 	bool bIsTeleportAttack = false;
 
-	//for later 
-	//hand offset of crig
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector AttackVector;
 
-	FVector AttackWorldVector;
+	FVector AttackVectorWorld;
 };
 
 USTRUCT(BlueprintType)
@@ -289,6 +284,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
+	TSubclassOf<UCameraShakeBase> SwordSwingShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
 	TSubclassOf<UCameraShakeBase> HitCameraShake;

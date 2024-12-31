@@ -793,7 +793,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 			CounterAttackMontages.Add(AttackMontageData);
 
 		FVector ca = AttackMontageData.AttackVector;
-		AttackMontageData.AttackWorldVector = FVector(ca.Y, -ca.X, ca.Z);
+		AttackMontageData.AttackVectorWorld = FVector(ca.Y, -ca.X, ca.Z);
 	}
 
 	NextAttackData = DetermineNextAttackData();
@@ -978,10 +978,10 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
-		/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
-			CurrentAttackData.AttackShake,
+		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
+			SwordSwingShake,
 			playerCharacter->GetActorLocation(), 
-			0, 500, 1);*/
+			0, 500, 1);
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 
@@ -992,7 +992,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 
 		/*FVector Hand = playerCharacter->GetMesh()->GetBoneLocation("hand_r");
 		float Rotation = playerCharacter->GetControlRotation().Yaw;
-		DrawDebugLine(GetWorld(), Hand, Hand + (CurrentAttackData.AttackWorldVector).RotateAngleAxis(Rotation, FVector(0, 0, 1)), FColor::Red, false, 20.f, 0, 3.f);*/
+		DrawDebugLine(GetWorld(), Hand, Hand + (CurrentAttackData.AttackVectorWorld).RotateAngleAxis(Rotation, FVector(0, 0, 1)), FColor::Red, false, 20.f, 0, 3.f);*/
 
 		// ============================= test code =============================
 
