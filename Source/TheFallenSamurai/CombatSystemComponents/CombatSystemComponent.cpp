@@ -988,7 +988,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		// ============================= test code =============================
 
 		//for right attack:		(X=-79.580000,Y=6.157000,Z=1.111000)
-		//for left attacK:		(X=76.000000,Y=15.000000,Z=-17.000000)
+		//for left attack:		(X=76.000000,Y=15.000000,Z=-17.000000)
 
 		/*FVector Hand = playerCharacter->GetMesh()->GetBoneLocation("hand_r");
 		float Rotation = playerCharacter->GetControlRotation().Yaw;
