@@ -43,24 +43,24 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Chance;				//how often should this montage be played
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//float Chance;				//how often should this montage be played
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
 
-	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
+	//float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PerfectAttackTime;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UCameraShakeBase> AttackShake;
+	float StartTime;
 
 	bool bIsTeleportAttack = false;
 
-	//for later 
-	//hand offset of crig
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FVector AttackVector;
+
+	FVector AttackVectorWorld;
 };
 
 USTRUCT(BlueprintType)
@@ -150,8 +150,6 @@ private:
 
 	class UAnimInstance* AnimInstance;
 
-	FAttackAnimData CurrentAttackData;
-
 	FAttackAnimData NextAttackData;
 
 	TArray<FAttackAnimData> CounterAttackMontages;
@@ -194,19 +192,11 @@ private:
 
 	float PlayerCameraFOV;
 
-	//float TeleportFOVChange;
-
-	//int StolenTokens = 0;
-
 	FTimeline ParrySlowMoTimeline;
 
 	float TimeDilationBeforeParry = 1.f;
 
 	bool bShouldSpeedUpSlowMoTimeline = false;
-
-	float DebugTimeStamp;
-
-	//FVector TargetPointInitialPosition;
 
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
 
@@ -259,9 +249,6 @@ private:
 	UFUNCTION()
 	void GetVelocityVariables();
 
-	/*UFUNCTION()
-	void TraceForEnemiesToTeleport();*/
-
 	UFUNCTION()
 	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
 
@@ -279,7 +266,7 @@ private:
 	void TeleportToEnemy(float TeleportDistance);
 
 	UFUNCTION()
-	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName);
 
 	UFUNCTION()
 	void ExecuteSuperAbility();
@@ -289,12 +276,17 @@ private:
 
 public:
 
+	UPROPERTY(BlueprintReadOnly, Category = "Attack Data|Animation")
+	FAttackAnimData CurrentAttackData;
+
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	TArray<FAttackAnimData> AttackMontages;
-	//TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
+	TSubclassOf<UCameraShakeBase> SwordSwingShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
 	TSubclassOf<UCameraShakeBase> HitCameraShake;
@@ -344,8 +336,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perfect Parry Data")
-	int MaxParryTokens = 3;*/
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
@@ -430,9 +420,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
-
-	/*UPROPERTY(BlueprintReadOnly)
-	FVector TargetPointPosition;*/
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bInTeleport;

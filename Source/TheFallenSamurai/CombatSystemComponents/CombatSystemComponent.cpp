@@ -24,7 +24,6 @@
 
 #include "GameFramework/WorldSettings.h"
 
-//#include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
 #include "TheFallenSamurai/TheFallenSamuraiCharacter.h"
@@ -40,10 +39,10 @@
 
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
-#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 3, color, TEXT(mess));
-#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, FString::Printf(TEXT(prompt), mess));
+#define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 0.33, color, TEXT(mess));
+#define PRINT_F(prompt, mess, mtime) GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::White, FString::Printf(TEXT(prompt), mess));
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
-#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Green, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
+#define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Magenta, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
 
 // Sets default values for this component's properties
@@ -62,18 +61,14 @@ void UCombatSystemComponent::BeginPlay()
 
 bool UCombatSystemComponent::CheckIfCanAttack()
 {
-	//return !bIsAttacking && (bInterputedByItself || !AttackMontages.Contains(playerCharacter->GetCurrentMontage()));
 	return !bIsAttacking && (bInterputedByItself || CurrentAttackData.AttackMontage != playerCharacter->GetCurrentMontage() || !CurrentAttackData.AttackMontage);
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 {
-	/*auto montage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
-	return montage;*/
-
 	static int index = 0;
-	//CurrentAttackData = AttackMontages[index++ % AttackMontages.Num()];
 	return AttackMontages[index++ % AttackMontages.Num()];
+	//return AttackMontages[1];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -84,8 +79,6 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
 
 void UCombatSystemComponent::HandleAttackEnd(bool bShouldPerformFinalTraceCheck)
 {
-	//TargetPointOffset = FVector::Zero();
-
 	GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 
 	bIsAttacking = false;
@@ -112,9 +105,6 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 	AActor* HitActor = HitResult.GetActor();
 	if (auto Enemy = Cast<ABaseEnemy>(HitActor))
 	{
-		//UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.f);
-
-		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent().tag), 4, FColor::Orange);
 		if (!CurrentAttackData.bIsTeleportAttack && Enemy->bOwnsShield)
 		{
 			auto ToPlayerNormalized = (playerCharacter->GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal();
@@ -125,21 +115,8 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 			}
 		}
 
-		//auto KatanaDirection = DetermineKatanaDirection();
-
-		//auto ParticleRotation = UKismetMathLibrary::FindLookAtRotation(Enemy->GetActorUpVector(), KatanaDirection);
-
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), 
 			BloodParticles, Enemy->GetMesh()->GetBoneLocation("head"), FRotator(0), BloodScale);
-
-		/*FVector DismembermentImpulse = playerCharacter->GetActorForwardVector() + KatanaDirection;
-		DismembermentImpulse.Z += 2.f;
-		DismembermentImpulse.Normalize();
-		DismembermentImpulse *= 5'000.f;*/
-
-		/*float test = PlaneNormal.Dot(Katana->GetActorRightVector());
-
-		PRINTC_F("test dot = %f", test, 10, FColor::Cyan);*/
 
 		FCombatHitData KatanaHitResult;
 		KatanaHitResult.ActorCauser = playerCharacter;
@@ -148,7 +125,6 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 		KatanaHitResult.CutVelocity = HandVelocity;
 		KatanaHitResult.bSuperAbilityKill = SuperAbilityTargetsLeft >= 0;
 
-		//if (!Enemy->HandleHitReaction(ImpactPoint, PlaneNormal))
 		if (!Enemy->HandleHitReaction(KatanaHitResult))
 		{
 			PlayerCameraManager->StopAllCameraShakes();
@@ -157,8 +133,6 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 				HitCameraShake,
 				playerCharacter->GetActorLocation(),
 				1, 500, 1);
-
-			//PRINT_F("targets left %i", SuperAbilityTargetsLeft, 4)
 		}
 	}
 	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
@@ -175,7 +149,6 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 		playerCharacter->LaunchCharacter(LaunchVelocity, false, false);
 	}
 
-	//AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage);
 	AnimInstance->Montage_Stop(OnHitAnimationBlendTime, CurrentAttackData.AttackMontage);
 
 	HandleAttackEnd(false);
@@ -206,12 +179,8 @@ FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 {
-	//PRINT("==========================================================", 4);
 	for (auto& result : HitTracer->HitArray)
 	{
-		//PRINTC_F("hit component = %s", *UKismetSystemLibrary::GetDisplayName(result.GetComponent()), 4, FColor::Orange);
-		//PRINTC_F("hit actor = %s", *UKismetSystemLibrary::GetDisplayName(result.GetActor()), 4, FColor::Red);
-
 		ProcessHitResult(result);
 		result.Reset();
 	}
@@ -229,10 +198,8 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 	FVector Start = playerCharacter->GetActorLocation();
 	FVector End = Start + playerCharacter->GetControlRotation().Vector() * TeleportTriggerLength;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, HalfSize.ToCompactString());
 
-	FRotator BoxRotation = playerCharacter->GetControlRotation(); //is this ok, or revert to rotation from forward vector?
-	//FRotator BoxRotation = playerCharacter->GetActorForwardVector().RightRotation();
+	FRotator BoxRotation = playerCharacter->GetControlRotation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
@@ -246,7 +213,6 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		ObjToTrace, true, Ignore, EDrawDebugTrace::None, HitResults, true, FColor::Red, FColor::Green, 1.5f);
 
 	float MinDistance = TeleportTriggerLength + 100;
-	//float MinDot = -1;
 	ABaseEnemy* Closest = nullptr;
 	for (auto HitResult : HitResults)
 	{
@@ -254,64 +220,31 @@ void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
 		if (!Enemy)
 			continue;
 
-		//PRINT_F("hit component %s", *UKismetSystemLibrary::GetDisplayName(HitResult.GetComponent()), 4)
-
-		/*GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Hit) = %f"), HitResult.Distance));
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("MinDistance(Math) = %f"), Enemy->GetDistanceTo(playerCharacter)));*/
-
 		float CurrentDistance = Enemy->GetDistanceTo(playerCharacter);
 
 		if (CurrentDistance < MinDistance)
 		{
 			MinDistance = CurrentDistance;
 			Closest = Enemy;
-			//MinDot = Dot;
 		}
-
-		//FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
-		////float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy);
-		//float Dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
-
-		//float InDot = 1.f / Dot;
-
-		//float DotWeight = 600.f;
-		//float distweight = .5f;
-
-		//float a = DotWeight * FMath::Abs(Dot - 0.8660) / CurrentDistance;
-		//Enemy->SetDebugTextValue(FString::SanitizeFloat(a));
-		////Enemy->SetDebugTextValue(Dot * Dot * Dot);
 	}
 
 	if (Closest)
 	{
-		//bool bVerticalOverflow = false;
 		FVector NextTargetPointOffset = GetAutoAimOffset(playerCharacter->GetMesh()->GetBoneLocation("head"), Closest->GetActorLocation(), 
 			playerCharacter->GetActorForwardVector(), playerCharacter->GetActorUpVector());
-		//const auto& [NextTargetPointOffset, VerticalOverflow] = GetAutoAimOffset(playerCharacter->GetActorLocation(), Closest->GetActorLocation());
 
-		//TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset, NextTargetPointOffset, GetWorld()->GetDeltaSeconds(), .f);
-		TargetPointOffset = NextTargetPointOffset;
+		TargetPointOffset = UKismetMathLibrary::VInterpTo(TargetPointOffset, NextTargetPointOffset, GetWorld()->GetDeltaSeconds(), 25.f);
 
 		if (!bShouldIgnoreTeleport && MinDistance > KatanaTriggerLenSquared)
 		{
 			FValidationRules ValidationRules{};
-			/*ValidationRules.bUseDebugPrint = true;
-			ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
+			//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+
 
 			bool bIsTargetValid = ValidateTeleportTarget(Closest, ValidationRules);
-			//bool bIsTargetValid = ValidateTeleportTarget(Closest);
 			if (bIsTargetValid)
-			{
-				/*FTeleportProperties TeleportPropeties;
-				TeleportPropeties.FOVChange = TeleportMinFovValue;
-				TeleportPropeties.MinTime = MinTotalTeleportTime;
-				TeleportPropeties.MaxTime = MaxTotalTeleportTime;
-				TeleportPropeties.TeleportDistance = Distance;
-				TeleportPropeties.Timeline = TeleportTimeline;*/
-
 				TeleportToEnemy(Closest->GetDistanceTo(playerCharacter));
-			}
-			//GetWorld()->GetTimerManager().ClearTimer(EnemiesTraceTimerHandle);
 		}
 	}
 }
@@ -363,12 +296,6 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	FVector EyeEnd = Enemy->GetActorLocation();
 	FHitResult EyeOutHit;
 
-	/*TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));*/
-
-
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.bTraceComplex = true;
 	CollisionParams.AddIgnoredActor(playerCharacter);
@@ -376,31 +303,10 @@ bool UCombatSystemComponent::CheckIsTeleportTargetObscured(ABaseEnemy* Enemy)
 	CollisionParams.AddIgnoredActor(Enemy);
 
 	bool bEyeToCenterHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
-	
-	/*bool bEyeToCenterHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Cyan, FColor::Blue, 5.f);*/
-
-	/*if (bEyeToCenterHit)
-	{
-		PRINT_F("(center)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
-		Enemy->SetDebugTextValue("(center)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
-	}*/
 
 	EyeEnd.Z += Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
 	bool bEyeToEyeHit = GetWorld()->LineTraceSingleByChannel(EyeOutHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);
-
-	/*bool bEyeToEyeHit = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), EyeStart, EyeEnd,
-		ObjToTrace, true, { playerCharacter, Katana, Enemy },
-		EDrawDebugTrace::None, EyeOutHit, true, FColor::Orange, FColor::Red, 5.f);*/
-
-	//we hit a anohter object on the teleport path -> dont teleport
-	/*if (bEyeToEyeHit)
-	{
-		PRINT_F("(eye)IM BLOCKED by %s", *UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetComponent()), 5);
-		Enemy->SetDebugTextValue("(eye)IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(EyeOutHit.GetActor()));
-	}*/
 
 	return bEyeToCenterHit && bEyeToEyeHit;
 }
@@ -416,11 +322,10 @@ bool UCombatSystemComponent::CheckIsShieldProtected(const FVector& ToPlayerNorma
 bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules)
 {
 	auto ToPlayer = playerCharacter->GetActorLocation() - Enemy->GetActorLocation();
-	auto ToPlayerNormalized = ToPlayer.GetSafeNormal(); //change to unsafe normal for perfomance?
+	auto ToPlayerNormalized = ToPlayer.GetSafeNormal2D(); //change to unsafe normal for perfomance?
 
 	if (!ValidationRules.bShouldIgnoreShields)
 	{
-		//if (!Enemy->GetComponentsByTag(UStaticMeshComponent::StaticClass(), "Shield").IsEmpty())
 		if (Enemy->bOwnsShield)
 		{
 			if (CheckIsShieldProtected(ToPlayerNormalized, Enemy->GetActorForwardVector()))
@@ -432,7 +337,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		}
 	}
 
-	//PRINTC("validating", FColor::Red);
 	if (CheckIsTeleportTargetObscured(Enemy))
 	{
 		if (ValidationRules.bUseDebugPrint)
@@ -445,11 +349,13 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 	FVector EvaluatedDestination;
 
 	auto playerCapsule = playerCharacter->GetCapsuleComponent();
-	float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius() * .8f;
-	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight() - 3.f;
+	/*float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius() * .8f;
+	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight() - 3.f;*/
+	float BlockCapsuleRadius = playerCapsule->GetScaledCapsuleRadius();
+	float BlockCapsuleHalfHeight = playerCapsule->GetScaledCapsuleHalfHeight();
 	float TraceDepth = playerCapsule->GetScaledCapsuleHalfHeight() * 2.5f;
 
-	float TeleportOffset = KatanaTriggerLenSquared * 0.55f;
+	float TeleportOffset = KatanaTriggerLenSquared * 0.6f;
 
 	float TeleportTime = UKismetMathLibrary::MapRangeClamped(ToPlayer.Length(), KatanaTriggerLenSquared,
 		TeleportTriggerLength, MinTotalTeleportTime, MaxTotalTeleportTime);
@@ -459,7 +365,6 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 
 	bool bCanTeleport = false;
 
-	//PRINTC("----------------------------INITIAL CHECK----------------------", FColor::Red);
 	bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, TeleportOffsetVector, TraceDepth,
 		BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 
@@ -468,47 +373,24 @@ bool UCombatSystemComponent::ValidateTeleportTarget(ABaseEnemy* Enemy, const FVa
 		float Side = BlockCapsuleRadius * 2.f;
 		float TwoR = TeleportOffset * 2.f;
 
-		//float N = 180.f / FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR));
 		int N = FMath::DivideAndRoundNearest(180.f, FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)));
 
 		N *= ValidationRules.ChecksSampleScale;
 
 		float InnerAngle = 360.f / N;
-
-		//int MaxChecks = 1;
-		//MaxChecks = N;
-
-		//DEBUG SETUP:
-		//FColor DEBUG_COLOR = FColor::Cyan;
-		/*PRINTC_F("Side = %f", Side, 10, DEBUG_COLOR);
-		PRINTC_F("TwoR = %f", TwoR, 10, DEBUG_COLOR);
-		PRINTC_F("asin = %f", FMath::RadiansToDegrees(FMath::FastAsin(Side / TwoR)), 10, DEBUG_COLOR);
-		PRINTC_F("N = %i", N, 10, DEBUG_COLOR);
-		PRINTC_F("InnerAngle = %f", InnerAngle, 10, DEBUG_COLOR);*/
-
-		//FRotator RightRotation;
 		float LeftRotation = InnerAngle;
 		float RightRotation = -InnerAngle;
 
-		//for (int Checks = 1; Checks < MaxChecks; ++Checks)
-		for (int Checks = 1; (Checks < N) && !bCanTeleport; ++Checks)
+		for (int Checks = 1; (Checks <= N) && !bCanTeleport; Checks += 2)
 		{
-			//PRINTC_F("Total Angle = %f", RightRotation, 10, FColor::Magenta);
 			auto LeftDirection = TeleportOffsetVector.RotateAngleAxis(LeftRotation, FVector(0, 0, 1));
 			auto RightDirection = TeleportOffsetVector.RotateAngleAxis(RightRotation, FVector(0, 0, 1));
 			LeftRotation += InnerAngle;
 			RightRotation -= InnerAngle;
 
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + LeftDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Red, false, 15.f, 0, 1);
-			//DrawDebugCapsule(GetWorld(), Enemy->GetActorLocation() + RightDirection, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Green, false, 15.f, 0, 1);
-			/*EvaluatedDestination = EnemyLocationOverTime + LeftDirection;
-			EvaluatedDestination.Z = EnemyLocationOverTime.Z;*/
-
-			//PRINTC("----------------------------LEFT CHECK----------------------", FColor::Red);
 			bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, LeftDirection, TraceDepth,
 				BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
 			
-			//PRINTC("----------------------------RIGHT CHECK----------------------", FColor::Red);
 			if(!bCanTeleport)
 				bCanTeleport = PerformTeleportCheck(Enemy, EnemyLocationOverTime, RightDirection, TraceDepth,
 					BlockCapsuleRadius, BlockCapsuleHalfHeight, ValidationRules);
@@ -524,52 +406,89 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector EvaluatedDestination = EnemyLocationOverTime + Direction;
 	EvaluatedDestination.Z = EnemyLocationOverTime.Z;
 
-	FVector Start = EvaluatedDestination;
+	FVector GroundStart = EvaluatedDestination;
 
-	FVector End = Start - (Enemy->GetActorUpVector() * TraceDepth);
+	FVector GroundEnd = GroundStart - (Enemy->GetActorUpVector() * TraceDepth);
 	FHitResult GroundHit;
 
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.bTraceComplex = true;
 
-	bool bHasGround = GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECollisionChannel::ECC_Visibility, CollisionParams);
-
-	/*bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End,
-		TEnumAsByte<ETraceTypeQuery>(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic)),
-		true, TArray<AActor*>(), ValidationRules.DrawDebugTrace, GroundHit, true);*/
-
-	if (!bHasGround)
-	{
-		if (ValidationRules.bUseDebugPrint)
-			PRINT("CANT TELEPORT: [GROUND CHECK]", 4);
-		return false;
-		//continue;
-	}
-
-	//PRINT("has ground");
-
-	//change Z so that player has perfect teleport position and collision enabling won't cause chaos
-	PlayerDestinationForTeleport = GroundHit.Location;
-	PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	bool bHasGround = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GroundStart, GroundEnd, ETraceTypeQuery::TraceTypeQuery1, 
+		true, {Enemy, playerCharacter}, ValidationRules.DrawDebugTrace, GroundHit, true);
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 	ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
+	////FVector HalfHeightVector = playerCharacter->GetActorUpVector() * BlockCapsuleHalfHeight;
+	///*FVector CapsuleStart = EvaluatedDestination + HalfHeightVector;
+	//FVector CapsuleEnd = EvaluatedDestination - HalfHeightVector;*/
+
+	/*bool bHasGround = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), GroundStart, GroundEnd,
+		BlockCapsuleRadius, BlockCapsuleRadius,
+		ObjToTrace, true, { playerCharacter, Enemy }, ValidationRules.DrawDebugTrace, GroundHit, true, FColor::Emerald, FColor::Green);*/
+
+	//DrawDebugBox(GetWorld(), GroundHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
+
+	//if (!bHasGround || GroundHit.ImpactNormal.Dot(FVector::UpVector) < 0.7170f)
+	if (!bHasGround)
+	{
+		if (ValidationRules.bUseDebugPrint)
+			PRINT("CANT TELEPORT: [GROUND CHECK]", 4);
+		return false;
+	}
+
+	//PRINT_F("hit actor by ground check %s", *UKismetSystemLibrary::GetDisplayName(GroundHit.GetComponent()), 0.033f);
+
+	//change Z so that player has perfect teleport position and collision enabling won't cause chaos
+	PlayerDestinationForTeleport = GroundHit.ImpactPoint;
+	PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
 	FHitResult CapsuleSpaceHit;
 
-	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
-		BlockCapsuleRadius, BlockCapsuleHalfHeight,
-		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
+	FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 4.f);
+	bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
+		BlockCapsuleRadius, BlockCapsuleHalfHeight * 0.75f,
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Green, FColor::Emerald, 30.f);
 
 	if (bTeleportBlock)
 	{
 		if (ValidationRules.bUseDebugPrint)
-			PRINT("CANT TELEPORT: [CAPSULE CHECK]", 4);
+		{
+			PRINT("CANT TELEPORT: [CAPSULE CHECK] - actor : %s, component: %s", 4);
+			PRINT_F("actor : %s", *UKismetSystemLibrary::GetDisplayName(CapsuleSpaceHit.GetActor()), 4);
+			PRINT_F("component : %s", *UKismetSystemLibrary::GetDisplayName(CapsuleSpaceHit.GetComponent()), 4);
+		}
 		return false;
-		//continue;
 	}
+
+	//DrawDebugCapsule(GetWorld(), PlayerDestinationForTeleport, BlockCapsuleHalfHeight, BlockCapsuleRadius, FQuat::Identity, FColor::Magenta, true);
+
+
+
+	////change Z so that player has perfect teleport position and collision enabling won't cause chaos
+	//PlayerDestinationForTeleport = GroundHit.Location;
+	//PlayerDestinationForTeleport.Z += playerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	//TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+	////ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+	//ObjToTrace.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+
+	//FVector CapsuleCheckLocation = PlayerDestinationForTeleport + FVector(0.f, 0.f, BlockCapsuleHalfHeight / 2.f);
+	//bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), CapsuleCheckLocation, CapsuleCheckLocation,
+	//	BlockCapsuleRadius, BlockCapsuleHalfHeight / 2.f,
+	//	ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);
+
+	//DrawDebugBox(GetWorld(), CapsuleSpaceHit.ImpactPoint, FVector(5.f), FColor::Magenta, true, 10);
+
+	/*bool bTeleportBlock = UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), PlayerDestinationForTeleport, PlayerDestinationForTeleport,
+		BlockCapsuleRadius, BlockCapsuleHalfHeight,
+		ObjToTrace, true, { playerCharacter }, ValidationRules.DrawDebugTrace, CapsuleSpaceHit, true, FColor::Emerald, FColor::Green);*/
+
 
 	PlayerOnTeleportRotation = playerCharacter->GetControlRotation();
 	RotationToEnemy = playerCharacter->GetControlRotation();
@@ -577,7 +496,6 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector LookAtEnemyLocation = EnemyLocationOverTime;
 	LookAtEnemyLocation.Z -= Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .3f; // so that player looks a bit down
 
-	//FRotator PlayerRotation = playerCharacter->GetControlRotation();
 	FRotator FaceEnemyRotation = (LookAtEnemyLocation - PlayerDestinationForTeleport).Rotation();
 	FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(FaceEnemyRotation, PlayerOnTeleportRotation);
 
@@ -596,15 +514,6 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 	FVector KatanaStart = CombatPoint;
 	FVector KatanaEnd = KatanaStart + RotationToEnemy.Vector() * KatanaTriggerLenSquared;
 
-	/*FHitResult KatanaOutHit;
-
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace2;
-	ObjToTrace2.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
-
-	bool bCanKatanaCut = UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), KatanaStart, KatanaEnd,
-		ObjToTrace2, true, { playerCharacter, Katana },
-		EDrawDebugTrace::ForDuration, KatanaOutHit, true, FColor::Blue, FColor::Cyan, 10.f);*/
-
 	FVector EnemyBottom = EnemyLocationOverTime - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 	FVector EnemyTop = EnemyLocationOverTime + Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * Enemy->GetActorUpVector();
 
@@ -617,21 +526,11 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 		DrawDebugLine(GetWorld(), EnemyTop, EnemyTop, FColor::Green, true, 1, 0, 10);
 	}
 
-	//if (!UKismetMathLibrary::InRange_FloatFloat(CombatPoint.Z, EnemyBottom.Z, EnemyTop.Z))
-	//{
-	//	if (ValidationRules.bUseDebugPrint)
-	//		PRINT("CANT TELEPORT: Katana Blade wont cut the enemy", 4);
-	//	return false;
-	//	//continue;
-	//}
-
-	//this should be reworked to be more robust
 	if (!UKismetMathLibrary::InRange_FloatFloat(KatanaStart.Z, EnemyBottom.Z, EnemyTop.Z) && !UKismetMathLibrary::InRange_FloatFloat(KatanaEnd.Z, EnemyBottom.Z, EnemyTop.Z))
 	{
 		if (ValidationRules.bUseDebugPrint)
 			PRINT("CANT TELEPORT: Katana Blade wont cut the enemy", 4);
 		return false;
-		//continue;
 	}
 
 	return true;
@@ -639,8 +538,6 @@ bool UCombatSystemComponent::PerformTeleportCheck(ABaseEnemy* Enemy, const FVect
 
 void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 {
-	//PRINT("TELEPORT", 3)
-
 	bInTeleport = true;
 
 	CurrentAttackData.bIsTeleportAttack = true;
@@ -654,7 +551,7 @@ void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 
 	auto CurrentAttackMontage = CurrentAttackData.AttackMontage;
 	float TimeToPerfectAttack = CurrentAttackData.PerfectAttackTime - AnimInstance->Montage_GetPosition(CurrentAttackMontage);
-	float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime * AttackSpeedMultiplier;
+	float AcctualPlayRate = TimeToPerfectAttack / NormalizedTeleportTime;
 
 	AnimInstance->Montage_SetPlayRate(CurrentAttackMontage, AcctualPlayRate);
 
@@ -667,38 +564,31 @@ void UCombatSystemComponent::TeleportToEnemy(float TeleportDistance)
 	TeleportTimeline.PlayFromStart();
 }
 
-float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName)
+float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName)
 {
-	/*auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
-		return CurrentEvent.NotifyName.IsEqual(NotifyName);
-		});*/
+	auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
+		return CurrentEvent.NotifyName == NotifyName;
+		});
 
-	/*auto notifies = Montage->Notifies;
-	for (const auto& NotifyEvent : notifies)
-	{
-		PRINT_F("notify name = %s", *NotifyEvent.NotifyName.ToString(), 20);
-		PRINT_B("is blueprint notify %s", NotifyEvent.IsBlueprintNotify());
-	}*/
+	if (NotifyEvent)
+		return NotifyEvent->GetTriggerTime();
 
-	//auto track = Montage->AnimNotifyTracks.FindByPredicate([&](const FAnimNotifyTrack& CurrentTrack) -> bool {
-	//	return CurrentTrack.TrackName.IsEqual(TrackName);
-	//	});
+	//how to get the bone transform at a given time in notify
+	/*auto data = Montage->GetAnimationData("");
 
-	//if (track)
-	//{
-	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("track name = %s"), *track->TrackName.ToString()));
-	//	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Emerald, FString::Printf(TEXT("notify time = %f"), track->Notifies[0]->GetTriggerTime()));
+	auto seg = data->GetSegmentAtTime(0);
 
-	//	return track->Notifies[0]->GetTriggerTime();
-	//}
-	
+	float f;
+	auto seq = seg->GetAnimationData(0, f);
+
+	FFrameNumber fn(3);
+	auto x = seq->GetDataModel()->GetBoneTrackTransform("", fn);*/
+
 	return 0;
 }
 
 void UCombatSystemComponent::ExecuteSuperAbility()
 {
-	//PRINT("execute ability in progress", 0);
-
 	FVector Start = playerCharacter->GetActorLocation();
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjToTrace;
@@ -714,46 +604,23 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	float MaxDot = -1;
 	ABaseEnemy* Target = nullptr;
 
-	int ObscuredCounter = HitResults.Num();
-
-	FValidationRules ValidationRules;
-	/*ValidationRules.bUseDebugPrint = true;
-	ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;*/
-	ValidationRules.bUseLazyCheck = false;
-	ValidationRules.ChecksSampleScale = 2;
-	ValidationRules.bShouldIgnoreShields = true;
+	int VisibleCounter = 0;
 
 	for (auto HitResult : HitResults)
 	{
+
 		auto Enemy = Cast<ABaseEnemy>(HitResult.GetActor());
 		if (!Enemy)
 			continue;
+		VisibleCounter++;
 
-		Enemy->SetDebugTextValue("-");
-
-		//Enemy->SetEnableTargetWidget(false);
-
-		/*FHitResult BlockHit;
-		FVector EyeStart = playerCharacter->GetMesh()->GetBoneLocation("head");
-		FVector EyeEnd = Enemy->GetActorLocation();
-
-		FCollisionQueryParams CollisionParams;
-		CollisionParams.bTraceComplex = true;
-		CollisionParams.AddIgnoredActor(playerCharacter);
-		CollisionParams.AddIgnoredActor(Katana);
-		CollisionParams.AddIgnoredActor(Enemy);
-
-		bool bIsTargetObscured = GetWorld()->LineTraceSingleByChannel(BlockHit, EyeStart, EyeEnd, ECollisionChannel::ECC_Visibility, CollisionParams);*/
-		//bool bIsTargetObscured = false;
 		bool bIsTargetObscured = CheckIsTeleportTargetObscured(Enemy);
-
-		//DrawDebugLine(GetWorld(), EyeStart, EyeEnd, FColor::Cyan, false, 5);
 
 		if (bIsTargetObscured)
 		{
-			//Enemy->SetDebugTextValue("IM BLOCKED by " + UKismetSystemLibrary::GetDisplayName(BlockHit.GetComponent()));
-			ObscuredCounter--;
-			//DrawDebugBox(GetWorld(), BlockHit.ImpactPoint, FVector(5), FColor::Magenta, false, 5);
+			VisibleCounter--;
+			Enemy->GetMesh()->SetCustomDepthStencilValue(0);
+			PostProcessSA_Targets.Remove(Enemy);
 			continue;
 		}
 		else
@@ -765,16 +632,7 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 		FVector ToEnemy = Enemy->GetActorLocation() - playerCharacter->GetActorLocation();
 
-		//auto ForwardVector2D = playerCharacter->GetActorForwardVector();
-		//ForwardVector2D.Z = 0;
-		////ForwardVector2D.Normalize(); // is normalization needed?
-		//float dot = ForwardVector2D.Dot(ToEnemy.GetSafeNormal2D());
-
-		//float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal());
-		//float dot = playerCharacter->GetActorForwardVector().Dot(ToEnemy.GetSafeNormal2D());
 		float dot = playerCharacter->GetControlRotation().Vector().Dot(ToEnemy.GetSafeNormal());
-
-		Enemy->SetDebugTextValue(FString::SanitizeFloat(dot));
 
 		if (dot >= .97f)
 		{
@@ -784,13 +642,10 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 				Target = Enemy;
 			}
 		}
-		/*else
-			Enemy->SetEnableTargetWidget(false);*/
 	}
 
-	if (!ObscuredCounter)
+	if (!VisibleCounter)
 	{
-		//PRINT("No enemies nearby", 2);
 		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
 
 		CancelSuperAbility();
@@ -798,21 +653,32 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 	}
 
 	if (SA_State != SuperAbilityState::WAITING)
-	{
 		OnSuperAbilityCalled.Broadcast(true, "");
-	}
 
 	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), SuperAbilitySlowMo);
 	SA_State = SuperAbilityState::WAITING;
 
+	/*if (Target)
+	{
+		PRINTC_F("Target = %s", *UKismetSystemLibrary::GetDisplayName(Target), 0.33f, FColor::Cyan);
+	}
+	else
+		PRINTC("Target = NULLPTR", FColor::Cyan);*/
+
 	if (Target)
 	{
-		//Target->SetDebugTextValue("Current Target");
+		FValidationRules ValidationRules;
+		ValidationRules.bUseLazyCheck = false;
+		ValidationRules.ChecksSampleScale = 2;
+		ValidationRules.bShouldIgnoreShields = true;
+
+		//ValidationRules.DrawDebugTrace = EDrawDebugTrace::ForDuration;
+		//ValidationRules.bUseDebugPrint = true;
+
 
 		bool bIsValidTarget = ValidateTeleportTarget(Target, ValidationRules);
 		if (SuperAbilityTarget != Target)
 		{
-			//PRINTC("found new target", FColor::Cyan);
 			if (SuperAbilityTarget)
 				SuperAbilityTarget->SetEnableTargetWidget(false);
 
@@ -822,8 +688,8 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 				SuperAbilityTarget = Target;
 				OnSuperAbilityTargetAcquired.Broadcast(true);
 			}
-			/*else
-				SuperAbilityTarget = nullptr;*/
+			else
+				SuperAbilityTarget = nullptr;
 		}
 	}
 	else if (SuperAbilityTarget)
@@ -836,9 +702,6 @@ void UCombatSystemComponent::ExecuteSuperAbility()
 
 void UCombatSystemComponent::SwingKatana()
 {
-	//PRINTC("Normal attack", FColor::Cyan);
-
-	//reset this cock-sucking plugin that barely works
 	HitTracer->ClearHitArray();
 
 	//quickly stop perfect parry montage
@@ -856,7 +719,6 @@ void UCombatSystemComponent::SwingKatana()
 	CurrentAttackData = NextAttackData;
 	NextAttackData = DetermineNextAttackData();
 
-	//move it to the attack function(and call only at the normal attack) ?
 	//start timer for auto aim
 	GetWorld()->GetTimerManager().SetTimer(EnemiesTraceTimerHandle, this,
 		&UCombatSystemComponent::GetEnemiesInViewportOnAttack,
@@ -876,14 +738,11 @@ FVector UCombatSystemComponent::GetAutoAimOffset(const FVector& PlayerLocation, 
 
 	FVector PlayerRightVector = PlayerUpVector.Cross(PlayerForwardVector);
 
-	//DrawDebugLine(GetWorld(), playerCharacter->GetActorLocation(), playerCharacter->GetActorLocation() + PlayerRightVector * 100, FColor::Red, true);
 
 	float MaxAbsoluteYOffset = 45.f;
 	float TargetPointYOffset = FMath::Clamp(ToEnemy.Dot(PlayerRightVector),
 		-MaxAbsoluteYOffset, MaxAbsoluteYOffset);
 
-	//float MaxAbsoluteZOffset = 15.f;
-	//PRINT_F("dot value = %f", ToEnemy.Dot(playerCharacter->GetActorUpVector()));
 	float TargetPointZOffset = FMath::Clamp(ToEnemy.Dot(PlayerUpVector), -17, 7);
 
 	return FVector(0.f, TargetPointYOffset, TargetPointZOffset);
@@ -895,7 +754,6 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 
 	auto PlayerMesh = playerCharacter->GetMesh();
 	CharacterArmsLength = FVector::Distance(PlayerMesh->GetBoneLocation("clavicle_r"), PlayerMesh->GetBoneLocation("hand_r"));
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Player Arms Length = %f"), CharacterArmsLength));
 
 	FActorSpawnParameters KatanaSpawnParams;
 	KatanaSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -915,10 +773,7 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 	auto BladeVector = Katana->GetBladeWorldVector();
 	KatanaTriggerLenSquared = (BladeVector * KatanaBladeTriggerScale).Length() + CharacterArmsLength;
 	TeleportTriggerLength = KatanaTriggerLenSquared * TeleportTriggerScale;	// collider scale relative to katana collider
-	//TeleportTriggerLength = BladeVector.Length() * TeleportTriggerScale * 2;	//previous solution: collider scale relative to katana blade
-	
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Teleport trigger length = %f"), TeleportTriggerLength));
- 
+	 
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->ViewPitchMax = MaxViewPitchValue;
 	PlayerCameraManager->ViewPitchMin = MinViewPitchValue;
@@ -932,11 +787,13 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 
 	for (auto& AttackMontageData : AttackMontages)
 	{
-		//AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "", "PerfectAttackTrack");
-		//AttackMontageData.NormalizedChance = AttackMontageData.Chance / AttackMontages.Num();
+		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "AN_PerfectAttack");
 
 		if (AttackMontageData.PerfectForCounter)
 			CounterAttackMontages.Add(AttackMontageData);
+
+		FVector ca = AttackMontageData.AttackVector;
+		AttackMontageData.AttackVectorWorld = FVector(ca.Y, -ca.X, ca.Z);
 	}
 
 	NextAttackData = DetermineNextAttackData();
@@ -993,15 +850,10 @@ void UCombatSystemComponent::Attack()
 				SuperAbilityTarget->SetEnableTargetWidget(false);
 				OnSuperAbilityTargetAcquired.Broadcast(false);
 
-				//NextAttackData.bIsTeleportAttack = true;
-
 				SwingKatana();
 
 				SA_State = SuperAbilityState::TELEPORTING;
 				TeleportToEnemy(SuperAbilityTarget->GetDistanceTo(playerCharacter));
-
-				/*StolenTokens = 0;
-				OnStolenTokensChanged.Broadcast(StolenTokens);*/
 
 				if (ComboSystem->AbilityComboPoints >= ComboSystem->SuperAbilityCost)
 				{
@@ -1042,18 +894,11 @@ void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo)
 {
 	if (bEnableSlowMo)
 	{
-		float part;
-		int sec;
-		UGameplayStatics::GetAccurateRealTime(sec, part);
-		DebugTimeStamp = sec + part;
-
 		bShouldSpeedUpSlowMoTimeline = false;
 		ParrySlowMoTimeline.PlayFromStart();
 	}
 
-
 	AnimInstance->Montage_Play(ParryImpactMontage, ParryImpactMontageSpeed);
-	//bInCombat = true;
 
 	NextAttackData = DetermineNextCounterAttackData();
 
@@ -1077,31 +922,17 @@ void UCombatSystemComponent::SuperAbility()
 	else if (SA_State != SuperAbilityState::NONE)
 		return;
 
-	//PRINT("called ability", 2);
+	PRINT("NO CHECK FOR COMBO POINTS IN SUPERABILITY CODE", 4);
 
-	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
+	/*if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
 	{
-		//PRINT("Not enough Combo Points", 2);
 		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
-		return;
-	}
-
-	/*else if (!ExecuteSuperAbility())
-	{
-		PRINT("No enemies nearby");
-		OnSuperAbilityCalled.Broadcast(false, "No enemies nearby");
 		return;
 	}*/
 
-	//ExecuteSuperAbility();
 	SuperAbilityTargetsLeft = SuperAbilityTargetLimit;
-	//OnEnemiesLeftChanged.Broadcast(SuperAbilityTargetsLeft);
 
 	GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 60.f, true);
-
-	/*OnSuperAbilityCalled.Broadcast(true, "");*/
-	/*StolenTokens = 0;
-	OnStolenTokensChanged.Broadcast(StolenTokens);*/
 }
 
 void UCombatSystemComponent::CancelSuperAbility()
@@ -1115,7 +946,6 @@ void UCombatSystemComponent::CancelSuperAbility()
 	if (SuperAbilityTarget)
 	{
 		SuperAbilityTarget->SetEnableTargetWidget(false);
-		//OnSuperAbilityTargetAcquired.Broadcast(false);
 		SuperAbilityTarget = nullptr;
 	}
 
@@ -1148,17 +978,24 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
-		//PRINT("NO camera shake", 3);
-
 		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
-			CurrentAttackData.AttackShake,
+			SwordSwingShake,
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);
 
-		/*auto current = playerCharacter->GetCurrentMontage();
-		GetNotifyTimeInMontage(current, "TraceWindow", "PerfectAttackTrack");*/
-
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
+
+		// ============================= test code =============================
+
+		//for right attack:		(X=-79.580000,Y=6.157000,Z=1.111000)
+		//for left attack:		(X=76.000000,Y=15.000000,Z=-17.000000)
+
+		/*FVector Hand = playerCharacter->GetMesh()->GetBoneLocation("hand_r");
+		float Rotation = playerCharacter->GetControlRotation().Yaw;
+		DrawDebugLine(GetWorld(), Hand, Hand + (CurrentAttackData.AttackVectorWorld).RotateAngleAxis(Rotation, FVector(0, 0, 1)), FColor::Red, false, 20.f, 0, 3.f);*/
+
+		// ============================= test code =============================
+
 	}
 	else if (NotifyName.IsEqual("CRigUpdate"))
 	{
@@ -1171,7 +1008,6 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 	} 
 	else if (NotifyName.IsEqual("TeleportIgnore"))
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, TEXT("TeleportIgnore hit!"));
 		bShouldIgnoreTeleport = true;
 	}
 	else if (NotifyName.IsEqual("SuccessfulParryEffect"))
@@ -1195,7 +1031,6 @@ void UCombatSystemComponent::PlayMontageNotifyEnd(FName NotifyName, const FBranc
 		HandleAttackEnd();
 		OnIFramesChanged.Broadcast(false);
 
-		//moved here from TeleportTimelineFinish()
 		if (SA_State == SuperAbilityState::TELEPORTING)
 		{
 			if (SuperAbilityTargetsLeft <= 0)
@@ -1215,22 +1050,13 @@ void UCombatSystemComponent::PlayMontageFinished(UAnimMontage* MontagePlayed, bo
 {
 	if (MontagePlayed == PerfectParryMontage)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, playerCharacter->GetCurrentMontage()->GetName());
 		if(!bWasInterrupted)
 			bInCombat = false;
 		bInParry = false;
 	} 
-	else if (/*AttackMontages.Contains(MontagePlayed)*/ CurrentAttackData.AttackMontage == MontagePlayed) //test this
+	else if (CurrentAttackData.AttackMontage == MontagePlayed)
 	{
 		HandleAttackEnd();
-		/*if (bWasInterrupted)
-		{
-			PRINT("interupted");
-		}
-		else
-		{
-			PRINT("finished");
-		}*/
 	}
 	else if (MontagePlayed == ParryImpactMontage)
 	{
@@ -1268,35 +1094,19 @@ void UCombatSystemComponent::TimelineProgessSlowMo(float Value)
 
 void UCombatSystemComponent::TeleportTimelineFinish()
 {
-	//playerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	playerCharacter->GetController()->SetIgnoreLookInput(false);
 	playerCharacter->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	playerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	bInTeleport = false;
 
-	/*if (SA_State == SuperAbilityState::TELEPORTING)
-	{
-		SuperAbilityTarget = nullptr;
-		GetWorld()->GetTimerManager().SetTimer(SuperAbilityTimerHandle, this, &UCombatSystemComponent::ExecuteSuperAbility, 1 / 120.f, true);
-	}*/
-
-	//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, TEXT("TELEPORT FINISHED"));
+	if (CurrentAttackData.bIsTeleportAttack)
+		AnimInstance->Montage_SetPlayRate(CurrentAttackData.AttackMontage, AttackSpeedMultiplier);
 }
 
 void UCombatSystemComponent::SlowMoTimelineFinish()
 {
 	bShouldSpeedUpSlowMoTimeline = false;
-
-	//debug:
-	float part;
-	int sec;
-	UGameplayStatics::GetAccurateRealTime(sec, part);
-	float totalseconds = sec + part;
-
-	float elapsed = totalseconds - DebugTimeStamp;
-
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, FString::Printf(TEXT("Real time passed = %f"), elapsed));
 }
 
 // Called every frame
@@ -1306,18 +1116,14 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 	TeleportTimeline.TickTimeline(DeltaTime);
 	ParrySlowMoTimeline.TickTimeline(DeltaTime);
-
-	//PRINTC_F("Super Ability Targets Left = %i", SuperAbilityTargetsLeft, 0, FColor::Orange);
 	
-	if (!bInCombat) //change to not attacking??
+	if (!bInCombat)
 	{
 		GetLookInputVariables(CurrentCameraRotation);
 		GetVelocityVariables();
 
 		HandTotalOffset = HandSwayLookOffset + LocationLagPosition;
 	}
-
-	//TargetPointPosition = TargetPointOffset + TargetPointInitialPosition;
 
 	//SUPER ABILITY DEBUG PRINT
 	/*PRINT_F("Super Ability State = %s", *UEnum::GetValueAsString(SA_State), 0);
@@ -1328,14 +1134,6 @@ void UCombatSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 	else
 		PRINT("Super Ability Target = NULLPTR", 0);*/
-
-
-	/*PRINT_B("Is Attacking %s", bIsAttacking);
-	PRINT_B("Interputed By Itself %s", bInterputedByItself);
-	PRINT_B("Can Rig Update %s", bCanRigUpdate);
-	PRINT_B("In Combat %s", bInCombat);
-	PRINT_B("In Parry %s", bInParry);*/
-	//PRINT_B("In Teleport %s", bInTeleport);
 }
 
 void UCombatSystemComponent::OnComboPointsChanged(int32 NewComboPoints)

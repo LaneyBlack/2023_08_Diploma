@@ -37,13 +37,11 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 void ATheFallenSamuraiCharacter::EnableJumpLock()
 {
-	//PRINT("finihed timeline", 3);
 	bLockedJump = true;
 }
 
 void ATheFallenSamuraiCharacter::InterpolateGravity(float Value)
 {
-	//PRINT("timeline", 3);
 	GetCharacterMovement()->GravityScale = UKismetMathLibrary::Lerp(MinGravity, GravityCache, Value);
 }
 
@@ -117,9 +115,6 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	// Capture game mode for driving global rewind
 	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
 
-	/*if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
-		LockPlayerPerfectParry = true;*/
-
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Equals("Level_0_Tutorial"))
 		bLockPlayerAbilities = true;
 
@@ -146,8 +141,6 @@ void ATheFallenSamuraiCharacter::BeginPlay()
 	GravityCache = GetCharacterMovement()->GravityScale;
 	if (bUseGravityTimeline)
 	{
-		//PRINTC_F("Gravity Cache = %f", GravityCache, 2, FColor::Red);
-
 		FOnTimelineFloat TimelineProgressGravity;
 		TimelineProgressGravity.BindUFunction(this, FName("InterpolateGravity"));
 		CoyoteGravityTimeline.AddInterpFloat(GravityCurve, TimelineProgressGravity);
@@ -166,9 +159,6 @@ void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	/*PRINT_F("MOVEMENT STATE: %s", *UEnum::GetValueAsString(GetCharacterMovement()->MovementMode), 0.f);
-	PRINT_F("bLockedJump: %i", bLockedJump, 0.f);*/
-
 	if (bUseGravityTimeline)
 		CoyoteGravityTimeline.TickTimeline(DeltaTime);
 
@@ -177,9 +167,7 @@ void ATheFallenSamuraiCharacter::Tick(float DeltaTime)
 
 bool ATheFallenSamuraiCharacter::CanJumpInternal_Implementation() const
 {
-	//PRINT("can jump internal", 3)
 	return Super::CanJumpInternal_Implementation() || !bLockedJump;
-	//return Super::CanJumpInternal_Implementation();
 }
 
 void ATheFallenSamuraiCharacter::Landed(const FHitResult& Hit)
@@ -240,8 +228,6 @@ void ATheFallenSamuraiCharacter::DoubleJump()
 
 void ATheFallenSamuraiCharacter::DoubleJumpLogic()
 {
-	PRINTC("double jump", FColor::Red);
-
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
 	if (PlayerController)
@@ -307,23 +293,14 @@ void ATheFallenSamuraiCharacter::SetupPlayerInputComponent(UInputComponent* Play
 		                                   &ATheFallenSamuraiCharacter::Look);
 
 		//Attack
-		/*EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatSystemComponent,
-			&UCombatSystemComponent::Attack);*/
-
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this,
 		                                   &ATheFallenSamuraiCharacter::Attack);
 
 		//Perfect Parry
-		/*EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, CombatSystemComponent,
-			&UCombatSystemComponent::PerfectParry);*/
-
 		EnhancedInputComponent->BindAction(PerfectParryAction, ETriggerEvent::Started, this,
 		                                   &ATheFallenSamuraiCharacter::PerfectParry);
 
 		//Super Ability
-		/*EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, CombatSystemComponent,
-			&UCombatSystemComponent::SuperAbility);*/
-
 		EnhancedInputComponent->BindAction(SuperAbilityAction, ETriggerEvent::Started, this,
 		                                   &ATheFallenSamuraiCharacter::ToggleSuperAbility);
 
