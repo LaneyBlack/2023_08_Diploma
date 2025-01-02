@@ -60,7 +60,7 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector AttackVector;
 
-	FVector AttackVectorWorld;
+	FVector AttackVectorWorldNormalized;
 };
 
 USTRUCT(BlueprintType)
@@ -124,6 +124,8 @@ class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UCombatSystemComponent();
+
+	FTransform GetBoneTransFromMontage(UAnimMontage* InMontage, FName BoneName, float InTime);
 
 protected:
 	// Called when the game starts
@@ -287,6 +289,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
 	TSubclassOf<UCameraShakeBase> SwordSwingShake;
+
+	//class UDirectionalPerlinShakePattern* pSwordSwingShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
 	TSubclassOf<UCameraShakeBase> HitCameraShake;

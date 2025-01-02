@@ -34,6 +34,9 @@
 
 #include "TheFallenSamurai/Slicebles/SlicableActor.h"
 
+#include "CameraShakes/DirectionalPerlinShakePattern.h"
+#include "CameraShakes/DirectionalCameraShake.h"
+
 //DEBUG
 #include "DrawDebugHelpers.h"
 
@@ -49,6 +52,28 @@
 UCombatSystemComponent::UCombatSystemComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+}
+
+FTransform UCombatSystemComponent::GetBoneTransFromMontage(UAnimMontage* InMontage, FName BoneName, float InTime)
+{
+	FTransform transform = FTransform();
+	if (InMontage)
+	{
+		int bone_index = 0;
+
+		USkeletalMesh* SkelMesh = InMontage->GetSkeleton()->GetPreviewMesh(true);
+		if (SkelMesh)
+		{
+			bone_index = SkelMesh->RefSkeleton.FindBoneIndex(BoneName);
+			UAnimSequence* Anim = Cast<UAnimSequence>(InMontage->SlotAnimTracks[0].AnimTrack.AnimSegments[0].AnimReference);
+
+			if (bone_index >= 0)
+			{
+				Anim->GetBoneTransform(transform, bone_index, InTime, true);
+			}
+		}
+	}
+	return transform;
 }
 
 // Called when the game starts
@@ -793,10 +818,17 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 			CounterAttackMontages.Add(AttackMontageData);
 
 		FVector ca = AttackMontageData.AttackVector;
-		AttackMontageData.AttackVectorWorld = FVector(ca.Y, -ca.X, ca.Z);
+		AttackMontageData.AttackVectorWorldNormalized = FVector(ca.Y, -ca.X, ca.Z).GetSafeNormal();
+
+		//UAnimMontage* Montage = ;
+		auto v = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 0).GetLocation();
+		PRINT_F("bone vector = %s", *v.ToCompactString(), 5);
+
 	}
 
 	NextAttackData = DetermineNextAttackData();
+
+	//pSwordSwingShake = Cast<UDirectionalPerlinShakePattern>(SwordSwingShake.GetDefaultObject()->GetRootShakePattern());
 
 	//bind teleport curve data
 	FOnTimelineFloat TimelineProgressLocation;
@@ -978,10 +1010,24 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		bInCombat = true;
 		HitTracer->ToggleTraceCheck(true);
 		
-		PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
+		/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(), 
 			SwordSwingShake,
 			playerCharacter->GetActorLocation(), 
-			0, 500, 1);
+			0, 500, 1);*/
+
+		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+
+		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+
+		if (!pSwordSwingShake)
+		{
+			PRINT("DUPA", 3);
+		}
+		else
+		{
+			PRINT("SET", 3);
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
+		}
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 
