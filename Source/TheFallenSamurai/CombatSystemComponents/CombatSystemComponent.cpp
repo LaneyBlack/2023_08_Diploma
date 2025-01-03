@@ -844,21 +844,20 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 	{
 		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "AN_PerfectAttack");
 
-		/*PRINTC_F("window end = %f", EndTime, 20, FColor::Cyan);
-		PRINTC_F("window begin = %f", StartTime, 20, FColor::Cyan);*/
-
 		//UAnimMontage* Montage = ;
 		/*auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 28).GetLocation();
 		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 38).GetLocation();*/
 
 		float EndTime;
 		float StartTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "ANW_TraceWindow", EndTime);
+		PRINTC_F("window end = %f", EndTime, 20, FColor::Cyan);
+		PRINTC_F("window begin = %f", StartTime, 20, FColor::Cyan);
 
 		auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", StartTime).GetLocation();
 		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", EndTime).GetLocation();
 		AttackMontageData.AttackVector = v2 - v1;
 
-		PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Magenta);
+		PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Silver);
 		PRINT_F("hand end = %s", *v2.ToCompactString(), 20);
 		PRINT_F("hand begin = %s", *v1.ToCompactString(), 20);
 
@@ -1066,7 +1065,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
 		if (pSwordSwingShake)
-			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);PRINT("SET", 3);
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 
