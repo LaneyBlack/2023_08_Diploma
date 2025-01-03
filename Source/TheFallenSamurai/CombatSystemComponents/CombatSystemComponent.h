@@ -268,8 +268,9 @@ private:
 	UFUNCTION()
 	void TeleportToEnemy(float TeleportDistance);
 
-	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName);
+
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, float& EndTime);
 
 	UFUNCTION()
 	void ExecuteSuperAbility();

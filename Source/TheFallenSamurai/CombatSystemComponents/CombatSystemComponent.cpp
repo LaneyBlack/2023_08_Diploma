@@ -40,6 +40,8 @@
 //DEBUG
 #include "DrawDebugHelpers.h"
 
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAnimNotify, Warning, All);
+
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 0.33, color, TEXT(mess));
@@ -617,17 +619,25 @@ float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FNam
 
 	if (NotifyEvent)
 		return NotifyEvent->GetTriggerTime();
+	else
+		UE_LOG(LogAnimNotify, Log, TEXT("No notify could be found"));
 
-	//how to get the bone transform at a given time in notify
-	/*auto data = Montage->GetAnimationData("");
+	return 0.f;
+}
 
-	auto seg = data->GetSegmentAtTime(0);
+float UCombatSystemComponent::GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, float& EndTime)
+{
+	auto NotifyEvent = Montage->Notifies.FindByPredicate([&](const FAnimNotifyEvent& CurrentEvent) -> bool {
+		return CurrentEvent.NotifyName == NotifyName;
+		});
 
-	float f;
-	auto seq = seg->GetAnimationData(0, f);
-
-	FFrameNumber fn(3);
-	auto x = seq->GetDataModel()->GetBoneTrackTransform("", fn);*/
+	if (NotifyEvent)
+	{
+		EndTime = NotifyEvent->GetEndTriggerTime();
+		return NotifyEvent->GetTriggerTime();
+	}
+	else
+		UE_LOG(LogAnimNotify, Log, TEXT("No notify could be found"));
 
 	return 0;
 }
@@ -834,17 +844,21 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 	{
 		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "AN_PerfectAttack");
 
-		if (AttackMontageData.PerfectForCounter)
-			CounterAttackMontages.Add(AttackMontageData);
+		/*PRINTC_F("window end = %f", EndTime, 20, FColor::Cyan);
+		PRINTC_F("window begin = %f", StartTime, 20, FColor::Cyan);*/
 
 		//UAnimMontage* Montage = ;
 		/*auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 28).GetLocation();
 		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 38).GetLocation();*/
-		auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 0.44f).GetLocation();
-		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 0.64f).GetLocation();
+
+		float EndTime;
+		float StartTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "ANW_TraceWindow", EndTime);
+
+		auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", StartTime).GetLocation();
+		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", EndTime).GetLocation();
 		AttackMontageData.AttackVector = v2 - v1;
 
-		PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Red);
+		PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Magenta);
 		PRINT_F("hand end = %s", *v2.ToCompactString(), 20);
 		PRINT_F("hand begin = %s", *v1.ToCompactString(), 20);
 
@@ -852,6 +866,9 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 		AttackMontageData.AttackVectorWorldNormalized = FVector(ca.Y, -ca.X, ca.Z).GetSafeNormal();
 		PRINT_F("NAME = %s", *AttackMontageData.AttackMontage->GetName(), 20);
 		PRINT("=========================================", 20);
+
+		if (AttackMontageData.PerfectForCounter)
+			CounterAttackMontages.Add(AttackMontageData);
 
 	}
 
@@ -1048,15 +1065,8 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 
 		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
-		if (!pSwordSwingShake)
-		{
-			PRINT("DUPA", 3);
-		}
-		else
-		{
-			PRINT("SET", 3);
-			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
-		}
+		if (pSwordSwingShake)
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);PRINT("SET", 3);
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 
