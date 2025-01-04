@@ -122,7 +122,7 @@ const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 {
 	static int index = 0;
 	return AttackMontages[index++ % AttackMontages.Num()];
-	//return AttackMontages[0];
+	//return AttackMontages[1];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -775,8 +775,8 @@ void UCombatSystemComponent::SwingKatana()
 	bInterputedByItself = false;
 	bShouldIgnoreTeleport = false;
 
-	float AttackMontageStartPercent = .21f;
-	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartPercent);
+	float AttackMontageStartTime = .17f;
+	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartTime);
 
 	CurrentAttackData = NextAttackData;
 	NextAttackData = DetermineNextAttackData();
