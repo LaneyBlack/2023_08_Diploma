@@ -56,10 +56,10 @@ UCombatSystemComponent::UCombatSystemComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-//FTransform UCombatSystemComponent::GetBoneTransFromMontage(UAnimMontage* Montage, FName BoneName, int32 Frame)
-FTransform UCombatSystemComponent::GetBoneTransFromMontage(UAnimMontage* Montage, FName BoneName, float Time)
+//FTransform UCombatSystemComponent::GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, int32 Frame)
+FVector UCombatSystemComponent::GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, float StartTime, float EndTime)
 {
-	FTransform Transform = FTransform();
+	FVector AttackVector;
 	if (IsValid(Montage))
 	{
 		if (USkeleton* Skeleton = Montage->GetSkeleton())
@@ -72,30 +72,37 @@ FTransform UCombatSystemComponent::GetBoneTransFromMontage(UAnimMontage* Montage
 				{
 					if (UAnimSequence* AnimationSequence = Cast<UAnimSequence>(AnimationSegments[0].GetAnimReference()))
 					{
-						FTransform ComposedTransform = FTransform::Identity;
+						FTransform StartTransform = FTransform::Identity;
+						FTransform EndTransform = FTransform::Identity;
+
 						FTransform CurrentBoneTransform = FTransform::Identity;
 						FName CurrentBoneName = BoneName;
 
 						const FReferenceSkeleton& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
 						int CurrentBoneIndex = ReferenceSkeleton.FindBoneIndex(BoneName);
 
-						//PRINT_F("found bone name %s", *(ReferenceSkeleton.GetBoneName(CurrentBoneIndex).ToString()), 5);
-
 						while (CurrentBoneIndex != INDEX_NONE)
 						{
-							//float Time = AnimationSequence->GetTimeAtFrame(Frame);
-							//float Time = Frame;
-							AnimationSequence->GetBoneTransform(CurrentBoneTransform, FSkeletonPoseBoneIndex(CurrentBoneIndex), Time, true);
-							ComposedTransform *= CurrentBoneTransform;
+							AnimationSequence->GetBoneTransform(CurrentBoneTransform, FSkeletonPoseBoneIndex(CurrentBoneIndex), StartTime, true);
+							StartTransform *= CurrentBoneTransform;
+
+							AnimationSequence->GetBoneTransform(CurrentBoneTransform, FSkeletonPoseBoneIndex(CurrentBoneIndex), EndTime, true);
+							EndTransform *= CurrentBoneTransform;
+
 							CurrentBoneIndex = ReferenceSkeleton.GetParentIndex(CurrentBoneIndex);
 						}
-						Transform = ComposedTransform;
+						AttackVector = EndTransform.GetLocation() - StartTransform.GetLocation();
+
+						PRINTC_F("attack vector = %s", *AttackVector.ToCompactString(), 20, FColor::Silver);
+						PRINT_F("hand end = %s", *EndTransform.GetLocation().ToCompactString(), 20);
+						PRINT_F("hand begin = %s", *StartTransform.GetLocation().ToCompactString(), 20);
+
 					}
 				}
 			}
 		}
 	}
-	return Transform;
+	return AttackVector;
 }
 
 // Called when the game starts
@@ -845,21 +852,23 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "AN_PerfectAttack");
 
 		//UAnimMontage* Montage = ;
-		/*auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 28).GetLocation();
-		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", 38).GetLocation();*/
+		/*auto v1 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", 28).GetLocation();
+		auto v2 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", 38).GetLocation();*/
 
 		float EndTime;
 		float StartTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "ANW_TraceWindow", EndTime);
 		PRINTC_F("window end = %f", EndTime, 20, FColor::Cyan);
 		PRINTC_F("window begin = %f", StartTime, 20, FColor::Cyan);
 
-		auto v1 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", StartTime).GetLocation();
-		auto v2 = GetBoneTransFromMontage(AttackMontageData.AttackMontage, "hand_r", EndTime).GetLocation();
-		AttackMontageData.AttackVector = v2 - v1;
+		/*auto v1 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", StartTime).GetLocation();
+		auto v2 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", EndTime).GetLocation();
+		AttackMontageData.AttackVector = v2 - v1;*/
 
-		PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Silver);
+		AttackMontageData.AttackVector = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", StartTime, EndTime);
+
+		/*PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Silver);
 		PRINT_F("hand end = %s", *v2.ToCompactString(), 20);
-		PRINT_F("hand begin = %s", *v1.ToCompactString(), 20);
+		PRINT_F("hand begin = %s", *v1.ToCompactString(), 20);*/
 
 		FVector ca = AttackMontageData.AttackVector;
 		AttackMontageData.AttackVectorWorldNormalized = FVector(ca.Y, -ca.X, ca.Z).GetSafeNormal();

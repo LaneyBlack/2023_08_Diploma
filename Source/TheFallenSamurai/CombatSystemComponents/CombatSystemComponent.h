@@ -125,8 +125,8 @@ public:
 	// Sets default values for this component's properties
 	UCombatSystemComponent();
 
-	FTransform GetBoneTransFromMontage(UAnimMontage* Montage, FName BoneName, float Time);
-	//FTransform GetBoneTransFromMontage(UAnimMontage* Montage, FName BoneName, int32 Frame);
+	FVector GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, float StartTime, float EndTime);
+	//FTransform GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, int32 Frame);
 
 protected:
 	// Called when the game starts
