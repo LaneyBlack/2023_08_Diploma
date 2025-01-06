@@ -181,7 +181,8 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 
 		if (!Enemy->HandleHitReaction(KatanaHitResult))
 		{
-			PlayerCameraManager->StopAllCameraShakes();
+			if(bDebugStopCamShake)
+				PlayerCameraManager->StopAllCameraShakes();
 
 			PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
 				HitCameraShake,
@@ -207,7 +208,8 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 
 	HandleAttackEnd(false);
 
-	PlayerCameraManager->StopAllCameraShakes();
+	if(bDebugStopCamShake)
+		PlayerCameraManager->StopAllCameraShakes();
 
 	PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
 		ShieldHitCameraShake,
@@ -1069,12 +1071,15 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);*/
 
-		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+		if (!bDebugIgnoreSwingShake)
+		{
+			UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
 
-		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+			UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
-		if (pSwordSwingShake)
-			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
+			if (pSwordSwingShake)
+				pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
+		}
 
 		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
 

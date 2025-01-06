@@ -292,6 +292,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
 	TSubclassOf<UCameraShakeBase> SwordSwingShake;
 
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
+	bool bDebugStopCamShake = true;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
+	bool bDebugIgnoreSwingShake = false;
+
 	//class UDirectionalPerlinShakePattern* pSwordSwingShake;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
