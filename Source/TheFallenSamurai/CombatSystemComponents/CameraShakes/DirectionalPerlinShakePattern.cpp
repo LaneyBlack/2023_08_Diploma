@@ -48,6 +48,4 @@ void UDirectionalPerlinShakePattern::UpdateShake(float DeltaTime, FCameraShakeUp
 	//OutResult.Rotation.Roll = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.X;
 	OutResult.Rotation.Yaw = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Y;
 	OutResult.Rotation.Pitch = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Z;
-
-
 }
