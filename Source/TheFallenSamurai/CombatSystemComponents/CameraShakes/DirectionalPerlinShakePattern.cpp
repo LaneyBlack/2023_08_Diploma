@@ -45,7 +45,7 @@ void UDirectionalPerlinShakePattern::ScrubShakePatternImpl(const FCameraShakeScr
 void UDirectionalPerlinShakePattern::UpdateShake(float DeltaTime, FCameraShakeUpdateResult& OutResult)
 {
 	CurveCurrentTime += DeltaTime / Duration;
-	OutResult.Rotation.Roll = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.X;
+	//OutResult.Rotation.Roll = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.X;
 	OutResult.Rotation.Yaw = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Y;
 	OutResult.Rotation.Pitch = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Z;
 
