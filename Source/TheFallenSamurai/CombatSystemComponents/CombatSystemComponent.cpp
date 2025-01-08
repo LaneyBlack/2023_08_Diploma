@@ -767,12 +767,16 @@ void UCombatSystemComponent::SwingKatana()
 	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartTime);
 
 	// =============== experimental =================
-	UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
 
-	UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+	if (!bDebugIgnoreSwingShake && !bUseCamShakeNotify)
+	{
+		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
 
-	if (pSwordSwingShake)
-		pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
+		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+
+		if (pSwordSwingShake)
+			pSwordSwingShake->SetSwingVector(NextAttackData.AttackVectorWorldNormalized);
+	}
 
 	// =============== experimental =================
 
@@ -1067,7 +1071,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);*/
 
-		if (bDebugIgnoreSwingShake || bUseCamShakeNotify)
+		/*if (bDebugIgnoreSwingShake || bUseCamShakeNotify)
 			return;
 
 		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
@@ -1075,7 +1079,7 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
 		if (pSwordSwingShake)
-			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);*/
 		// ============================= test code =============================
 
 		//for right attack:		(X=-79.580000,Y=6.157000,Z=1.111000)
@@ -1117,12 +1121,12 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 		if (bDebugIgnoreSwingShake || !bUseCamShakeNotify)
 			return;
 
-		/*UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
 
 		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
 		if (pSwordSwingShake)
-			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);*/
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
 	}
 }
 
