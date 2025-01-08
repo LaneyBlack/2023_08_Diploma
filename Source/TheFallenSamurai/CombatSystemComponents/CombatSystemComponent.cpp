@@ -120,9 +120,9 @@ bool UCombatSystemComponent::CheckIfCanAttack()
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 {
-	static int index = 0;
-	return AttackMontages[index++ % AttackMontages.Num()];
-	//return AttackMontages[1];
+	static int StaticIndex = 0;
+	int index = DebugIndex < 0 ? (StaticIndex++ % AttackMontages.Num()) : DebugIndex;
+	return AttackMontages[index];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -217,20 +217,6 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 		0, 500, 1);
 
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ShieldHitParticle, ImpactPoint, FRotator(0.f), FVector(UniformShieldHitParticleSize));
-}
-
-FVector UCombatSystemComponent::DetermineKatanaDirection()
-{
-	FVector Direction = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
-	Direction -= KatanaPreviousPosition;
-	Direction.Normalize();
-
-	return Direction;
-}
-
-FVector UCombatSystemComponent::GetKatanaSocketWorldPosition(FName SocketName)
-{
-	return Katana->KatanaMesh->GetSocketLocation(SocketName);
 }
 
 void UCombatSystemComponent::GetEnemiesInViewportOnAttack()
@@ -780,6 +766,16 @@ void UCombatSystemComponent::SwingKatana()
 	float AttackMontageStartTime = .17f;
 	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartTime);
 
+	// =============== experimental =================
+	UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+
+	UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+
+	if (pSwordSwingShake)
+		pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
+
+	// =============== experimental =================
+
 	CurrentAttackData = NextAttackData;
 	NextAttackData = DetermineNextAttackData();
 
@@ -1071,18 +1067,15 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 			playerCharacter->GetActorLocation(), 
 			0, 500, 1);*/
 
-		if (!bDebugIgnoreSwingShake)
-		{
-			UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+		if (bDebugIgnoreSwingShake || bUseCamShakeNotify)
+			return;
 
-			UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
 
-			if (pSwordSwingShake)
-				pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
-		}
+		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
-		KatanaPreviousPosition = GetKatanaSocketWorldPosition(KatanaSocketForDirection);
-
+		if (pSwordSwingShake)
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
 		// ============================= test code =============================
 
 		//for right attack:		(X=-79.580000,Y=6.157000,Z=1.111000)
@@ -1118,6 +1111,18 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 
 		//so that shockwave is not affected by slow mo after parry
 		SpawnedShockwave->CustomTimeDilation = 1.f;
+	}
+	else if (NotifyName.IsEqual("CamShakeStart"))
+	{
+		if (bDebugIgnoreSwingShake || !bUseCamShakeNotify)
+			return;
+
+		/*UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+
+		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
+
+		if (pSwordSwingShake)
+			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);*/
 	}
 }
 
