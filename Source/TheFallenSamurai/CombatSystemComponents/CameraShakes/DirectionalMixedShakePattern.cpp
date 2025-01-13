@@ -26,6 +26,8 @@ void UDirectionalMixedShakePattern::StartShakePatternImpl(const FCameraShakeStar
 	//CurrentRotationOffset = FVector3f(0.f);
 	//PRINT_F("StartShakePatternImpl, vector = %s", *ShakeLocalDirection.ToCompactString(), 5);
 	ShakeCurrentTime = 0.f;
+	WaveVectorShake.Initialize(WaveVectorTime);
+	PerlinVectorTime = (float)FMath::RandHelper(255);
 
 	if (!Params.bIsRestarting)
 	{
@@ -67,7 +69,22 @@ void UDirectionalMixedShakePattern::UpdateShake(float DeltaTime, FCameraShakeUpd
 	OutResult.Rotation.Yaw = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Y;
 	OutResult.Rotation.Pitch = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Z;
 
-	OutResult.Location.X = X.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.X);
-	OutResult.Location.Y = Y.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.Y);
-	OutResult.Location.Z = Z.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.Z);
+	if (!bUseExperimentalPerlin && !bUseExperimentalWave)
+	{
+		OutResult.Location.X = X.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.X);
+		OutResult.Location.Y = Y.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.Y);
+		OutResult.Location.Z = Z.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.Z);
+
+		return;
+	}
+
+	if(!bUseExperimentalWave)
+	{
+		OutResult.Location = PerlinVectorShake.Update(DeltaTime, 1.f, 1.f, PerlinVectorTime) * ShakePerpDirection;
+	}
+	else
+	{
+		OutResult.Location = WaveVectorShake.Update(DeltaTime, 1.f, 1.f, WaveVectorTime) * ShakePerpDirection;
+		OutResult.Location.X = 0.f;
+	}
 }

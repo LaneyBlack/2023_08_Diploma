@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "SimpleCameraShakePattern.h"
 #include "PerlinNoiseCameraShakePattern.h"
-//#include "WaveOscialtorCameraShakePattern.h"
+#include "WaveOscillatorCameraShakePattern.h"
 #include "DirectionalMixedShakePattern.generated.h"
 
 /**
@@ -43,6 +43,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
 	FPerlinNoiseShaker Z;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
+	bool bUseExperimentalPerlin = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
+	FPerlinNoiseShaker PerlinVectorShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
+	bool bUseExperimentalWave = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
+	FWaveOscillator WaveVectorShake;
+
 	UFUNCTION()
 	void SetDirectionVectors(const FVector& Direction);
 
@@ -60,6 +72,8 @@ private:
 	FVector ShakeLocalDirection;
 
 	FVector ShakePerpDirection;
+	float PerlinVectorTime;
+	float WaveVectorTime;
 
 	void UpdateShake(float DeltaTime, FCameraShakeUpdateResult& Result);
 };
