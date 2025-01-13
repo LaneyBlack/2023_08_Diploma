@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Camera/CameraShakeBase.h"
-#include "DirectionalPerlinShakePattern.h"
+//#include "DirectionalPerlinShakePattern.h"
+#include "DirectionalMixedShakePattern.h"
 #include "DirectionalCameraShake.generated.h"
 
 /**
@@ -21,8 +22,8 @@ class THEFALLENSAMURAI_API UDirectionalCameraShake : public UCameraShakeBase
 public:
 	void SetSwingVector(const FVector& InSwingDirection)
 	{
-		UDirectionalPerlinShakePattern* pattern = Cast<UDirectionalPerlinShakePattern>(GetRootShakePattern());
-		pattern->ShakeLocalDirection = InSwingDirection;
+		//UDirectionalPerlinShakePattern* pattern = Cast<UDirectionalPerlinShakePattern>(GetRootShakePattern());
+		UDirectionalMixedShakePattern* pattern = Cast<UDirectionalMixedShakePattern>(GetRootShakePattern());
+		pattern->SetDirectionVectors(InSwingDirection);
 	}
-	
 };
