@@ -27,14 +27,6 @@ void UDirectionalMixedShakePattern::StartShakePatternImpl(const FCameraShakeStar
 	//PRINT_F("StartShakePatternImpl, vector = %s", *ShakeLocalDirection.ToCompactString(), 5);
 	ShakeCurrentTime = 0.f;
 	WaveVectorShake.Initialize(WaveVectorTime);
-	PerlinVectorTime = (float)FMath::RandHelper(255);
-
-	if (!Params.bIsRestarting)
-	{
-		ShakeInitialLocationTimes = FVector3f((float)FMath::RandHelper(255), (float)FMath::RandHelper(255), (float)FMath::RandHelper(255));
-
-		ShakeCurrentLocationTimes = ShakeInitialLocationTimes;
-	}
 }
 
 void UDirectionalMixedShakePattern::UpdateShakePatternImpl(const FCameraShakeUpdateParams& Params, FCameraShakeUpdateResult& OutResult)
@@ -53,7 +45,6 @@ void UDirectionalMixedShakePattern::ScrubShakePatternImpl(const FCameraShakeScru
 	//PRINT("ScrubShakePatternImpl", 5);
 
 	ShakeCurrentTime = 0.f;
-	ShakeCurrentLocationTimes = ShakeInitialLocationTimes;
 
 	UpdateShake(Params.AbsoluteTime, OutResult);
 
@@ -69,22 +60,6 @@ void UDirectionalMixedShakePattern::UpdateShake(float DeltaTime, FCameraShakeUpd
 	OutResult.Rotation.Yaw = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Y;
 	OutResult.Rotation.Pitch = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Z;
 
-	if (!bUseExperimentalPerlin && !bUseExperimentalWave)
-	{
-		OutResult.Location.X = X.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.X);
-		OutResult.Location.Y = Y.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.Y);
-		OutResult.Location.Z = Z.Update(DeltaTime, LocationAmplitudeMultiplier, LocationFrequencyMultiplier, ShakeCurrentLocationTimes.Z);
-
-		return;
-	}
-
-	if(!bUseExperimentalWave)
-	{
-		OutResult.Location = PerlinVectorShake.Update(DeltaTime, 1.f, 1.f, PerlinVectorTime) * ShakePerpDirection;
-	}
-	else
-	{
-		OutResult.Location = WaveVectorShake.Update(DeltaTime, 1.f, 1.f, WaveVectorTime) * ShakePerpDirection;
-		OutResult.Location.X = 0.f;
-	}
+	OutResult.Location = WaveVectorShake.Update(DeltaTime, 1.f, 1.f, WaveVectorTime) * ShakePerpDirection;
+	OutResult.Location.X = 0.f;
 }

@@ -22,37 +22,13 @@ public:
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
 	UCurveFloat* InterpCurve;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
 	float RotationAmplitude;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
-	float LocationAmplitudeMultiplier = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
-	float LocationFrequencyMultiplier = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
-	FPerlinNoiseShaker X;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
-	FPerlinNoiseShaker Y;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
-	FPerlinNoiseShaker Z;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
-	bool bUseExperimentalPerlin = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
-	FPerlinNoiseShaker PerlinVectorShake;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
-	bool bUseExperimentalWave = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experimental")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave Oscillator")
 	FWaveOscillator WaveVectorShake;
 
 	UFUNCTION()
@@ -66,13 +42,10 @@ protected:
 private:
 	float ShakeCurrentTime;
 
-	FVector3f ShakeInitialLocationTimes;
-	FVector3f ShakeCurrentLocationTimes;
-
 	FVector ShakeLocalDirection;
 
 	FVector ShakePerpDirection;
-	float PerlinVectorTime;
+
 	float WaveVectorTime;
 
 	void UpdateShake(float DeltaTime, FCameraShakeUpdateResult& Result);
