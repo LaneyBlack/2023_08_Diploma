@@ -92,11 +92,6 @@ FVector UCombatSystemComponent::GetMontageAttackVector(UAnimMontage* Montage, FN
 							CurrentBoneIndex = ReferenceSkeleton.GetParentIndex(CurrentBoneIndex);
 						}
 						AttackVector = EndTransform.GetLocation() - StartTransform.GetLocation();
-
-						PRINTC_F("attack vector = %s", *AttackVector.ToCompactString(), 20, FColor::Silver);
-						PRINT_F("hand end = %s", *EndTransform.GetLocation().ToCompactString(), 20);
-						PRINT_F("hand begin = %s", *StartTransform.GetLocation().ToCompactString(), 20);
-
 					}
 				}
 			}
@@ -853,38 +848,19 @@ void UCombatSystemComponent::InitializeCombatSystem(ATheFallenSamuraiCharacter* 
 	{
 		AttackMontageData.PerfectAttackTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "AN_PerfectAttack");
 
-		//UAnimMontage* Montage = ;
-		/*auto v1 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", 28).GetLocation();
-		auto v2 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", 38).GetLocation();*/
-
 		float EndTime;
 		float StartTime = GetNotifyTimeInMontage(AttackMontageData.AttackMontage, "ANW_TraceWindow", EndTime);
-		PRINTC_F("window end = %f", EndTime, 20, FColor::Cyan);
-		PRINTC_F("window begin = %f", StartTime, 20, FColor::Cyan);
-
-		/*auto v1 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", StartTime).GetLocation();
-		auto v2 = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", EndTime).GetLocation();
-		AttackMontageData.AttackVector = v2 - v1;*/
 
 		AttackMontageData.AttackVector = GetMontageAttackVector(AttackMontageData.AttackMontage, "hand_r", StartTime, EndTime);
 
-		/*PRINTC_F("attack vector = %s", *AttackMontageData.AttackVector.ToCompactString(), 20, FColor::Silver);
-		PRINT_F("hand end = %s", *v2.ToCompactString(), 20);
-		PRINT_F("hand begin = %s", *v1.ToCompactString(), 20);*/
-
 		FVector ca = AttackMontageData.AttackVector;
 		AttackMontageData.AttackVectorWorldNormalized = FVector(ca.Y, -ca.X, ca.Z).GetSafeNormal();
-		PRINT_F("NAME = %s", *AttackMontageData.AttackMontage->GetName(), 20);
-		PRINT("=========================================", 20);
 
 		if (AttackMontageData.PerfectForCounter)
 			CounterAttackMontages.Add(AttackMontageData);
-
 	}
 
 	NextAttackData = DetermineNextAttackData();
-
-	//pSwordSwingShake = Cast<UDirectionalPerlinShakePattern>(SwordSwingShake.GetDefaultObject()->GetRootShakePattern());
 
 	//bind teleport curve data
 	FOnTimelineFloat TimelineProgressLocation;
