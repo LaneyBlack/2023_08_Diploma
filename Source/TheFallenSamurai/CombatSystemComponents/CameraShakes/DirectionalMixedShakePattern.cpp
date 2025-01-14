@@ -2,6 +2,7 @@
 
 
 #include "DirectionalMixedShakePattern.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #define PRINT(mess, mtime)  GEngine->AddOnScreenDebugMessage(-1, mtime, FColor::Green, TEXT(mess));
 #define PRINTC(mess, color)  GEngine->AddOnScreenDebugMessage(-1, 0.33, color, TEXT(mess));
@@ -13,26 +14,22 @@
 UDirectionalMixedShakePattern::UDirectionalMixedShakePattern(const FObjectInitializer& ObjInit)
 	: USimpleCameraShakePattern(ObjInit) {}
 
-void UDirectionalMixedShakePattern::SetDirectionVectors(const FVector& Direction)
-{
-	ShakeLocalDirection = Direction;
-	ShakePerpDirection = FVector(Direction.X, -Direction.Z, Direction.X);
-}
-
 void UDirectionalMixedShakePattern::StartShakePatternImpl(const FCameraShakeStartParams& Params)
 {
 	USimpleCameraShakePattern::StartShakePatternImpl(Params);
 
-	//CurrentRotationOffset = FVector3f(0.f);
-	//PRINT_F("StartShakePatternImpl, vector = %s", *ShakeLocalDirection.ToCompactString(), 5);
 	ShakeCurrentTime = 0.f;
-	WaveVectorShake.Initialize(WaveVectorTime);
+	WaveShakeData.Initialize(WaveVectorTime);
+	CurrentShakeData = &CustomMovementData[FMath::RandRange(0, CustomMovementData.Num() - 1)];
+
+	PRINTC_F("Curve picked = %s", *UKismetSystemLibrary::GetDisplayName(CurrentShakeData->InterpCurve), 5, FColor::Cyan);
 }
 
 void UDirectionalMixedShakePattern::UpdateShakePatternImpl(const FCameraShakeUpdateParams& Params, FCameraShakeUpdateResult& OutResult)
 {
 	//PRINT("UpdateShakePatternImpl", 5);
 	//PRINT_F("UpdateShakePatternImpl, vector = %s", *ShakeLocalDirection.ToCompactString(), 2);
+	//PRINTC_F("Curve being used = %s", *UKismetSystemLibrary::GetDisplayName(CurrentShakeData->InterpCurve), 5, FColor::White);
 
 	UpdateShake(Params.DeltaTime, OutResult);
 
@@ -57,9 +54,16 @@ void UDirectionalMixedShakePattern::UpdateShake(float DeltaTime, FCameraShakeUpd
 	ShakeCurrentTime += DeltaTime;
 
 	float CurveCurrentTime = ShakeCurrentTime / Duration;
-	OutResult.Rotation.Yaw = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Y;
-	OutResult.Rotation.Pitch = InterpCurve->GetFloatValue(CurveCurrentTime) * RotationAmplitude * ShakeLocalDirection.Z;
 
-	OutResult.Location = WaveVectorShake.Update(DeltaTime, 1.f, 1.f, WaveVectorTime) * ShakePerpDirection;
+	OutResult.Rotation.Yaw =	CurrentShakeData->InterpCurve->GetFloatValue(CurveCurrentTime) * CurrentShakeData->RotationAmplitude * ShakeLocalDirection.Y;
+	OutResult.Rotation.Pitch =	CurrentShakeData->InterpCurve->GetFloatValue(CurveCurrentTime) * CurrentShakeData->RotationAmplitude * ShakeLocalDirection.Z;
+
+	OutResult.Location = WaveShakeData.Update(DeltaTime, 1.f, 1.f, WaveVectorTime) * ShakePerpDirection;
 	OutResult.Location.X = 0.f;
+}
+
+void UDirectionalMixedShakePattern::SetDirectionVectors(const FVector& Direction)
+{
+	ShakeLocalDirection = Direction;
+	ShakePerpDirection = FVector(Direction.X, -Direction.Z, Direction.X);
 }

@@ -8,9 +8,19 @@
 #include "WaveOscillatorCameraShakePattern.h"
 #include "DirectionalMixedShakePattern.generated.h"
 
-/**
- * 
- */
+
+USTRUCT(BlueprintType)
+struct FCurveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UCurveFloat* InterpCurve;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RotationAmplitude = 11.f;
+};
+
 UCLASS()
 class THEFALLENSAMURAI_API UDirectionalMixedShakePattern : public USimpleCameraShakePattern
 {
@@ -22,14 +32,17 @@ public:
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
 	UCurveFloat* InterpCurve;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
-	float RotationAmplitude;
+	float RotationAmplitude;*/
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave Oscillator")
-	FWaveOscillator WaveVectorShake;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
+	TArray<FCurveData> CustomMovementData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FWaveOscillator WaveShakeData;
 
 	UFUNCTION()
 	void SetDirectionVectors(const FVector& Direction);
@@ -41,6 +54,8 @@ protected:
 
 private:
 	float ShakeCurrentTime;
+
+	FCurveData* CurrentShakeData;
 
 	FVector ShakeLocalDirection;
 
