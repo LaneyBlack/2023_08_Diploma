@@ -43,13 +43,8 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//float Chance;				//how often should this montage be played
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
-
-	//float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
 	float PerfectAttackTime;
 
@@ -57,7 +52,7 @@ struct FAttackAnimData
 
 	bool bIsTeleportAttack = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
 	FVector AttackVector;
 
 	FVector AttackVectorWorldNormalized;
@@ -126,7 +121,6 @@ public:
 	UCombatSystemComponent();
 
 	FVector GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, float StartTime, float EndTime);
-	//FTransform GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, int32 Frame);
 
 protected:
 	// Called when the game starts
@@ -160,10 +154,6 @@ private:
 	TSet<AActor*> HitActorsOnSwing;
 
 	class APlayerCameraManager* PlayerCameraManager;
-
-	FVector KatanaPreviousPosition;
-
-	FName KatanaSocketForDirection = "TraceEnd";
 
 	FTimerHandle EnemiesTraceTimerHandle = FTimerHandle();
 
@@ -238,12 +228,6 @@ private:
 	void ProcessHitResponse(float ImpulseStrength, const FVector& ImapctPoint);
 
 	UFUNCTION()
-	FVector DetermineKatanaDirection();
-
-	UFUNCTION()
-	FVector GetKatanaSocketWorldPosition(FName SocketName);
-
-	UFUNCTION()
 	void GetEnemiesInViewportOnAttack();
 
 	UFUNCTION()
@@ -289,6 +273,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
 
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
+	int DebugIndex = -1;
+
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
 	TSubclassOf<UCameraShakeBase> SwordSwingShake;
 
@@ -298,7 +285,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
 	bool bDebugIgnoreSwingShake = false;
 
-	//class UDirectionalPerlinShakePattern* pSwordSwingShake;
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
+	bool bUseCamShakeNotify = false;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
 	TSubclassOf<UCameraShakeBase> HitCameraShake;
