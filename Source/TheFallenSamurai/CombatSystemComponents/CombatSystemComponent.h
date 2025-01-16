@@ -485,7 +485,6 @@ public:
 
 	UFUNCTION()
 	void OnComboPointsChanged(int32 NewComboPoints);
-
 private:
 	int32 CurrentComboPoints;
 };
