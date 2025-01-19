@@ -124,8 +124,7 @@ void UComboSystem::StartKillStreak()
 
 void UComboSystem::EndKillStreak()
 {
-
-	//Fuszera do kosztów ability
+	
 	if (AbilityComboPoints <= SuperAbilityCost)
 	{
 		AbilityComboPoints += CurrentComboPoints;
@@ -135,7 +134,7 @@ void UComboSystem::EndKillStreak()
 			AbilityComboPoints = SuperAbilityCost;
 		}
 	}
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Cyan, FString::Printf(TEXT("Combo Points = %i"), AbilityComboPoints));
+	
 	KillStreakCount = 0;
 	OnResetKillstreak.Broadcast();
 	KillStreakMessages.Empty();
@@ -183,3 +182,13 @@ void UComboSystem::BeginDestroy()
 	Super::BeginDestroy();
 	Instance = nullptr;
 }
+
+void UComboSystem::CompleteReset()
+{
+	EndKillStreak();
+	ResetCombo();
+
+	TotalComboPoints = 0;
+	CurrentComboPoints = 0;
+}
+

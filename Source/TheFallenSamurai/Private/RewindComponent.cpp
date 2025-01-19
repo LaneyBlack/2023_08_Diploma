@@ -28,8 +28,6 @@ URewindComponent::URewindComponent()
 
 void URewindComponent::BeginPlay()
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::BeginPlay);
-
 	Super::BeginPlay();
 
 	GameMode = Cast<APlayerGameModeBase>(GetWorld()->GetAuthGameMode());
@@ -63,17 +61,13 @@ void URewindComponent::BeginPlay()
 
 void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::TickComponent);
-
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
     
 	if (bIsRewindingForDuration)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Remaining rewind time: %f"), RemainingRewindDuration));
 		
 		if (LatestSnapshotIndex == 1)
 		{
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("No more snapshots to rewind")));
 			bIsRewindingForDuration = false;
 			StopRewindForDuration();
 			return;
@@ -91,13 +85,11 @@ void URewindComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 				if (bIsLocationSafe)
 				{
-					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
 					bIsRewindingForDuration = false;
 					StopRewindForDuration();
 				}
 				else
 				{
-					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Purple, FString::Printf(TEXT("Latest Snapshot Location is Safe: %s"), bIsLocationSafe ? TEXT("TRUE") : TEXT("FALSE")));
 					PlaySnapshots(DeltaTime, true);
 				}
 			}
@@ -216,8 +208,6 @@ void URewindComponent::RecordSnapshot(float DeltaTime)
 	FVector LinearVelocity = OwnerRootComponent ? OwnerRootComponent->GetPhysicsLinearVelocity() : FVector::Zero();
 	FVector AngularVelocityInRadians = OwnerRootComponent ? OwnerRootComponent->GetPhysicsAngularVelocityInRadians() : FVector::Zero();
 
-	//bool bIsLocationSafe = PerformSafetyTrace(Transform.GetLocation());
-
 	LatestSnapshotIndex = TransformAndVelocitySnapshots.Emplace(TimeSinceSnapshotsChanged, Transform, LinearVelocity, AngularVelocityInRadians);
 
 	if (bSnapshotMovementVelocityAndMode && OwnerMovementComponent)
@@ -241,24 +231,12 @@ bool URewindComponent::PerformSafetyTrace(const FVector& Location) const
 {
 	FVector Start = Location;
 	FVector End = Location - FVector(0, 0, 150.0f);
-
-	// Set up the trace parameters
+	
 	FHitResult HitResult;
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.AddIgnoredActor(GetOwner());
-
-	// Perform the trace
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 	
-	/*if (bHit)
-	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1, 0, 5);
-		DrawDebugPoint(GetWorld(), HitResult.ImpactPoint, 10, FColor::Red, false, 1);
-	}
-	else
-	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1, 0, 5);
-	}*/
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 	
 	return bHit;
 }
@@ -282,8 +260,6 @@ void URewindComponent::EraseFutureSnapshots()
 
 void URewindComponent::PlaySnapshots(float DeltaTime, bool bRewinding)
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::PlaySnapshots);
-	
     UnpauseAnimation();
 	
     if (HandleInsufficientSnapshots()) { return; }
@@ -331,20 +307,8 @@ void URewindComponent::PlaySnapshots(float DeltaTime, bool bRewinding)
     InterpolateAndApplySnapshots(bRewinding);
 }
 
-//probably not needed
-bool URewindComponent::IsLatestSnapshotLocationSafe() const
-{
-	if (LatestSnapshotIndex >= 0 && LatestSnapshotIndex < TransformAndVelocitySnapshots.Num())
-	{
-		return TransformAndVelocitySnapshots[LatestSnapshotIndex].bIsLocationSafe;
-	}
-	return false;
-}
-
 void URewindComponent::PauseTime(float DeltaTime, bool bRewinding)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(URewindComponent::PauseTime);
-	
 	if (HandleInsufficientSnapshots()) { return; }
 	
 	if (bRewinding && LatestSnapshotIndex == TransformAndVelocitySnapshots.Num() - 1)
@@ -578,21 +542,6 @@ void URewindComponent::RewindForDuration(float Duration)
 	OnGlobalRewindStarted();
 }
 
-// probably not needed
-void URewindComponent::CheckSafeLocationAfterRewind()
-{
-	if (IsLatestSnapshotLocationSafe())
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Latest Snapshot Location is Safe"));
-		StopRewindForDuration();
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Latest Snapshot Location is Not Safe"));
-		bContinueRewindUntilSafe = true;
-	}
-}
-
 void URewindComponent::StopRewindForDuration()
 {
 	if (!GameMode)
@@ -668,4 +617,29 @@ float URewindComponent::GetRemainingTimeScrub() const
 float URewindComponent::GetTotalTimeScrub() const
 {
 	return TotalTimeScrub;
+}
+
+//redacted
+bool URewindComponent::IsLatestSnapshotLocationSafe() const
+{
+	if (LatestSnapshotIndex >= 0 && LatestSnapshotIndex < TransformAndVelocitySnapshots.Num())
+	{
+		return TransformAndVelocitySnapshots[LatestSnapshotIndex].bIsLocationSafe;
+	}
+	return false;
+}
+
+//redacted
+void URewindComponent::CheckSafeLocationAfterRewind()
+{
+	if (IsLatestSnapshotLocationSafe())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Latest Snapshot Location is Safe"));
+		StopRewindForDuration();
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Latest Snapshot Location is Not Safe"));
+		bContinueRewindUntilSafe = true;
+	}
 }

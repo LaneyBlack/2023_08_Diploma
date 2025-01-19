@@ -63,12 +63,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
 	void IncreaseKillCount();
 
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
+	void CompleteReset();
+
 	void StartKillStreak();
 
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
 	void ResetCombo();
 
 	void ResetComboState();
 
+	UFUNCTION(BlueprintCallable, Category = "ComboSystem")
 	void EndKillStreak();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "ComboSystem")

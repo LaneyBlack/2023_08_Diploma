@@ -50,7 +50,6 @@ bool ULevelSummaryData::AddLevelData(const FLevelData& LevelData)
 {
     if (!SaveGameInstance)
     {
-        UE_LOG(LogTemp, Warning, TEXT("SaveGameInstance is null"));
         return false;
     }
 
@@ -63,8 +62,7 @@ bool ULevelSummaryData::AddLevelData(const FLevelData& LevelData)
                 ExistingData = LevelData;
                 return true;
             }
-
-            UE_LOG(LogTemp, Warning, TEXT("New score is not higher for level: %s"), *LevelData.LevelName);
+            
             return false;
         }
     }
@@ -79,20 +77,11 @@ bool ULevelSummaryData::SaveSummaryDataToSlot()
     {
         FString SlotName = GetSlotName();
         bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGameInstance, SlotName, 0);
-
-        if (bSuccess)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Save successful to slot: %s"), *SlotName);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Failed to save to slot: %s"), *SlotName);
-        }
+        
 
         return bSuccess;
     }
-
-    UE_LOG(LogTemp, Warning, TEXT("Save failed. SaveGameInstance is null."));
+    
     return false;
 }
 
@@ -105,11 +94,9 @@ bool ULevelSummaryData::LoadSaveData()
     if (LoadedData)
     {
         SaveGameInstance = LoadedData;
-        UE_LOG(LogTemp, Log, TEXT("Save data loaded from slot: %s"), *SlotName);
         return true;
     }
-
-    UE_LOG(LogTemp, Warning, TEXT("No save data found in slot: %s"), *SlotName);
+    
     return false;
 }
 
@@ -133,7 +120,6 @@ bool ULevelSummaryData::UnlockLevel(const FString& LevelName)
 
     if (!LevelMatcher.FindNext())
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid level name: %s. Level names must match the pattern 'Level<number>'"), *LevelName);
         return false;
     }
 

@@ -7,10 +7,6 @@
 #include "Sound/SoundClass.h"
 #include "MyGameUserSettings.generated.h"
 
-/**
- * 
- */
-
 UENUM(BlueprintType)
 enum class EGraphicsQuality : uint8
 {
