@@ -115,8 +115,7 @@ bool UCombatSystemComponent::CheckIfCanAttack()
 const FAttackAnimData& UCombatSystemComponent::DetermineNextAttackData()
 {
 	static int StaticIndex = 0;
-	int index = DebugIndex < 0 ? (StaticIndex++ % AttackMontages.Num()) : DebugIndex;
-	return AttackMontages[index];
+	return AttackMontages[StaticIndex++ % AttackMontages.Num()];
 }
 
 const FAttackAnimData& UCombatSystemComponent::DetermineNextCounterAttackData()
@@ -175,16 +174,10 @@ void UCombatSystemComponent::ProcessHitResult(const FHitResult& HitResult)
 
 		if (!Enemy->HandleHitReaction(KatanaHitResult))
 		{
-			if(bDebugStopCamShake)
-				PlayerCameraManager->StopAllCameraShakes();
-
-			PlayerCameraManager->StartCameraShake(HitCameraShake, 2);
-
-			/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
-				HitCameraShake,
-				playerCharacter->GetActorLocation(),
-				1, 500, 1);*/
+			PlayerCameraManager->StartCameraShake(HitCameraShake, 1.0f);
 		}
+
+		playerCharacter->StartBloodEffect();
 	}
 	else if (auto SlicableActor = Cast<ASlicableActor>(HitActor))
 	{
@@ -204,14 +197,7 @@ void UCombatSystemComponent::ProcessHitResponse(float ImpulseStrength, const FVe
 
 	HandleAttackEnd(false);
 
-	if(bDebugStopCamShake)
-		PlayerCameraManager->StopAllCameraShakes();
-
-	/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
-		ShieldHitCameraShake,
-		playerCharacter->GetActorLocation(),
-		0, 500, 1);*/
-	PlayerCameraManager->StartCameraShake(ShieldHitCameraShake, 2);
+	PlayerCameraManager->StartCameraShake(ShieldHitCameraShake, 1.8f);
 
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ShieldHitParticle, ImpactPoint, FRotator(0.f), FVector(UniformShieldHitParticleSize));
 }
@@ -715,19 +701,12 @@ void UCombatSystemComponent::SwingKatana()
 	float AttackMontageStartTime = .17f;
 	AnimInstance->Montage_Play(NextAttackData.AttackMontage, AttackSpeedMultiplier, EMontagePlayReturnType::MontageLength, AttackMontageStartTime);
 
-	// =============== experimental =================
+	UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
 
-	if (!bDebugIgnoreSwingShake && !bUseCamShakeNotify)
-	{
-		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
+	UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
 
-		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
-
-		if (pSwordSwingShake)
-			pSwordSwingShake->SetSwingVector(NextAttackData.AttackVectorWorldNormalized);
-	}
-
-	// =============== experimental =================
+	if (pSwordSwingShake)
+		pSwordSwingShake->SetSwingVector(NextAttackData.AttackVectorWorldNormalized);
 
 	CurrentAttackData = NextAttackData;
 	NextAttackData = DetermineNextAttackData();
@@ -925,11 +904,6 @@ void UCombatSystemComponent::PerfectParryResponse(bool bEnableSlowMo)
 	PlayerCameraManager->StopAllCameraShakes();
 
 	PlayerCameraManager->StartCameraShake(ParryCameraShake, 1.5f);
-
-	/*PlayerCameraManager->PlayWorldCameraShake(GetWorld(),
-		ParryCameraShake,
-		playerCharacter->GetActorLocation(),
-		0, 500, 1);*/
 }
 
 void UCombatSystemComponent::SuperAbility()
@@ -942,13 +916,11 @@ void UCombatSystemComponent::SuperAbility()
 	else if (SA_State != SuperAbilityState::NONE)
 		return;
 
-	PRINT("NO CHECK FOR COMBO POINTS IN SUPERABILITY CODE", 4);
-
-	/*if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
+	if (ComboSystem->AbilityComboPoints < ComboSystem->SuperAbilityCost)
 	{
 		OnSuperAbilityCalled.Broadcast(false, "Not enough Combo Points");
 		return;
-	}*/
+	}
 
 	SuperAbilityTargetsLeft = SuperAbilityTargetLimit;
 
@@ -1021,18 +993,6 @@ void UCombatSystemComponent::PlayMontageNotifyBegin(FName NotifyName, const FBra
 
 		//so that shockwave is not affected by slow mo after parry
 		SpawnedShockwave->CustomTimeDilation = 1.f;
-	}
-	else if (NotifyName.IsEqual("CamShakeStart"))
-	{
-		if (bDebugIgnoreSwingShake || !bUseCamShakeNotify)
-			return;
-
-		UCameraShakeBase* cam = PlayerCameraManager->StartCameraShake(SwordSwingShake);
-
-		UDirectionalCameraShake* pSwordSwingShake = Cast<UDirectionalCameraShake>(cam);
-
-		if (pSwordSwingShake)
-			pSwordSwingShake->SetSwingVector(CurrentAttackData.AttackVectorWorldNormalized);
 	}
 }
 

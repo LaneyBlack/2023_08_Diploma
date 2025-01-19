@@ -27,10 +27,6 @@ void UDirectionalMixedShakePattern::StartShakePatternImpl(const FCameraShakeStar
 
 void UDirectionalMixedShakePattern::UpdateShakePatternImpl(const FCameraShakeUpdateParams& Params, FCameraShakeUpdateResult& OutResult)
 {
-	//PRINT("UpdateShakePatternImpl", 5);
-	//PRINT_F("UpdateShakePatternImpl, vector = %s", *ShakeLocalDirection.ToCompactString(), 2);
-	//PRINTC_F("Curve being used = %s", *UKismetSystemLibrary::GetDisplayName(CurrentShakeData->InterpCurve), 5, FColor::White);
-
 	UpdateShake(Params.DeltaTime, OutResult);
 
 	const float BlendWeight = State.Update(Params.DeltaTime);
@@ -39,8 +35,6 @@ void UDirectionalMixedShakePattern::UpdateShakePatternImpl(const FCameraShakeUpd
 
 void UDirectionalMixedShakePattern::ScrubShakePatternImpl(const FCameraShakeScrubParams& Params, FCameraShakeUpdateResult& OutResult)
 {
-	//PRINT("ScrubShakePatternImpl", 5);
-
 	ShakeCurrentTime = 0.f;
 
 	UpdateShake(Params.AbsoluteTime, OutResult);

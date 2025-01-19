@@ -32,12 +32,6 @@ public:
 
 public:
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
-	UCurveFloat* InterpCurve;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
-	float RotationAmplitude;*/
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
 	TArray<FCurveData> CustomMovementData;
 

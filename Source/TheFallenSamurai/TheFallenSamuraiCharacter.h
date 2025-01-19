@@ -156,6 +156,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Jump")
 	void ResetDoubleJump();
 
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void StartBloodEffect();
+
 protected:
 	/** Called for player attack action */
 	void Attack(const FInputActionValue& Value);

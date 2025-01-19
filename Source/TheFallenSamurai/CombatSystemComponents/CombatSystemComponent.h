@@ -273,20 +273,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
-	int DebugIndex = -1;
-
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
 	TSubclassOf<UCameraShakeBase> SwordSwingShake;
-
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
-	bool bDebugStopCamShake = true;
-
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
-	bool bDebugIgnoreSwingShake = false;
-
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
-	bool bUseCamShakeNotify = false;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
 	TSubclassOf<UCameraShakeBase> HitCameraShake;
