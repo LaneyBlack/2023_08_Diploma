@@ -10,6 +10,7 @@
 #define PRINTC_F(prompt, mess, mtime, color) GEngine->AddOnScreenDebugMessage(-1, mtime, color, FString::Printf(TEXT(prompt), mess));
 #define PRINT_B(prompt, mess) GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Magenta, FString::Printf(TEXT(prompt), mess ? TEXT("TRUE") : TEXT("FALSE")));
 
+float UDirectionalMixedShakePattern::ShakeGlobalIntensity = 1.f;
 
 UDirectionalMixedShakePattern::UDirectionalMixedShakePattern(const FObjectInitializer& ObjInit)
 	: USimpleCameraShakePattern(ObjInit) {}
@@ -54,6 +55,9 @@ void UDirectionalMixedShakePattern::UpdateShake(float DeltaTime, FCameraShakeUpd
 
 	OutResult.Location = WaveShakeData.Update(DeltaTime, 1.f, 1.f, WaveVectorTime) * ShakePerpDirection;
 	OutResult.Location.X = 0.f;
+
+	OutResult.Rotation *= ShakeGlobalIntensity;
+	OutResult.Location *= ShakeGlobalIntensity;
 }
 
 void UDirectionalMixedShakePattern::SetDirectionVectors(const FVector& Direction)

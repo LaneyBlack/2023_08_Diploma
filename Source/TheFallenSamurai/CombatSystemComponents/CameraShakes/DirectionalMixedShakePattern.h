@@ -30,6 +30,15 @@ public:
 
 	UDirectionalMixedShakePattern(const FObjectInitializer& ObjInit);
 
+	//UPROPERTY(BlueprintReadWrite)
+	static float ShakeGlobalIntensity;
+
+	UFUNCTION(BlueprintCallable)
+	static void SetShakeIntensity(float Intensity)
+	{
+		ShakeGlobalIntensity = Intensity;
+	}
+
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom Movement")
