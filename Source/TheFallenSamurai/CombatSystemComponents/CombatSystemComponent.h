@@ -43,13 +43,8 @@ struct FAttackAnimData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//float Chance;				//how often should this montage be played
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
-
-	//float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
 
 	float PerfectAttackTime;
 
@@ -57,10 +52,10 @@ struct FAttackAnimData
 
 	bool bIsTeleportAttack = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
 	FVector AttackVector;
 
-	FVector AttackVectorWorld;
+	FVector AttackVectorWorldNormalized;
 };
 
 USTRUCT(BlueprintType)
@@ -125,6 +120,8 @@ public:
 	// Sets default values for this component's properties
 	UCombatSystemComponent();
 
+	FVector GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, float StartTime, float EndTime);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -157,10 +154,6 @@ private:
 	TSet<AActor*> HitActorsOnSwing;
 
 	class APlayerCameraManager* PlayerCameraManager;
-
-	FVector KatanaPreviousPosition;
-
-	FName KatanaSocketForDirection = "TraceEnd";
 
 	FTimerHandle EnemiesTraceTimerHandle = FTimerHandle();
 
@@ -235,12 +228,6 @@ private:
 	void ProcessHitResponse(float ImpulseStrength, const FVector& ImapctPoint);
 
 	UFUNCTION()
-	FVector DetermineKatanaDirection();
-
-	UFUNCTION()
-	FVector GetKatanaSocketWorldPosition(FName SocketName);
-
-	UFUNCTION()
 	void GetEnemiesInViewportOnAttack();
 
 	UFUNCTION()
@@ -265,8 +252,9 @@ private:
 	UFUNCTION()
 	void TeleportToEnemy(float TeleportDistance);
 
-	UFUNCTION()
 	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName);
+
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, float& EndTime);
 
 	UFUNCTION()
 	void ExecuteSuperAbility();
@@ -485,7 +473,6 @@ public:
 
 	UFUNCTION()
 	void OnComboPointsChanged(int32 NewComboPoints);
-
 private:
 	int32 CurrentComboPoints;
 };

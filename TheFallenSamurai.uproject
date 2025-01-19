@@ -12,7 +12,8 @@
 				"Engine",
 				"CoreUObject",
 				"GameplayAbilities",
-				"GameplayCameras"
+				"GameplayCameras",
+				"AnimGraphRuntime"
 			]
 		}
 	],

@@ -55,15 +55,6 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SetEnableTargetWidget(bool bIsSelected);
-
-	//old
-	UFUNCTION(BlueprintCallable)
-	void ConvertSkeletalMeshToProceduralMesh(USkeletalMeshComponent* InSkeletalMeshComponent, int32 LODIndex, UProceduralMeshComponent* InProcMeshComponent);
-
-	//newest functino
-	UFUNCTION(BlueprintCallable)
-	void CopySkeletalMeshToProcedural(USkeletalMeshComponent* SkeletalMeshComponent, int32 LODIndex, UProceduralMeshComponent* ProcMeshComponent);
-	
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 };
