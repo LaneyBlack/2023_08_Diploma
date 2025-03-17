@@ -49,6 +49,16 @@ void UComboSystem::UpdateComboLevel()
 	}
 }
 
+int32 UComboSystem::GetTotalComboPoints() const
+{
+	return TotalComboPoints;
+}
+
+int32 UComboSystem::GetCurrentComboPoints() const
+{
+	return CurrentComboPoints;
+}
+
 void UComboSystem::HandleComboState()
 {
 	if (this->ComboState == EComboState::WalljumpKill)
@@ -114,6 +124,17 @@ void UComboSystem::StartKillStreak()
 
 void UComboSystem::EndKillStreak()
 {
+	
+	if (AbilityComboPoints <= SuperAbilityCost)
+	{
+		AbilityComboPoints += CurrentComboPoints;
+
+		if (AbilityComboPoints > SuperAbilityCost)
+		{
+			AbilityComboPoints = SuperAbilityCost;
+		}
+	}
+	
 	KillStreakCount = 0;
 	OnResetKillstreak.Broadcast();
 	KillStreakMessages.Empty();
@@ -161,3 +182,13 @@ void UComboSystem::BeginDestroy()
 	Super::BeginDestroy();
 	Instance = nullptr;
 }
+
+void UComboSystem::CompleteReset()
+{
+	EndKillStreak();
+	ResetCombo();
+
+	TotalComboPoints = 0;
+	CurrentComboPoints = 0;
+}
+

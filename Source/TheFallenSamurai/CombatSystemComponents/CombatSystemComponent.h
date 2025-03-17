@@ -4,21 +4,34 @@
 
 //#include "Templates/Tuple.h"
 #include "CoreMinimal.h"
+#include "ComboSystem.h"
 #include "Components/ActorComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "CombatSystemComponent.generated.h"
 
+
+class AKatana;
+class UCameraShakeBase;
+class ABaseEnemy;
+class UParticleSystem;
+template<typename... Types>
+struct TTuple;
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFramesChanged, bool, bIsImmortal);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStolenTokensChanged, int, CurrentAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemiesLeftChanged, int, EnemiesLeft);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSuperAbilityTargetAcquired, bool, bFoundNewTarget); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuperAbilityCalled, bool, bWasSuccess, FString, FailReason); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuperAbilityCancelled);
 
 UENUM(BlueprintType)
-enum class SuperAbilityState : uint8 {
+enum class SuperAbilityState : uint8 
+{
 	NONE = 0 UMETA(DisplayName = "NONE"),
 	WAITING = 1  UMETA(DisplayName = "WAITING"),
-	//CALLED = 2  UMETA(DisplayName = "CALLED"),
-	DURING = 2  UMETA(DisplayName = "DURING")
+	GOTTARGET = 2  UMETA(DisplayName = "GOTTARGET"),
+	TELEPORTING = 3  UMETA(DisplayName = "TELEPORTING")
 };
 
 
@@ -31,24 +44,72 @@ struct FAttackAnimData
 	UAnimMontage* AttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Chance;				//how often should this montage be player
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool PerfectForCounter = false;				
 
-	float NormalizedChance;		//direct probabilty of this montage being fired(relative to all montages present in the array)
-
-	//float PlayRate;
 	float PerfectAttackTime;
 
-	//for later 
-	//hand offset of crig
+	float StartTime;
+
+	bool bIsTeleportAttack = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector AttackVector;
+
+	FVector AttackVectorWorldNormalized;
 };
 
-class AKatana;
-class UCameraShakeBase;
-template<typename... Types>
-struct TTuple;
+USTRUCT(BlueprintType)
+struct FCombatHitData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector  CutPlaneNormal;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector  CutVelocity;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector  ImpactLocation;
+
+	UPROPERTY(BlueprintReadWrite)
+	AActor*  ActorCauser;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bSuperAbilityKill;
+};
+
+USTRUCT(BlueprintType)
+struct FTeleportProperties
+{
+	GENERATED_BODY()
+
+	float TeleportDistance;
+
+	FTimeline Timeline;
+
+	float FOVChange;
+
+	bool bPickTimeFromRange = true;
+
+	float MinTime;
+	float MaxTime;
+};
+
+USTRUCT(BlueprintType)
+struct FValidationRules
+{
+	GENERATED_BODY()
+
+	bool bUseDebugPrint = false;
+	EDrawDebugTrace::Type DrawDebugTrace = EDrawDebugTrace::None;
+
+	float GroundTraceDepth;
+	bool bUsePitch = true;
+	bool bUseLazyCheck = true;
+	int ChecksSampleScale = 1; //how granular the checks are placed: bigger number -> they are more "packed"
+	bool bShouldIgnoreShields = false;
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEFALLENSAMURAI_API UCombatSystemComponent : public UActorComponent
@@ -59,6 +120,8 @@ public:
 	// Sets default values for this component's properties
 	UCombatSystemComponent();
 
+	FVector GetMontageAttackVector(UAnimMontage* Montage, FName BoneName, float StartTime, float EndTime);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -66,7 +129,7 @@ protected:
 private:	
 
 	UPROPERTY()
-	class ACharacter* playerCharacter;
+	class ATheFallenSamuraiCharacter* playerCharacter;
 
 	UPROPERTY()
 	AKatana* Katana;
@@ -74,7 +137,7 @@ private:
 	UPROPERTY()
 	class UDidItHitActorComponent* HitTracer;
 
-	float MaxViewPitchValue = 35.f;
+	float MaxViewPitchValue = 70.f;
 
 	float MinViewPitchValue = -70.f;
 
@@ -84,17 +147,13 @@ private:
 
 	class UAnimInstance* AnimInstance;
 
-	FAttackAnimData CurrentAttackData;
-
 	FAttackAnimData NextAttackData;
 
 	TArray<FAttackAnimData> CounterAttackMontages;
 
+	TSet<AActor*> HitActorsOnSwing;
+
 	class APlayerCameraManager* PlayerCameraManager;
-
-	FVector KatanaPreviousPosition;
-
-	FName KatanaSocketForDirection = "TraceEnd";
 
 	FTimerHandle EnemiesTraceTimerHandle = FTimerHandle();
 
@@ -114,8 +173,6 @@ private:
 
 	bool bShouldIgnoreTeleport = false;
 
-	//FTimerHandle TeleportTimerHandle = FTimerHandle();
-
 	FTimeline TeleportTimeline;
 
 	FVector PlayerStartForTeleport;
@@ -128,21 +185,29 @@ private:
 
 	float PlayerCameraFOV;
 
-	int StolenTokens = 0;
-
 	FTimeline ParrySlowMoTimeline;
 
 	float TimeDilationBeforeParry = 1.f;
 
 	bool bShouldSpeedUpSlowMoTimeline = false;
 
-	float DebugTimeStamp;
-
-	//FVector TargetPointInitialPosition;
-
-	FVector GetAutoAimOffset(FVector PlayerLocation, FVector EnemyLocation);
-
 	SuperAbilityState SA_State = SuperAbilityState::NONE;
+
+	ABaseEnemy* SuperAbilityTarget = nullptr;
+
+	UComboSystem* ComboSystem;
+
+	FTimerHandle SuperAbilityTimerHandle = FTimerHandle();
+	
+	int SuperAbilityTargetsLeft = -1;
+
+	TSet<ABaseEnemy*> PostProcessSA_Targets;
+
+	UFUNCTION()
+	void ClearAffectedByPostProcess();
+
+	UFUNCTION()
+	FVector GetAutoAimOffset(const FVector& PlayerLocation, const FVector& EnemyLocation, const FVector& PlayerForwardVector, const FVector& PlayerUpVector);
 
 	UFUNCTION()
 	bool CheckIfCanAttack();
@@ -154,16 +219,13 @@ private:
 	const FAttackAnimData& DetermineNextCounterAttackData();
 
 	UFUNCTION()
-	void HandleAttackEnd();
+	void HandleAttackEnd(bool bShouldPerformFinalTraceCheck = true);
 
 	UFUNCTION()
-	void ProcessHitReaction(AActor* HitActor, FVector ImpactPoint);
+	void ProcessHitResult(const FHitResult& HitResult);
 
 	UFUNCTION()
-	FVector DetermineKatanaDirection();
-
-	UFUNCTION()
-	FVector GetKatanaSocketWorldPosition(FName SocketName);
+	void ProcessHitResponse(float ImpulseStrength, const FVector& ImapctPoint);
 
 	UFUNCTION()
 	void GetEnemiesInViewportOnAttack();
@@ -174,31 +236,54 @@ private:
 	UFUNCTION()
 	void GetVelocityVariables();
 
-	/*UFUNCTION()
-	void TraceForEnemiesToTeleport();*/
+	UFUNCTION()
+	bool CheckIsTeleportTargetObscured(ABaseEnemy* Enemy);
 
 	UFUNCTION()
-	void TeleportToClosestEnemy(ABaseEnemy* Enemy);
+	bool CheckIsShieldProtected(const FVector& ToPlayerNormalized, const FVector& EnemyForward);
 
 	UFUNCTION()
-	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, FName TrackName);
+	bool ValidateTeleportTarget(ABaseEnemy* Enemy, const FValidationRules& ValidationRules);
 
 	UFUNCTION()
-	bool ExecuteSuperAbility();
+	bool PerformTeleportCheck(ABaseEnemy* Enemy, const FVector& EnemyLocationOverTime, const FVector& Direction, float TraceDepth,
+		 float BlockCapsuleRadius, float BlockCapsuleHalfHeight, const FValidationRules& ValidationRules);
+
+	UFUNCTION()
+	void TeleportToEnemy(float TeleportDistance);
+
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName);
+
+	float GetNotifyTimeInMontage(UAnimMontage* Montage, FName NotifyName, float& EndTime);
+
+	UFUNCTION()
+	void ExecuteSuperAbility();
+
+	UFUNCTION()
+	void SwingKatana();
+
 public:
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attack Data|Animation")
+	FAttackAnimData CurrentAttackData;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	TArray<FAttackAnimData> AttackMontages;
-	//TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|Animation")
 	float AttackSpeedMultiplier = 1.5f;
 
-	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shakes")
-	TSubclassOf<UCameraShakeBase> AttackCameraShake;
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Camera Shake")
+	TSubclassOf<UCameraShakeBase> SwordSwingShake;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
+	TSubclassOf<UCameraShakeBase> HitCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Attack Data|Hit Reaction")
+	UParticleSystem* DefaultHitParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
-	class UParticleSystem* BloodParticles;
+	UParticleSystem* BloodParticles;
 
 	UPROPERTY(EditAnywhere, Category = "Attack Data|VFX")
 	FVector BloodScale = FVector(.6f, .6f, .8f);
@@ -234,10 +319,11 @@ public:
 	FVector PerfectParrySparksSize = FVector(3.f, 3.f, 3.f);
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
-	class UParticleSystem* PerfectParryShockwave;
+	UParticleSystem* PerfectParryShockwave;
 
 	UPROPERTY(EditAnywhere, Category = "Perfect Parry Data|VFX")
 	FVector PerfectParryShockwaveSize = FVector(1.f, 1.f, 1.f);
+
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
 	float TeleportTriggerScale = 3.f;
@@ -249,7 +335,7 @@ public:
 	float MaxTotalTeleportTime = .3f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data")
-	float MinFOVValue = 70.f;
+	float TeleportFOVChange = 75.f;
 
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* LocationCurve;
@@ -260,20 +346,35 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Teleport Data|Interpolation Curves")
 	UCurveFloat* FOVCurve;
 
-	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int MaxStolenTokens = 3;
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|Teleport")
+	float ShieldIgnoreAngle = 0.f;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|Camera Shake")
+	TSubclassOf<UCameraShakeBase> ShieldHitCameraShake;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|VFX")
+	UParticleSystem* ShieldHitParticle;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data|VFX")
+	float UniformShieldHitParticleSize;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
+	float ShieldHitImpulse = 600.f;
+
+	UPROPERTY(EditAnywhere, Category = "Shield Reaction Data")
+	float OnHitAnimationBlendTime = .5f;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float MaxJumpRadius = 200.f;
 
-	UPROPERTY(EditAnywhere, Category = "Super Ability")
-	int EnemyTargetLimit = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Super Ability")
+	int SuperAbilityTargetLimit = 4;
 
 	UPROPERTY(EditAnywhere, Category = "Super Ability")
 	float SuperAbilitySlowMo = 0.1f;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnStolenTokensChanged OnStolenTokensChanged;
+	UPROPERTY(EditAnywhere, Category = "Super Ability")
+	float LookRateScale = 0.5f;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnIFramesChanged OnIFramesChanged;
@@ -283,6 +384,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSuperAbilityCancelled OnSuperAbilityCancelled;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnSuperAbilityTargetAcquired OnSuperAbilityTargetAcquired;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnEnemiesLeftChanged OnEnemiesLeftChanged;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanRigUpdate;
@@ -302,38 +409,37 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FVector TargetPointOffset;
 
-	/*UPROPERTY(BlueprintReadOnly)
-	FVector TargetPointPosition;*/
-
 	UPROPERTY(BlueprintReadOnly)
 	bool bInTeleport;
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeCombatSystem(ACharacter* player, TSubclassOf<AKatana> KatanaActor);
+	void InitializeCombatSystem(ATheFallenSamuraiCharacter* player, TSubclassOf<AKatana> KatanaActor);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void Attack();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	void GetLeftTransforms(FTransform& KatanaGripWorldTransform, FTransform& LeftHandSocket, FTransform& RightHandSocket);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void PerfectParry();
 
 	UFUNCTION(BlueprintCallable)
-	void InterruptPerfectParry();
+	void PerfectParryResponse(bool bEnableSlowMo = true);
 
-	UFUNCTION(BlueprintCallable)
-	void PerfectParryResponse(int InTokens, bool bEnableSlowMo);
-
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void SuperAbility();
 
 	UFUNCTION(BlueprintCallable)
 	void CancelSuperAbility();
 
 	UFUNCTION(BlueprintCallable)
-	void SpeedUpSlowMoTimeline(float SpeedUpValue = 60.f);
+	bool IsSuperAbilityActive();
+
+	float GetLookRate();
+
+	UFUNCTION(BlueprintCallable)
+	void SpeedUpSlowMoTimeline(float SpeedUpValue = 80.f);
 
 	UFUNCTION()
 	void PlayMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload);
@@ -363,5 +469,10 @@ public:
 	void SlowMoTimelineFinish();
 
 	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UFUNCTION()
+	void OnComboPointsChanged(int32 NewComboPoints);
+private:
+	int32 CurrentComboPoints;
 };

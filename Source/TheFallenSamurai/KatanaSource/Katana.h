@@ -23,7 +23,7 @@ protected:
 
 public:	
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class UStaticMeshComponent* KatanaMesh;
 
 	UPROPERTY(EditAnywhere)

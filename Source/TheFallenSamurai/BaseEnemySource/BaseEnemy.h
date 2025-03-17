@@ -6,10 +6,16 @@
 #include "GameFramework/Character.h"
 #include "BaseEnemy.generated.h"
 
+class UProceduralMeshComponent;
+struct FCombatHitData;
+
 UCLASS()
 class THEFALLENSAMURAI_API ABaseEnemy : public ACharacter
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	class UProceduralMeshComponent* ProceduralMesh;
 
 public:
 	// Sets default values for this character's properties
@@ -20,16 +26,35 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
+	UStaticMesh* HeadMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
+	FName HeadBoneName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dismemberment")
+	float DismembermentStrength = 5000.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bIsGettingHit;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+	bool bOwnsShield = false;
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void ApplyDamage();
+	UFUNCTION(BlueprintCallable)
+	bool HandleHitReaction(const FCombatHitData& CombatHitData);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void SetDebugTextValue(float value);
+	void ApplyDamage(const FCombatHitData& CombatHitData);
 
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void SetDebugTextValue(const FString& value);
+
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void SetEnableTargetWidget(bool bIsSelected);
 	// Called to bind functionality to input
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 };

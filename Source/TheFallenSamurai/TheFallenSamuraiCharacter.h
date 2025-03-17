@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "AbilitySystemInterface.h"
+#include "Components/TimelineComponent.h"
 #include "TheFallenSamuraiCharacter.generated.h"
 
 class USpringArmComponent;
@@ -13,6 +14,8 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class URewindComponent;
+class APlayerGameModeBase;
 
 UENUM(BlueprintType)
 enum class ENoJumpState : uint8
@@ -30,6 +33,25 @@ UCLASS(config=Game)
 class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
+
+	/** Rewind component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rewind", meta = (AllowPrivateAccess = "true"))
+	URewindComponent* RewindComponent;
+
+	/** Toggle Rewind Participation Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleRewindParticipationAction;
+
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+	void ToggleRewindParticipationNoInput();
+
+	/** Rewind Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* RewindAction;
+
+	/** Time Scrub Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleTimeScrubAction;
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -64,14 +86,60 @@ class ATheFallenSamuraiCharacter : public ACharacter, public IAbilitySystemInter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* SuperAbilityAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input, meta = (AllowPrivateAccess = "true"))
+	float LookRotationScale = 0.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CombatSystem, meta = (AllowPrivateAccess = "true"))
 	class UCombatSystemComponent* CombatSystemComponent;
 
+	//never use it, accept in coyote gravity related functions
+	float GravityCache = -1.f;
+
+	UPROPERTY()
+	FTimeline CoyoteGravityTimeline;
+
+	UPROPERTY()
+	FTimerHandle CoyoteTimeTimer = FTimerHandle();
+
+	bool bLockedJump = false;
+
+	UFUNCTION()
+	void EnableJumpLock();
+
+	UFUNCTION()
+	void InterpolateGravity(float Value);
+
+	void ResetCoyoteProperties();
+
 public:
+	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	bool LockPlayerAttack = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	bool LockPlayerPerfectParry = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Tutorial", meta = (AllowPrivateAccess = "true"))
+	bool bLockPlayerAbilities = false;
+
 	ATheFallenSamuraiCharacter();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Parkour", meta = (AllowPrivateAccess = "true"))
 	bool bIsWallrunJumping = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true"))
+	float CoyoteTime = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true"))
+	bool bUseGravityTimeline = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true", EditCondition = "bUseGravityTimeline"))
+	UCurveFloat* GravityCurve;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parkour|CoyoteTime", meta = (AllowPrivateAccess = "true", EditCondition = "bUseGravityTimeline"))
+	float  MinGravity = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float DesiredCharacterYaw = 0.f;
 
 	UFUNCTION(BlueprintCallable, Category = "NoJump")
 	void SetNoJumpState(ENoJumpState NewNoJumpState)
@@ -85,7 +153,34 @@ public:
 		NoJumpState = ENoJumpState::None;
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "Jump")
+	void ResetDoubleJump();
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void StartBloodEffect();
+
 protected:
+	/** Called for player attack action */
+	void Attack(const FInputActionValue& Value);
+
+	/** Called for player parry action */
+	void PerfectParry(const FInputActionValue& Value);
+
+
+	/** Called for rewind input */
+	void Rewind(const FInputActionValue& Value);
+
+	/** Called for rewind input */
+	void StopRewinding(const FInputActionValue& Value);
+
+	/** Called when toggling rewind participation */
+	void ToggleRewindParticipation(const FInputActionValue& Value);
+
+	/** Called for time scrub input */
+	void ToggleTimeScrub(const FInputActionValue& Value);
+
+	/** Called for Super Ability Execution */
+	void ToggleSuperAbility(const FInputActionValue& Value);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS", meta = (AllowPrivateAccess = true))
 	class UAbilitySystemComponent* AbilitySystemComponent;
@@ -110,6 +205,10 @@ protected:
 	// To add mapping context
 	virtual void BeginPlay();
 
+	virtual void Tick(float DeltaTime) override;
+
+	virtual bool CanJumpInternal_Implementation() const override;
+
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
 	// Reset Double Jump
@@ -128,6 +227,10 @@ public:
 	void DoubleJump();
 
 private:
+	// Game mode for driving global time manipulation operations
+	UPROPERTY(Transient, VisibleAnywhere, Category = "Rewind|Debug")
+	APlayerGameModeBase* GameMode;
+	
 	void DoubleJumpLogic();
 	
 	void ResetCombo();
