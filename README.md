@@ -6,7 +6,9 @@ The following project inspired by the game Ghostrunner is a mix of parkour and p
 So slide, run and slice until nothing is left alive and compare your score with your friends on leaderboards thanks to Steam Integration and Epic Leaderboard.
 
 ### Gameplay
-![trailer](https://github.com/user-attachments/assets/396b17c2-03a9-430c-a428-86cbe3ca6500)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/32cb9947-4b84-4774-a1ed-72890f531463" width = "800">
+</p>
 
 ## Game Features
 * Fluid Parkour - players can perform various moves including wallrun, sliding and mantle.
@@ -27,10 +29,10 @@ Project was created in Unreal Engine 5.3.2 with addition of
 ## Highlighed Tech
 
 ### Procedural Hand Animation in Control Rig
-
+Our procedural animation system allows to position both hands in the game viewport allowing for the two handed Katana grip. It allowed us to improve the quality of the animations that were at our disposal. Furhtermore, the system can procedurally adjust the combat animations trajectory, so that any point withing the player characters arm range can be targeted and hit. It was implememted inside the Unreal Engines Control Rig, by using Two Bone IK, vector math includind vector projection and rejection as well as quaterions to calculate correct hands rotation along the sword grip.
 
 ### Time Rewind
-
+System allows to give player a second change once they made a fatal mistake. During gameplay, for each actor that can be affected by Time Rewind, it saves the snapshots containing the basic actor information such as location and velocities as well a flag whether or the position is safe (not in the air for instance). Each snapshot is stored in a Rind Buffer, which allows for overwriting old snapshots when the structure becomes full. When the rewind process is initiated, for each actor all of the available snapshots are interpolated, giving the illusion of reversing the time.
 
 [//]: <> (### Steam + Epic leaderboards)
 [//]: <> (todo)
