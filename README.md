@@ -26,8 +26,8 @@ Project was created in Unreal Engine 5.3.2 with addition of
 
 ### Time Rewind
 
-[//]: <> ### Steam + Epic leaderboards
-[//]: <> todo
+[//]: <> (### Steam + Epic leaderboards)
+[//]: <> (todo)
 
 
 ## Authors
